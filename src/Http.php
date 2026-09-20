@@ -26,7 +26,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 final class Http
 {
     /** The default BAPI origin, overridable per instance. */
-    public const DEFAULT_API_URL = 'https://api.atlas.dev';
+    public const DEFAULT_API_URL = 'https://api.atlasauth.net';
 
     private readonly string $baseUrl;
 
