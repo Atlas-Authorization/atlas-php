@@ -191,6 +191,6 @@ final class ClientResourceTest extends TestCase
 
     public function testDefaultBaseUrlConstant(): void
     {
-        $this->assertSame('https://api.atlas.dev', Http::DEFAULT_API_URL);
+        $this->assertSame('https://api.atlasauth.net', Http::DEFAULT_API_URL);
     }
 }

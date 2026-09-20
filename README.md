@@ -135,7 +135,7 @@ $verifier = new SessionVerifier(
     jwksUrl: '…',
     issuer:  '…',
     secretKey:   'sk_live_…',                 // required for verifyOnline
-    bapiBaseUrl: 'https://api.atlas.dev',     // required for verifyOnline
+    bapiBaseUrl: 'https://api.atlasauth.net',     // required for verifyOnline
 );
 
 $result = $verifier->verifyOnline($token);
