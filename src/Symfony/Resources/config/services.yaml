@@ -1,0 +1,20 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # The framework-free local session verifier, wired from the resolved
+    # atlas.* parameters (bundle config, or the ATLAS_* environment variables).
+    Atlas\Verify\SessionVerifier:
+        arguments:
+            $jwksUrl: '%atlas.jwks_url%'
+            $issuer: '%atlas.issuer%'
+            $authorizedParties: '%atlas.authorized_parties%'
+            $secretKey: '%atlas.secret_key%'
+            $bapiBaseUrl: '%atlas.bapi_base_url%'
+
+    # Reference this as a `custom_authenticator` on a firewall in security.yaml.
+    Atlas\Symfony\AtlasAuthenticator:
+        arguments:
+            $verifier: '@Atlas\Verify\SessionVerifier'

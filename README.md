@@ -150,39 +150,66 @@ no deploy.
 
 ## Laravel
 
-Register the client and verifier as singletons in a service provider so they are
-resolved from the container and reuse the in-process JWKS cache across requests:
+The SDK ships an optional, auto-discovered integration under `Atlas\Laravel`
+(install `illuminate/support` + `illuminate/http` — the base SDK requires
+neither). `Atlas\Laravel\AtlasServiceProvider` binds a container singleton
+`SessionVerifier` — so the in-process JWKS cache is reused across requests — and
+registers two route-middleware aliases. Publish the config and set your keys in
+`.env`:
 
-```php
-namespace App\Providers;
-
-use Atlas\Client;
-use Atlas\Verify\SessionVerifier;
-use Illuminate\Support\ServiceProvider;
-
-class AtlasServiceProvider extends ServiceProvider
-{
-    public function register(): void
-    {
-        $this->app->singleton(Client::class, static fn () => new Client(config('services.atlas.secret_key')));
-
-        $this->app->singleton(SessionVerifier::class, static fn () => new SessionVerifier(
-            jwksUrl: config('services.atlas.jwks_url'),
-            issuer:  config('services.atlas.issuer'),
-        ));
-    }
-}
+```bash
+php artisan vendor:publish --tag=atlas-config
+# .env
+ATLAS_JWKS_URL=https://auth.yourdomain.com/.well-known/jwks.json
+ATLAS_ISSUER=https://auth.yourdomain.com
 ```
 
-Then type-hint `Atlas\Client` or `Atlas\Verify\SessionVerifier` anywhere the
-container resolves — a controller, a job, or route middleware that calls
-`authenticateRequest($request)` to gate a route. Add the provider to
-`config/app.php` (or let package discovery pick it up), and put your keys in
-`config/services.php` under an `atlas` entry.
+Then gate routes. `atlas.auth` verifies the `Authorization: Bearer` header (or
+the `__session` cookie), 401s when absent/invalid, and on success attaches the
+verified result to `$request->attributes->get('atlas')` and `$request->user()`.
+`atlas.permission` reads the org role / permissions straight off the token:
+
+```php
+Route::get('/billing', BillingController::class)
+    ->middleware(['atlas.auth', 'atlas.permission:billing:read']);
+// a role: prefix requires an org role, e.g. 'atlas.permission:role:admin'
+
+// In the controller:
+$claims = $request->user()->claims;        // sub, sid, org_role, …
+$request->user()->protect(['role' => 'admin']); // throws ForbiddenException → 403
+```
 
 Because the SDK is built on PSR-18/PSR-17, you can inject Laravel's HTTP client
 or any other conforming implementation instead of Guzzle by passing it to the
 constructor.
+
+## Symfony
+
+An optional Symfony integration lives under `Atlas\Symfony` (install
+`symfony/security-http` + `symfony/http-kernel`). Register the bundle and point a
+firewall at the authenticator:
+
+```php
+// config/bundles.php
+Atlas\Symfony\AtlasBundle::class => ['all' => true],
+```
+
+```yaml
+# config/packages/security.yaml
+security:
+    firewalls:
+        api:
+            pattern: ^/api
+            stateless: true
+            custom_authenticators:
+                - Atlas\Symfony\AtlasAuthenticator
+```
+
+`AtlasAuthenticator` claims any request carrying a Bearer token or `__session`
+cookie, verifies it locally, and returns a `SelfValidatingPassport` whose user is
+an `Atlas\Symfony\AtlasUser` — identifier `sub`, roles `ROLE_USER` plus
+`ROLE_<ORG_ROLE>`, full claims via `claims()`. A missing/invalid token is a 401.
+Configure it with the `ATLAS_*` environment variables, or under an `atlas` key.
 
 ## Testing
 
