@@ -11,8 +11,12 @@ use Atlas\ErrorItem;
  * Raised on any non-2xx response from the Backend API.
  *
  * Carries the HTTP {@see AtlasApiException::getStatus()} and the full parsed
- * {@see AtlasApiException::getErrors()} envelope. Branch on {@see getCode()}
- * (the first error's stable code) or use {@see hasCode()}.
+ * {@see AtlasApiException::getErrors()} envelope. Branch on {@see getErrorCode()}
+ * (the first error's stable string code) or use {@see hasCode()}.
+ *
+ * Note: the base {@see \Exception::getCode()} is `final` and returns the HTTP
+ * status (an int); the stable Atlas error code is a string, exposed separately as
+ * {@see getErrorCode()}.
  *
  * {@see fromResponse()} selects the most specific subclass for the status, so a
  * caller can `catch (NotFoundException)` or fall back to `catch
@@ -53,8 +57,8 @@ class AtlasApiException extends AtlasException
         return $this->errors;
     }
 
-    /** The first error's stable code, the field callers branch on most. */
-    public function getCode(): ?string
+    /** The first error's stable string code, the field callers branch on most. */
+    public function getErrorCode(): ?string
     {
         return $this->errors[0]->code ?? null;
     }

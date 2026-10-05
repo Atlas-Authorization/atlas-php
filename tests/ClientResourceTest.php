@@ -155,7 +155,7 @@ final class ClientResourceTest extends TestCase
             $this->fail('expected a NotFoundException');
         } catch (NotFoundException $e) {
             $this->assertSame(404, $e->getStatus());
-            $this->assertSame('NOT_FOUND', $e->getCode());
+            $this->assertSame('NOT_FOUND', $e->getErrorCode());
             $this->assertTrue($e->hasCode('NOT_FOUND'));
             $this->assertSame('No such user', $e->getMessage());
         }

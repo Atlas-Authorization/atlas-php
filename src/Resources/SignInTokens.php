@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Atlas\Resources;
 
 /** `/v1/sign_in_tokens` — one-time sign-in tokens for a user. */
+/**
+ * @deprecated POST /v1/sign_in_tokens is deprecated (Sunset 2026-04-01); use
+ * Sessions::create (POST /v1/sessions), which mints a real redeemable session.
+ */
 final class SignInTokens extends Resource
 {
     /**

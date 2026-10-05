@@ -1,6 +1,6 @@
 # Atlas PHP SDK
 
-The official PHP backend SDK for [Atlas](https://atlas.dev) — the secret-key
+The official PHP backend SDK for [Atlas](https://atlasauth.net) — the secret-key
 Backend API client plus local session-token/JWT verification. It mirrors the
 TypeScript SDK (`@atlas/backend`) namespace-for-namespace, so the same 45
 resource namespaces are available with the same method names.
@@ -68,7 +68,7 @@ try {
     // 404
 } catch (AtlasApiException $e) {
     $e->getStatus();          // int HTTP status
-    $e->getCode();            // stable machine code, e.g. "LAST_ADMIN"
+    $e->getErrorCode();       // stable machine code, e.g. "LAST_ADMIN"
     $e->hasCode('LAST_ADMIN');
     $e->getErrors();          // full §9.1 error envelope
 }
@@ -100,8 +100,8 @@ bounded by the 60-second token lifetime instead.
 use Atlas\Verify\SessionVerifier;
 
 $verifier = new SessionVerifier(
-    jwksUrl: 'https://your-instance.atlas.dev/.well-known/jwks.json',
-    issuer:  'https://your-instance.atlas.dev',
+    jwksUrl: 'https://auth.yourdomain.com/.well-known/jwks.json',
+    issuer:  'https://auth.yourdomain.com',
     authorizedParties: ['https://app.example.com'], // optional azp allowlist
 );
 
