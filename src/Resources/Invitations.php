@@ -32,4 +32,17 @@ final class Invitations extends Resource
     {
         return $this->http->request('POST', '/v1/invitations/' . rawurlencode($id) . '/revoke');
     }
+
+    /**
+     * `POST /v1/invitations/bulk` — create up to 100 invitations; returns created entries and per-entry
+     * errors.
+     *
+     * @param list<mixed> $invitations
+     *
+     * @return array<string,mixed>
+     */
+    public function bulkCreate(array $invitations): array
+    {
+        return $this->http->request('POST', '/v1/invitations/bulk', body: ['invitations' => $invitations]);
+    }
 }

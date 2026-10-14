@@ -9,13 +9,29 @@ use Atlas\Http;
 /**
  * `/v1/organizations` — orgs plus their memberships, invitations, domains and
  * directory-group role grants (the nested sub-resources below).
+ *
+ * @phpstan-import-type AtlasDesign from Design
+ * @phpstan-import-type AtlasDesignPatch from Design
+ * @phpstan-import-type DesignSettings from Design
+ * @phpstan-type EndUserPoolPolicy array{enabled:bool,requireApproval?:bool,allowHostedSignup?:bool}
+ * @phpstan-type OrgPolicy array{requireMfa?:bool,ssoRequired?:bool,sessionIdleOverrideMs?:int,allowedSignInMethods?:list<string>,ipAllowlist?:list<string>,maxSessionAgeSeconds?:int,endUserPool?:EndUserPoolPolicy}
+ * @phpstan-type OrgPolicyPatch array{requireMfa?:bool|null,ssoRequired?:bool|null,sessionIdleOverrideMs?:int|null,allowedSignInMethods?:list<string>|null,ipAllowlist?:list<string>|null,maxSessionAgeSeconds?:int|null,endUserPool?:EndUserPoolPolicy|null,entitlementPlan?:null,entitlementOverrides?:null}
  */
 final class Organizations extends Resource
 {
+    /** The organization policy keys the API knows about (camelCase, as sent). */
+    public const POLICY_FIELDS = [
+        'requireMfa', 'ssoRequired', 'sessionIdleOverrideMs', 'allowedSignInMethods',
+        'ipAllowlist', 'maxSessionAgeSeconds', 'endUserPool', 'entitlementPlan', 'entitlementOverrides',
+    ];
+
     public readonly OrganizationMemberships $memberships;
     public readonly OrganizationInvitations $invitations;
     public readonly OrganizationDomains $domains;
     public readonly OrganizationGroupRoles $groupRoles;
+    public readonly OrganizationReaderDomain $readerDomain;
+    public readonly OrganizationEndUsers $endUsers;
+    public readonly OrganizationAuditStreams $auditStreams;
 
     public function __construct(Http $http)
     {
@@ -24,6 +40,9 @@ final class Organizations extends Resource
         $this->invitations = new OrganizationInvitations($http);
         $this->domains = new OrganizationDomains($http);
         $this->groupRoles = new OrganizationGroupRoles($http);
+        $this->auditStreams = new OrganizationAuditStreams($http);
+        $this->endUsers = new OrganizationEndUsers($http);
+        $this->readerDomain = new OrganizationReaderDomain($http);
     }
 
     /**
@@ -81,11 +100,26 @@ final class Organizations extends Resource
     }
 
     /**
-     * `PATCH /v1/organizations/:id/policy` — the org security policy (camelCase fields).
+     * `PATCH /v1/organizations/:id/policy` — the org security policy, as a
+     * partial merge (camelCase keys; null clears an override):
      *
-     * @param array<string,mixed> $body {requireMfa?, ssoRequired?, sessionIdleOverrideMs?}
+     * - `requireMfa`, `ssoRequired` (bool)
+     * - `sessionIdleOverrideMs` (int)
+     * - `allowedSignInMethods` (e.g. `password`, `passkey`, `oauth`, `oauth:google`, `saml`, `magic_link`)
+     * - `ipAllowlist` (CIDR ranges allowed to sign in)
+     * - `maxSessionAgeSeconds` (300 to 7776000)
+     * - `endUserPool` (`enabled`, `requireApproval`, `allowHostedSignup`)
+     * - `entitlementPlan`, `entitlementOverrides` — retired; only null (clear) is
+     *   accepted. Use {@see EntitlementOverrides} instead.
      *
-     * @return array<string,mixed>
+     * A key not listed here is passed through unchanged, so a newer server field
+     * works without an SDK upgrade. {@see self::POLICY_FIELDS} lists the known keys.
+     *
+     *     $atlas->organizations->updatePolicy('org_1', ['requireMfa' => true, 'ipAllowlist' => ['203.0.113.0/24']]);
+     *
+     * @param OrgPolicyPatch $body
+     *
+     * @return array{object:string,organization_id:string,policy:OrgPolicy}
      */
     public function updatePolicy(string $id, array $body): array
     {
@@ -114,5 +148,120 @@ final class Organizations extends Resource
     public function entitlements(string $id): array
     {
         return $this->http->request('GET', '/v1/organizations/' . rawurlencode($id) . '/entitlements');
+    }
+
+    /**
+     * `GET /v1/organizations/:id/settings` — the organization's settings values (validated against the
+     * organization settings schema).
+     *
+     * @return array<string,mixed>
+     */
+    public function getSettings(string $id): array
+    {
+        return $this->http->request('GET', '/v1/organizations/' . rawurlencode($id) . '/settings');
+    }
+
+    /**
+     * `PUT /v1/organizations/:id/settings` — replace the organization's settings values.
+     *
+     * @param array<string,mixed> $values
+     *
+     * @return array<string,mixed>
+     */
+    public function replaceSettings(string $id, array $values, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'PUT',
+            '/v1/organizations/' . rawurlencode($id) . '/settings',
+            body: ['values' => $values === [] ? new \stdClass() : $values],
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `PATCH /v1/organizations/:id/settings` — merge into the organization's settings values: a key set to
+     * null is removed, other keys are set, untouched keys stay.
+     *
+     * @param array<string,mixed> $values
+     *
+     * @return array<string,mixed>
+     */
+    public function updateSettings(string $id, array $values, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'PATCH',
+            '/v1/organizations/' . rawurlencode($id) . '/settings',
+            body: ['values' => $values === [] ? new \stdClass() : $values],
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/organizations/:id/design` — the organization's design override and the result of layering
+     * it over the instance design.
+     *
+     * @return DesignSettings
+     */
+    public function getDesign(string $id): array
+    {
+        return $this->http->request('GET', '/v1/organizations/' . rawurlencode($id) . '/design');
+    }
+
+    /**
+     * `PUT /v1/organizations/:id/design` — replace the organization's design override. An empty design
+     * removes it.
+     *
+     * @param AtlasDesign $design
+     *
+     * @return DesignSettings
+     */
+    public function replaceDesign(string $id, array $design): array
+    {
+        return $this->http->request(
+            'PUT',
+            '/v1/organizations/' . rawurlencode($id) . '/design',
+            body: ['design' => $design === [] ? new \stdClass() : $design],
+        );
+    }
+
+    /**
+     * `PATCH /v1/organizations/:id/design` — change part of the organization's design override; null
+     * removes a setting.
+     *
+     * @param AtlasDesignPatch $design
+     *
+     * @return DesignSettings
+     */
+    public function updateDesign(string $id, array $design): array
+    {
+        return $this->http->request(
+            'PATCH',
+            '/v1/organizations/' . rawurlencode($id) . '/design',
+            body: ['design' => $design === [] ? new \stdClass() : $design],
+        );
+    }
+
+    /**
+     * `GET /v1/organizations/:id/branding` — the organization's hosted-page branding overlay. Unset fields
+     * inherit the instance brand.
+     *
+     * @return array<string,mixed>
+     */
+    public function getBranding(string $id): array
+    {
+        return $this->http->request('GET', '/v1/organizations/' . rawurlencode($id) . '/branding');
+    }
+
+    /**
+     * `PUT /v1/organizations/:id/branding` — set the organization's branding overlay (partial merge; null
+     * clears a field back to the instance brand).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function updateBranding(string $id, array $body): array
+    {
+        return $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/branding', body: $body);
     }
 }

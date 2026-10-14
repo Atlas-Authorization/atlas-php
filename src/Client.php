@@ -49,6 +49,31 @@ use Atlas\Resources\Tokens;
 use Atlas\Resources\Users;
 use Atlas\Resources\Waitlist;
 use Atlas\Resources\Webhooks;
+use Atlas\Resources\EmailAddresses;
+use Atlas\Resources\OrganizationSettingsSchema;
+use Atlas\Resources\Design;
+use Atlas\Resources\AuditEvents;
+use Atlas\Resources\Captcha;
+use Atlas\Resources\ConfigChangelog;
+use Atlas\Resources\Connectors;
+use Atlas\Resources\Directory;
+use Atlas\Resources\Diagnostics;
+use Atlas\Resources\EntitlementOverrides;
+use Atlas\Resources\Events;
+use Atlas\Resources\LegacyAuthConnection;
+use Atlas\Resources\Machines;
+use Atlas\Resources\Mcp;
+use Atlas\Resources\McpConnector;
+use Atlas\Resources\Notifications;
+use Atlas\Resources\OpenFga;
+use Atlas\Resources\OrgLdapConnections;
+use Atlas\Resources\Pca;
+use Atlas\Resources\RedirectUrls;
+use Atlas\Resources\SessionExchangeApps;
+use Atlas\Resources\Testing;
+use Atlas\Resources\Tickets;
+use Atlas\Resources\Usage;
+use Atlas\Resources\Platform;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -65,7 +90,7 @@ use Psr\Http\Message\StreamFactoryInterface;
  *
  * Each namespace is a `readonly` property holding a resource object, so this
  * class is a table of contents you can read top to bottom to see the whole
- * surface — 45 namespaces, mirroring the TypeScript SDK one-for-one.
+ * surface — every Backend API operation, plus the platform-key API under `platform`.
  *
  * The transport is PSR-18 + PSR-17. When no client and factories are supplied,
  * Guzzle (a hard dependency) is auto-discovered, so the zero-config path needs
@@ -119,6 +144,32 @@ final class Client
     public readonly Instance $instance;
     public readonly InstanceSecurity $instanceSecurity;
     public readonly Tokens $tokens;
+    public readonly EmailAddresses $emailAddresses;
+    public readonly OrganizationSettingsSchema $organizationSettingsSchema;
+    public readonly Design $design;
+    public readonly AuditEvents $auditEvents;
+    public readonly Captcha $captcha;
+    public readonly ConfigChangelog $configChangelog;
+    public readonly Connectors $connectors;
+    public readonly Directory $directory;
+    public readonly Diagnostics $diagnostics;
+    public readonly EntitlementOverrides $entitlementOverrides;
+    public readonly Events $events;
+    public readonly LegacyAuthConnection $legacyAuthConnection;
+    public readonly Machines $machines;
+    public readonly Mcp $mcp;
+    public readonly McpConnector $mcpConnector;
+    public readonly Notifications $notifications;
+    public readonly OpenFga $openFga;
+    public readonly OrgLdapConnections $orgLdapConnections;
+    public readonly Pca $pca;
+    public readonly RedirectUrls $redirectUrls;
+    public readonly SessionExchangeApps $sessionExchangeApps;
+    public readonly Testing $testing;
+    public readonly Tickets $tickets;
+    public readonly Usage $usage;
+    /** Platform-key surface: construct the client with a `psk_…` key to use it. */
+    public readonly Platform $platform;
 
     /** The shared, config-bound transport — exposed for advanced callers. */
     public readonly Http $http;
@@ -129,6 +180,12 @@ final class Client
      * @param ClientInterface|null           $httpClient     a PSR-18 client; Guzzle is auto-discovered when null
      * @param RequestFactoryInterface|null   $requestFactory a PSR-17 request factory; Guzzle is auto-discovered when null
      * @param StreamFactoryInterface|null    $streamFactory  a PSR-17 stream factory; Guzzle is auto-discovered when null
+     * @param bool|null                      $strict         strict request bodies: `true` sends `Atlas-Strict: true` on every
+     *                                                       write (a body field the endpoint does not accept is refused with
+     *                                                       422 `UNKNOWN_FIELD`), `false` sends `Atlas-Strict: false`, `null`
+     *                                                       (default) sends nothing
+     * @param callable(UnknownFields):void|null $onUnknownFields called when a successful write reports body fields the
+     *                                                       endpoint ignored (the `Atlas-Unknown-Fields` response header)
      *
      * @throws ConfigException on an empty key, or when nothing is injected and Guzzle is absent
      */
@@ -138,10 +195,30 @@ final class Client
         ?ClientInterface $httpClient = null,
         ?RequestFactoryInterface $requestFactory = null,
         ?StreamFactoryInterface $streamFactory = null,
+        ?bool $strict = null,
+        ?callable $onUnknownFields = null,
     ) {
         [$client, $reqFactory, $strFactory] = self::discover($httpClient, $requestFactory, $streamFactory);
 
-        $http = new Http($secretKey, $baseUrl, $client, $reqFactory, $strFactory);
+        $this->wire(new Http($secretKey, $baseUrl, $client, $reqFactory, $strFactory, $strict, $onUnknownFields));
+    }
+
+    /**
+     * A client sharing this one's key and transport but with a different strict
+     * setting — the per-call override:
+     *
+     *     $atlas->withStrict(false)->users->update('user_1', ['legacy_field' => 'x']);
+     */
+    public function withStrict(?bool $strict): self
+    {
+        $copy = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $copy->wire($this->http->withStrict($strict));
+
+        return $copy;
+    }
+
+    private function wire(Http $http): void
+    {
         $this->http = $http;
 
         $this->users = new Users($http);
@@ -189,6 +266,31 @@ final class Client
         $this->instance = new Instance($http);
         $this->instanceSecurity = new InstanceSecurity($http);
         $this->tokens = new Tokens($http);
+        $this->emailAddresses = new EmailAddresses($http);
+        $this->organizationSettingsSchema = new OrganizationSettingsSchema($http);
+        $this->design = new Design($http);
+        $this->auditEvents = new AuditEvents($http);
+        $this->captcha = new Captcha($http);
+        $this->configChangelog = new ConfigChangelog($http);
+        $this->connectors = new Connectors($http);
+        $this->directory = new Directory($http);
+        $this->diagnostics = new Diagnostics($http);
+        $this->entitlementOverrides = new EntitlementOverrides($http);
+        $this->events = new Events($http);
+        $this->legacyAuthConnection = new LegacyAuthConnection($http);
+        $this->machines = new Machines($http);
+        $this->mcp = new Mcp($http);
+        $this->mcpConnector = new McpConnector($http);
+        $this->notifications = new Notifications($http);
+        $this->openFga = new OpenFga($http);
+        $this->orgLdapConnections = new OrgLdapConnections($http);
+        $this->pca = new Pca($http);
+        $this->redirectUrls = new RedirectUrls($http);
+        $this->sessionExchangeApps = new SessionExchangeApps($http);
+        $this->testing = new Testing($http);
+        $this->tickets = new Tickets($http);
+        $this->usage = new Usage($http);
+        $this->platform = new Platform($http);
     }
 
     /**

@@ -28,4 +28,36 @@ final class Waitlist extends Resource
     {
         return $this->http->request('POST', '/v1/waitlist_entries/' . rawurlencode($id) . '/decide', body: $body);
     }
+
+    /**
+     * `POST /v1/waitlist_entries` — add an address to the waitlist (idempotent on the address).
+     *
+     * @return array<string,mixed>
+     */
+    public function create(string $emailAddress): array
+    {
+        return $this->http->request('POST', '/v1/waitlist_entries', body: ['email_address' => $emailAddress]);
+    }
+
+    /**
+     * `POST /v1/waitlist_entries/bulk` — add up to 100 addresses; per-entry errors are returned.
+     *
+     * @param list<mixed> $emailAddresses
+     *
+     * @return array<string,mixed>
+     */
+    public function bulkCreate(array $emailAddresses): array
+    {
+        return $this->http->request('POST', '/v1/waitlist_entries/bulk', body: ['email_addresses' => $emailAddresses]);
+    }
+
+    /**
+     * `DELETE /v1/waitlist_entries/:id` — delete a waitlist entry.
+     *
+     * @return array<string,mixed>
+     */
+    public function delete(string $id): array
+    {
+        return $this->http->request('DELETE', '/v1/waitlist_entries/' . rawurlencode($id));
+    }
 }

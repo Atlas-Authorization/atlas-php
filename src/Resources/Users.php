@@ -236,4 +236,395 @@ final class Users extends Resource
     {
         return $this->http->request('DELETE', '/v1/grants/' . rawurlencode($grantId));
     }
+
+    /**
+     * `POST /v1/users/by_emails` — resolve a batch of email addresses to user ids. Pass
+     * include_unverified: true for rights requests (DSAR), so an unconfirmed address is still found.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function byEmails(array $body): array
+    {
+        return $this->http->request('POST', '/v1/users/by_emails', body: $body);
+    }
+
+    /**
+     * `POST /v1/users/:id/approval_requests` — push a number-matching "approve this action" prompt to the
+     * user's registered devices. Show the returned match_number to the user.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function requestApproval(string $id, array $body): array
+    {
+        return $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/approval_requests', body: $body);
+    }
+
+    /**
+     * `GET /v1/users/:id/approval_requests/:approvalId` — poll a transaction-approval request: pending,
+     * approved, denied or expired.
+     *
+     * @return array<string,mixed>
+     */
+    public function getApprovalRequest(string $id, string $approvalId): array
+    {
+        return $this->http->request(
+            'GET',
+            '/v1/users/' . rawurlencode($id) . '/approval_requests/' . rawurlencode($approvalId),
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/consents` — record a versioned consent grant (or a withdrawal with status:
+     * "withdrawn").
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function recordConsent(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/consents',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/users/:id/consents` — the user's recorded consents with their versions and timestamps.
+     *
+     * @return array<string,mixed>
+     */
+    public function listConsents(string $id): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/consents');
+    }
+
+    /**
+     * `POST /v1/users/:id/deletion` — schedule a graceful deletion with a cancellation window
+     * (grace_seconds).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function scheduleDeletion(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/deletion',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/deletion/cancel` — cancel a scheduled deletion inside its grace window.
+     *
+     * @return array<string,mixed>
+     */
+    public function cancelDeletion(string $id, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/deletion/cancel',
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/deletion/finalize` — finalize a scheduled deletion whose grace window has
+     * lapsed.
+     *
+     * @return array<string,mixed>
+     */
+    public function finalizeDeletion(string $id, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/deletion/finalize',
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/directives` — impose a directive on a user (suspended_until, read_only,
+     * forced_logout, reason).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function imposeDirective(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/directives',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `DELETE /v1/users/:id/directives` — lift a previously imposed directive.
+     *
+     * @return array<string,mixed>
+     */
+    public function liftDirective(string $id): array
+    {
+        return $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/directives');
+    }
+
+    /**
+     * `POST /v1/users/:id/erasure_acks` — acknowledge that your app purged its copy of the user's data
+     * during a scheduled deletion (optionally contributing a payload to the erasure export).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function acknowledgeErasure(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/erasure_acks',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/users/:id/erasure_export` — the erasure export: Atlas's data about the user plus every
+     * app's contributed payload.
+     *
+     * @return array<string,mixed>
+     */
+    public function erasureExport(string $id): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/erasure_export');
+    }
+
+    /**
+     * `DELETE /v1/users/:id/identities/by-provider/:provider` — hard-remove a provider identity from a
+     * user (undo a mis-import). The account's only sign-in identity is refused.
+     *
+     * @return array<string,mixed>
+     */
+    public function removeIdentityByProvider(string $id, string $provider, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/users/' . rawurlencode($id) . '/identities/by-provider/' . rawurlencode($provider),
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/identities/import` — link a known provider identity without an interactive OAuth
+     * flow (migrations).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function importIdentity(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/identities/import',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/users/:id/notification_preferences` — the user's notification preferences, per category.
+     *
+     * @return array<string,mixed>
+     */
+    public function getNotificationPreferences(string $id): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/notification_preferences');
+    }
+
+    /**
+     * `PATCH /v1/users/:id/notification_preferences` — change notification preferences: ['category' =>
+     * enabled].
+     *
+     * @param array<string,mixed> $preferences
+     *
+     * @return array<string,mixed>
+     */
+    public function updateNotificationPreferences(string $id, array $preferences): array
+    {
+        return $this->http->request(
+            'PATCH',
+            '/v1/users/' . rawurlencode($id) . '/notification_preferences',
+            body: ['preferences' => $preferences === [] ? new \stdClass() : $preferences],
+        );
+    }
+
+    /**
+     * `GET /v1/users/:id/organization_memberships` — the organizations the user belongs to, with role,
+     * plan and join time. Cursor-paginated.
+     *
+     * @param array<string,mixed> $params query parameters
+     *
+     * @return array<string,mixed>
+     */
+    public function listOrganizationMemberships(string $id, array $params = []): array
+    {
+        return $this->http->request(
+            'GET',
+            '/v1/users/' . rawurlencode($id) . '/organization_memberships',
+            query: $params,
+        );
+    }
+
+    /**
+     * `DELETE /v1/users/:id/passkeys/:passkeyId` — remove one of the user's passkeys.
+     *
+     * @return array<string,mixed>
+     */
+    public function deletePasskey(string $id, string $passkeyId, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/users/' . rawurlencode($id) . '/passkeys/' . rawurlencode($passkeyId),
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/password` — set (reset) the user's password. Pass sign_out_of_other_sessions:
+     * true to end their other sessions.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function setPassword(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/password',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/phone_numbers` — add a phone number (starts unverified).
+     *
+     * @return array<string,mixed>
+     */
+    public function addPhoneNumber(string $id, string $phoneNumber, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/phone_numbers',
+            body: ['phone_number' => $phoneNumber],
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `DELETE /v1/users/:id/phone_numbers/:pid` — remove a phone number from the user.
+     *
+     * @return array<string,mixed>
+     */
+    public function deletePhoneNumber(string $id, string $phoneNumberId, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/users/' . rawurlencode($id) . '/phone_numbers/' . rawurlencode($phoneNumberId),
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/phone_numbers/:pid/verify` — mark a phone number verified.
+     *
+     * @return array<string,mixed>
+     */
+    public function verifyPhoneNumber(string $id, string $phoneNumberId, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/phone_numbers/' . rawurlencode($phoneNumberId) . '/verify',
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `DELETE /v1/users/:id/profile_image` — clear the user's profile image.
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteProfileImage(string $id, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/users/' . rawurlencode($id) . '/profile_image',
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/progression/events` — append an idempotent progression event (XP, level or
+     * state) for the user.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function recordProgressionEvent(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/progression/events',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/users/:id/resolved` — the user as a flat identity: primary email, email_verified, name,
+     * image_url and linked provider identities.
+     *
+     * @return array<string,mixed>
+     */
+    public function resolved(string $id): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/resolved');
+    }
+
+    /**
+     * `GET /v1/users/:id/sign_in_history` — the user's successful sign-ins, newest first. Cursor-paginated
+     * (limit, starting_after).
+     *
+     * @param array<string,mixed> $params query parameters
+     *
+     * @return array<string,mixed>
+     */
+    public function signInHistory(string $id, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/sign_in_history', query: $params);
+    }
+
+    /**
+     * `GET /v1/users/:id/state` — the user's portable state: progression, tier, flair, entitlements,
+     * directives and roles.
+     *
+     * @return array<string,mixed>
+     */
+    public function state(string $id): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/state');
+    }
 }

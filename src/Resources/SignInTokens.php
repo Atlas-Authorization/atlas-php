@@ -20,4 +20,15 @@ final class SignInTokens extends Resource
     {
         return $this->http->request('POST', '/v1/sign_in_tokens', body: $body, idempotencyKey: $idempotencyKey);
     }
+
+    /**
+     * `POST /v1/sign_in_tokens/:id/revoke` — revoke an unused sign-in token (deprecated surface; prefer
+     * sessions.create).
+     *
+     * @return array<string,mixed>
+     */
+    public function revoke(string $id): array
+    {
+        return $this->http->request('POST', '/v1/sign_in_tokens/' . rawurlencode($id) . '/revoke');
+    }
 }

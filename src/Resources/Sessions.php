@@ -41,4 +41,14 @@ final class Sessions extends Resource
     {
         return $this->http->request('POST', '/v1/sessions/' . rawurlencode($id) . '/revoke');
     }
+
+    /**
+     * `POST /v1/sessions/:id/tokens/:template` — mint a token from a named JWT template for a session.
+     *
+     * @return array<string,mixed>
+     */
+    public function createToken(string $id, string $template): array
+    {
+        return $this->http->request('POST', '/v1/sessions/' . rawurlencode($id) . '/tokens/' . rawurlencode($template));
+    }
 }

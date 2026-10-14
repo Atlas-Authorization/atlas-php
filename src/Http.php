@@ -28,19 +28,52 @@ final class Http
     /** The default BAPI origin, overridable per instance. */
     public const DEFAULT_API_URL = 'https://api.atlasauth.net';
 
+    /** HTTP methods that carry a write; `Atlas-Strict` is only sent on these. */
+    private const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
     private readonly string $baseUrl;
 
+    /** @var (\Closure(UnknownFields):void)|null */
+    private readonly ?\Closure $onUnknownFields;
+
+    /**
+     * @param bool|null                    $strict          client-wide strict bodies: true/false send `Atlas-Strict`, null sends nothing
+     * @param callable(UnknownFields):void|null $onUnknownFields called when a write reports ignored body fields
+     */
     public function __construct(
         private readonly string $secretKey,
         string $baseUrl,
         private readonly ClientInterface $client,
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
+        private readonly ?bool $strict = null,
+        ?callable $onUnknownFields = null,
     ) {
         if ($secretKey === '') {
             throw new ConfigException('Atlas\\Client requires a non-empty secret key.');
         }
         $this->baseUrl = rtrim($baseUrl, '/');
+        $this->onUnknownFields = $onUnknownFields === null ? null : \Closure::fromCallable($onUnknownFields);
+    }
+
+    /** The client-wide strict-body setting (null = no header sent). */
+    public function strict(): ?bool
+    {
+        return $this->strict;
+    }
+
+    /** A copy of this transport with a different client-wide strict setting. */
+    public function withStrict(?bool $strict): self
+    {
+        return new self(
+            $this->secretKey,
+            $this->baseUrl,
+            $this->client,
+            $this->requestFactory,
+            $this->streamFactory,
+            $strict,
+            $this->onUnknownFields,
+        );
     }
 
     /**
@@ -48,8 +81,12 @@ final class Http
      *
      * @param array<string,mixed>|null $query   dropped keys: null values; arrays are spread
      * @param mixed                    $body     JSON-encoded when non-null; `[]` becomes `{}`
-     * @param string|null              $idempotencyKey optional Idempotency-Key header (§9.1)
+     * @param string|null              $idempotencyKey optional Idempotency-Key header
      * @param bool                     $raw     return the raw response body text instead of decoded JSON
+     * @param string|null              $rawBody send these bytes as the body instead of JSON (uploads); needs $contentType
+     * @param string|null              $contentType the content type of $rawBody
+     * @param bool|null                $strict  override the client-wide strict setting for this request
+     *                                          (true → `Atlas-Strict: true`, false → `Atlas-Strict: false`, null → inherit)
      *
      * @return mixed decoded JSON (associative array), raw string, or null for an empty/204 body
      *
@@ -63,14 +100,25 @@ final class Http
         mixed $body = null,
         ?string $idempotencyKey = null,
         bool $raw = false,
+        ?string $rawBody = null,
+        ?string $contentType = null,
+        ?bool $strict = null,
     ): mixed {
+        $method = strtoupper($method);
         $url = $this->baseUrl . ($path[0] === '/' ? $path : '/' . $path) . self::serializeQuery($query);
 
         $request = $this->requestFactory->createRequest($method, $url)
             ->withHeader('Authorization', 'Bearer ' . $this->secretKey)
             ->withHeader('Accept', 'application/json');
 
-        if ($body !== null) {
+        if ($rawBody !== null) {
+            if ($contentType === null || $contentType === '') {
+                throw new \InvalidArgumentException('A raw request body needs a content type.');
+            }
+            $request = $request
+                ->withHeader('Content-Type', $contentType)
+                ->withBody($this->streamFactory->createStream($rawBody));
+        } elseif ($body !== null) {
             $json = $body === [] ? '{}' : json_encode($body, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
             $request = $request
                 ->withHeader('Content-Type', 'application/json')
@@ -79,6 +127,11 @@ final class Http
 
         if ($idempotencyKey !== null && $idempotencyKey !== '') {
             $request = $request->withHeader('Idempotency-Key', $idempotencyKey);
+        }
+
+        $effectiveStrict = $strict ?? $this->strict;
+        if ($effectiveStrict !== null && in_array($method, self::WRITE_METHODS, true)) {
+            $request = $request->withHeader('Atlas-Strict', $effectiveStrict ? 'true' : 'false');
         }
 
         try {
@@ -97,6 +150,8 @@ final class Http
         if ($status < 200 || $status >= 300) {
             throw self::toApiError($status, $text);
         }
+
+        $this->reportUnknownFields($response->getHeaderLine('Atlas-Unknown-Fields'), $method, $path);
 
         if ($status === 204 || $text === '') {
             return null;
@@ -142,7 +197,25 @@ final class Http
     }
 
     /**
-     * Parse a non-2xx body into the §9.1 envelope, or synthesize one.
+     * Hand `Atlas-Unknown-Fields` (body fields the endpoint ignored) to the
+     * configured callback. Never throws: a broken callback must not turn a
+     * successful write into an exception.
+     */
+    private function reportUnknownFields(string $header, string $method, string $path): void
+    {
+        if ($this->onUnknownFields === null || trim($header) === '') {
+            return;
+        }
+        $fields = array_values(array_filter(array_map('trim', explode(',', $header)), static fn (string $f): bool => $f !== ''));
+        try {
+            ($this->onUnknownFields)(new UnknownFields($fields, $method, $path));
+        } catch (\Throwable) {
+            // Swallowed on purpose (see above).
+        }
+    }
+
+    /**
+     * Parse a non-2xx body into the error envelope, or synthesize one.
      */
     private static function toApiError(int $status, string $text): AtlasApiException
     {

@@ -1,0 +1,252 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Atlas\Tests;
+
+use Atlas\Client;
+use Atlas\Tests\Support\MockClient;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Every operation added for full API coverage, table-driven: each row calls one
+ * SDK method and asserts the HTTP verb, the exact URL (path params encoded,
+ * query serialized), the JSON body and the Idempotency-Key header.
+ */
+final class OperationsTest extends TestCase
+{
+    /**
+     * @return list<array{0:string,1:string,2:array<string,mixed>|null,3:bool,4:\Closure(Client):mixed}>
+     */
+    private static function operations(): array
+    {
+        return [
+            ['POST', '/v1/users/by_emails', ['x' => 1], false, static fn (Client $c) => $c->users->byEmails(['x' => 1])],
+            ['POST', '/v1/users/id_1/approval_requests', ['x' => 1], false, static fn (Client $c) => $c->users->requestApproval('id_1', ['x' => 1])],
+            ['GET', '/v1/users/id_1/approval_requests/approval_id_1', null, false, static fn (Client $c) => $c->users->getApprovalRequest('id_1', 'approval_id_1')],
+            ['POST', '/v1/users/id_1/consents', ['x' => 1], true, static fn (Client $c) => $c->users->recordConsent('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/users/id_1/consents', null, false, static fn (Client $c) => $c->users->listConsents('id_1')],
+            ['POST', '/v1/users/id_1/deletion', ['x' => 1], true, static fn (Client $c) => $c->users->scheduleDeletion('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/deletion/cancel', null, true, static fn (Client $c) => $c->users->cancelDeletion('id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/deletion/finalize', null, true, static fn (Client $c) => $c->users->finalizeDeletion('id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/directives', ['x' => 1], true, static fn (Client $c) => $c->users->imposeDirective('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/users/id_1/directives', null, false, static fn (Client $c) => $c->users->liftDirective('id_1')],
+            ['POST', '/v1/users/id_1/erasure_acks', ['x' => 1], true, static fn (Client $c) => $c->users->acknowledgeErasure('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/users/id_1/erasure_export', null, false, static fn (Client $c) => $c->users->erasureExport('id_1')],
+            ['DELETE', '/v1/users/id_1/identities/by-provider/provider_1', null, true, static fn (Client $c) => $c->users->removeIdentityByProvider('id_1', 'provider_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/identities/import', ['x' => 1], true, static fn (Client $c) => $c->users->importIdentity('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/users/id_1/notification_preferences', null, false, static fn (Client $c) => $c->users->getNotificationPreferences('id_1')],
+            ['PATCH', '/v1/users/id_1/notification_preferences', ['preferences' => ['k' => 'v']], false, static fn (Client $c) => $c->users->updateNotificationPreferences('id_1', ['k' => 'v'])],
+            ['GET', '/v1/users/id_1/organization_memberships?limit=5', null, false, static fn (Client $c) => $c->users->listOrganizationMemberships('id_1', ['limit' => 5])],
+            ['DELETE', '/v1/users/id_1/passkeys/passkey_id_1', null, true, static fn (Client $c) => $c->users->deletePasskey('id_1', 'passkey_id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/password', ['x' => 1], true, static fn (Client $c) => $c->users->setPassword('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/phone_numbers', ['phone_number' => 'v'], true, static fn (Client $c) => $c->users->addPhoneNumber('id_1', 'v', idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/users/id_1/phone_numbers/phone_number_id_1', null, true, static fn (Client $c) => $c->users->deletePhoneNumber('id_1', 'phone_number_id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/phone_numbers/phone_number_id_1/verify', null, true, static fn (Client $c) => $c->users->verifyPhoneNumber('id_1', 'phone_number_id_1', idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/users/id_1/profile_image', null, true, static fn (Client $c) => $c->users->deleteProfileImage('id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/users/id_1/progression/events', ['x' => 1], true, static fn (Client $c) => $c->users->recordProgressionEvent('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/users/id_1/resolved', null, false, static fn (Client $c) => $c->users->resolved('id_1')],
+            ['GET', '/v1/users/id_1/sign_in_history?limit=5', null, false, static fn (Client $c) => $c->users->signInHistory('id_1', ['limit' => 5])],
+            ['GET', '/v1/users/id_1/state', null, false, static fn (Client $c) => $c->users->state('id_1')],
+            ['POST', '/v1/email_addresses/email_address_id_1/verify', null, true, static fn (Client $c) => $c->emailAddresses->verify('email_address_id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/email_addresses/email_address_id_1/primary', null, true, static fn (Client $c) => $c->emailAddresses->setPrimary('email_address_id_1', idempotencyKey: 'idem_1')],
+            ['GET', '/v1/organizations/id_1/settings', null, false, static fn (Client $c) => $c->organizations->getSettings('id_1')],
+            ['PUT', '/v1/organizations/id_1/settings', ['values' => ['k' => 'v']], true, static fn (Client $c) => $c->organizations->replaceSettings('id_1', ['k' => 'v'], idempotencyKey: 'idem_1')],
+            ['PATCH', '/v1/organizations/id_1/settings', ['values' => ['k' => 'v']], true, static fn (Client $c) => $c->organizations->updateSettings('id_1', ['k' => 'v'], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/organizations/id_1/design', null, false, static fn (Client $c) => $c->organizations->getDesign('id_1')],
+            ['PUT', '/v1/organizations/id_1/design', ['design' => ['k' => 'v']], false, static fn (Client $c) => $c->organizations->replaceDesign('id_1', ['k' => 'v'])],
+            ['PATCH', '/v1/organizations/id_1/design', ['design' => ['k' => 'v']], false, static fn (Client $c) => $c->organizations->updateDesign('id_1', ['k' => 'v'])],
+            ['GET', '/v1/organizations/id_1/branding', null, false, static fn (Client $c) => $c->organizations->getBranding('id_1')],
+            ['PUT', '/v1/organizations/id_1/branding', ['x' => 1], false, static fn (Client $c) => $c->organizations->updateBranding('id_1', ['x' => 1])],
+            ['GET', '/v1/organizations/organization_id_1/audit_streams', null, false, static fn (Client $c) => $c->organizations->auditStreams->list('organization_id_1')],
+            ['POST', '/v1/organizations/organization_id_1/audit_streams', ['x' => 1], true, static fn (Client $c) => $c->organizations->auditStreams->create('organization_id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/organizations/organization_id_1/audit_streams/stream_id_1', null, false, static fn (Client $c) => $c->organizations->auditStreams->delete('organization_id_1', 'stream_id_1')],
+            ['GET', '/v1/organizations/organization_id_1/end_users?limit=5', null, false, static fn (Client $c) => $c->organizations->endUsers->list('organization_id_1', ['limit' => 5])],
+            ['POST', '/v1/organizations/organization_id_1/end_users', ['x' => 1], true, static fn (Client $c) => $c->organizations->endUsers->add('organization_id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['PATCH', '/v1/organizations/organization_id_1/end_users/user_id_1', ['x' => 1], false, static fn (Client $c) => $c->organizations->endUsers->update('organization_id_1', 'user_id_1', ['x' => 1])],
+            ['DELETE', '/v1/organizations/organization_id_1/end_users/user_id_1', null, false, static fn (Client $c) => $c->organizations->endUsers->remove('organization_id_1', 'user_id_1')],
+            ['GET', '/v1/organizations/organization_id_1/reader_domain', null, false, static fn (Client $c) => $c->organizations->readerDomain->list('organization_id_1')],
+            ['POST', '/v1/organizations/organization_id_1/reader_domain', ['host' => 'v'], true, static fn (Client $c) => $c->organizations->readerDomain->create('organization_id_1', 'v', idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/organizations/organization_id_1/reader_domain', null, false, static fn (Client $c) => $c->organizations->readerDomain->delete('organization_id_1')],
+            ['GET', '/v1/organization_settings_schema', null, false, static fn (Client $c) => $c->organizationSettingsSchema->get()],
+            ['POST', '/v1/organization_settings_schema', ['schema' => ['k' => 'v']], true, static fn (Client $c) => $c->organizationSettingsSchema->create(['k' => 'v'], idempotencyKey: 'idem_1')],
+            ['PUT', '/v1/organization_settings_schema', ['schema' => ['k' => 'v']], true, static fn (Client $c) => $c->organizationSettingsSchema->replace(['k' => 'v'], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/instance/preflight', null, false, static fn (Client $c) => $c->instance->preflight()],
+            ['GET', '/v1/instance/cookie_consent', null, false, static fn (Client $c) => $c->instance->getCookieConsent()],
+            ['PUT', '/v1/instance/cookie_consent', ['x' => 1], false, static fn (Client $c) => $c->instance->setCookieConsent(['x' => 1])],
+            ['DELETE', '/v1/instance/cookie_consent', null, false, static fn (Client $c) => $c->instance->deleteCookieConsent()],
+            ['GET', '/v1/instance/design', null, false, static fn (Client $c) => $c->design->get()],
+            ['PUT', '/v1/instance/design', ['design' => ['k' => 'v']], false, static fn (Client $c) => $c->design->replace(['k' => 'v'])],
+            ['PATCH', '/v1/instance/design', ['design' => ['k' => 'v']], false, static fn (Client $c) => $c->design->update(['k' => 'v'])],
+            ['POST', '/v1/instance/design/preview', ['design' => ['k' => 'v']], false, static fn (Client $c) => $c->design->preview(['k' => 'v'])],
+            ['GET', '/v1/design/assets', null, false, static fn (Client $c) => $c->design->listAssets()],
+            ['DELETE', '/v1/design/assets/asset_id_1', null, false, static fn (Client $c) => $c->design->deleteAsset('asset_id_1')],
+            ['GET', '/v1/design/catalog', null, false, static fn (Client $c) => $c->design->catalog()],
+            ['PATCH', '/v1/webhook_endpoints/id_1', ['x' => 1], false, static fn (Client $c) => $c->webhooks->endpoints->update('id_1', ['x' => 1])],
+            ['POST', '/v1/webhook_endpoints/id_1/reveal_secret', null, false, static fn (Client $c) => $c->webhooks->endpoints->revealSecret('id_1')],
+            ['POST', '/v1/webhook_endpoints/id_1/rotate_secret', null, false, static fn (Client $c) => $c->webhooks->endpoints->rotateSecret('id_1')],
+            ['POST', '/v1/webhook_endpoints/id_1/test', null, false, static fn (Client $c) => $c->webhooks->endpoints->test('id_1')],
+            ['POST', '/v1/webhook_endpoints/endpoint_id_1/deliveries/delivery_id_1/redeliver', null, false, static fn (Client $c) => $c->webhooks->redeliver('endpoint_id_1', 'delivery_id_1')],
+            ['POST', '/v1/billing/subjects/subject_type_1/subject_id_1/sync_seats', null, false, static fn (Client $c) => $c->billing->syncSeats('subject_type_1', 'subject_id_1')],
+            ['POST', '/v1/billing/subscriptions/import', ['x' => 1], true, static fn (Client $c) => $c->billing->importSubscription(['x' => 1], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/billing/usage', ['x' => 1], false, static fn (Client $c) => $c->billing->reportUsage(['x' => 1])],
+            ['POST', '/v1/data_subject_requests', ['x' => 1], true, static fn (Client $c) => $c->dataSubjectRequests->create(['x' => 1], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/data_subject_requests/id_1/cancel', null, true, static fn (Client $c) => $c->dataSubjectRequests->cancel('id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/invitations/bulk', ['invitations' => ['a']], false, static fn (Client $c) => $c->invitations->bulkCreate(['a'])],
+            ['POST', '/v1/waitlist_entries', ['email_address' => 'v'], false, static fn (Client $c) => $c->waitlist->create('v')],
+            ['POST', '/v1/waitlist_entries/bulk', ['email_addresses' => ['a']], false, static fn (Client $c) => $c->waitlist->bulkCreate(['a'])],
+            ['DELETE', '/v1/waitlist_entries/id_1', null, false, static fn (Client $c) => $c->waitlist->delete('id_1')],
+            ['POST', '/v1/sessions/id_1/tokens/template_1', null, false, static fn (Client $c) => $c->sessions->createToken('id_1', 'template_1')],
+            ['POST', '/v1/sign_in_tokens/id_1/revoke', null, false, static fn (Client $c) => $c->signInTokens->revoke('id_1')],
+            ['GET', '/v1/api_keys/revoked?limit=5', null, false, static fn (Client $c) => $c->apiKeys->listRevoked(['limit' => 5])],
+            ['POST', '/v1/api_keys/token', ['x' => 1], false, static fn (Client $c) => $c->apiKeys->mintToken(['x' => 1])],
+            ['POST', '/v1/oauth_clients/import', ['clients' => ['a']], true, static fn (Client $c) => $c->oauthClients->import(['a'], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/audit_events', ['x' => 1], false, static fn (Client $c) => $c->auditEvents->create(['x' => 1])],
+            ['POST', '/v1/audit_events/batch', ['events' => ['a']], false, static fn (Client $c) => $c->auditEvents->createBatch(['a'])],
+            ['GET', '/v1/audit_events?limit=5', null, false, static fn (Client $c) => $c->auditEvents->list(['limit' => 5])],
+            ['GET', '/v1/audit_events/export?limit=5', null, false, static fn (Client $c) => $c->auditEvents->export(['limit' => 5])],
+            ['DELETE', '/v1/audit_events?limit=5', null, false, static fn (Client $c) => $c->auditEvents->deleteAll(['limit' => 5])],
+            ['POST', '/v1/captcha/verify', ['x' => 1], false, static fn (Client $c) => $c->captcha->verify(['x' => 1])],
+            ['GET', '/v1/config_changelog?limit=5', null, false, static fn (Client $c) => $c->configChangelog->list(['limit' => 5])],
+            ['GET', '/v1/connectors', null, false, static fn (Client $c) => $c->connectors->list()],
+            ['POST', '/v1/connectors', ['x' => 1], false, static fn (Client $c) => $c->connectors->create(['x' => 1])],
+            ['GET', '/v1/connectors/id_1', null, false, static fn (Client $c) => $c->connectors->get('id_1')],
+            ['PATCH', '/v1/connectors/id_1', ['x' => 1], false, static fn (Client $c) => $c->connectors->update('id_1', ['x' => 1])],
+            ['DELETE', '/v1/connectors/id_1', null, false, static fn (Client $c) => $c->connectors->delete('id_1')],
+            ['POST', '/v1/connectors/id_1/publish', null, false, static fn (Client $c) => $c->connectors->publish('id_1')],
+            ['POST', '/v1/connectors/id_1/unlist', null, false, static fn (Client $c) => $c->connectors->unlist('id_1')],
+            ['POST', '/v1/connectors/id_1/shared_credentials', ['x' => 1], false, static fn (Client $c) => $c->connectors->setSharedCredentials('id_1', ['x' => 1])],
+            ['POST', '/v1/connectors/slug_1/install', ['x' => 1], false, static fn (Client $c) => $c->connectors->install('slug_1', ['x' => 1])],
+            ['POST', '/v1/connectors/slug_1/reviews', ['x' => 1], false, static fn (Client $c) => $c->connectors->review('slug_1', ['x' => 1])],
+            ['GET', '/v1/directory?limit=5', null, false, static fn (Client $c) => $c->directory->list(['limit' => 5])],
+            ['GET', '/v1/diagnostics/login_readiness?limit=5', null, false, static fn (Client $c) => $c->diagnostics->loginReadiness(['limit' => 5])],
+            ['GET', '/v1/diagnostics/request_inspector?limit=5', null, false, static fn (Client $c) => $c->diagnostics->requestInspector(['limit' => 5])],
+            ['POST', '/v1/entitlement_overrides', ['x' => 1], true, static fn (Client $c) => $c->entitlementOverrides->create(['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/entitlement_overrides?limit=5', null, false, static fn (Client $c) => $c->entitlementOverrides->list(['limit' => 5])],
+            ['DELETE', '/v1/entitlement_overrides/id_1', null, false, static fn (Client $c) => $c->entitlementOverrides->delete('id_1')],
+            ['GET', '/v1/events?limit=5', null, false, static fn (Client $c) => $c->events->list(['limit' => 5])],
+            ['GET', '/v1/legacy_auth_connection', null, false, static fn (Client $c) => $c->legacyAuthConnection->get()],
+            ['PUT', '/v1/legacy_auth_connection', ['x' => 1], true, static fn (Client $c) => $c->legacyAuthConnection->set(['x' => 1], idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/legacy_auth_connection', null, true, static fn (Client $c) => $c->legacyAuthConnection->delete(idempotencyKey: 'idem_1')],
+            ['POST', '/v1/machines', ['x' => 1], true, static fn (Client $c) => $c->machines->create(['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/machines?limit=5', null, false, static fn (Client $c) => $c->machines->list(['limit' => 5])],
+            ['GET', '/v1/machines/id_1', null, false, static fn (Client $c) => $c->machines->get('id_1')],
+            ['PATCH', '/v1/machines/id_1', ['name' => 'v'], false, static fn (Client $c) => $c->machines->rename('id_1', 'v')],
+            ['PATCH', '/v1/machines/id_1/metadata', ['metadata' => ['k' => 'v']], false, static fn (Client $c) => $c->machines->patchMetadata('id_1', ['k' => 'v'])],
+            ['DELETE', '/v1/machines/id_1', null, false, static fn (Client $c) => $c->machines->delete('id_1')],
+            ['POST', '/v1/machines/id_1/approve', null, false, static fn (Client $c) => $c->machines->approve('id_1')],
+            ['POST', '/v1/machines/id_1/revoke', null, false, static fn (Client $c) => $c->machines->revoke('id_1')],
+            ['POST', '/v1/machines/id_1/rotate_key', ['public_key_pem' => 'v'], false, static fn (Client $c) => $c->machines->rotateKey('id_1', 'v')],
+            ['POST', '/v1/machines/id_1/rotate_secret', null, false, static fn (Client $c) => $c->machines->rotateSecret('id_1')],
+            ['GET', '/v1/machines/id_1/organization_memberships', null, false, static fn (Client $c) => $c->machines->organizationMemberships('id_1')],
+            ['POST', '/v1/machine_enrolment_tokens', ['x' => 1], true, static fn (Client $c) => $c->machines->createEnrolmentToken(['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/machine_enrolment_tokens?limit=5', null, false, static fn (Client $c) => $c->machines->listEnrolmentTokens(['limit' => 5])],
+            ['DELETE', '/v1/machine_enrolment_tokens/id_1', null, false, static fn (Client $c) => $c->machines->deleteEnrolmentToken('id_1')],
+            ['POST', '/v1/m2m_tokens/verify', ['token' => 'v'], false, static fn (Client $c) => $c->machines->verifyToken('v')],
+            ['GET', '/v1/mcp', null, false, static fn (Client $c) => $c->mcp->get()],
+            ['POST', '/v1/mcp', ['x' => 1], false, static fn (Client $c) => $c->mcp->call(['x' => 1])],
+            ['GET', '/v1/mcp_connector', null, false, static fn (Client $c) => $c->mcpConnector->get()],
+            ['PUT', '/v1/mcp_connector', ['x' => 1], true, static fn (Client $c) => $c->mcpConnector->update(['x' => 1], idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/mcp_connector', null, true, static fn (Client $c) => $c->mcpConnector->disable(idempotencyKey: 'idem_1')],
+            ['GET', '/v1/notification_categories', null, false, static fn (Client $c) => $c->notifications->categories->list()],
+            ['POST', '/v1/notification_categories', ['x' => 1], false, static fn (Client $c) => $c->notifications->categories->create(['x' => 1])],
+            ['PUT', '/v1/notification_categories/key_1', ['label' => 'v'], false, static fn (Client $c) => $c->notifications->categories->update('key_1', 'v')],
+            ['DELETE', '/v1/notification_categories/key_1', null, false, static fn (Client $c) => $c->notifications->categories->delete('key_1')],
+            ['GET', '/v1/notification_templates', null, false, static fn (Client $c) => $c->notifications->templates->list()],
+            ['POST', '/v1/notification_templates', ['x' => 1], false, static fn (Client $c) => $c->notifications->templates->create(['x' => 1])],
+            ['GET', '/v1/notification_templates/name_1', null, false, static fn (Client $c) => $c->notifications->templates->get('name_1')],
+            ['PUT', '/v1/notification_templates/name_1', ['x' => 1], false, static fn (Client $c) => $c->notifications->templates->update('name_1', ['x' => 1])],
+            ['DELETE', '/v1/notification_templates/name_1', null, false, static fn (Client $c) => $c->notifications->templates->delete('name_1')],
+            ['POST', '/v1/notifications', ['x' => 1], false, static fn (Client $c) => $c->notifications->create(['x' => 1])],
+            ['GET', '/v1/openfga/stores?limit=5', null, false, static fn (Client $c) => $c->openFga->listStores(['limit' => 5])],
+            ['POST', '/v1/openfga/stores', ['name' => 'v'], true, static fn (Client $c) => $c->openFga->createStore('v', idempotencyKey: 'idem_1')],
+            ['GET', '/v1/openfga/stores/store_id_1', null, false, static fn (Client $c) => $c->openFga->getStore('store_id_1')],
+            ['POST', '/v1/openfga/stores/store_id_1/authorization-models', ['x' => 1], false, static fn (Client $c) => $c->openFga->writeAuthorizationModel('store_id_1', ['x' => 1])],
+            ['GET', '/v1/openfga/stores/store_id_1/authorization-models?limit=5', null, false, static fn (Client $c) => $c->openFga->listAuthorizationModels('store_id_1', ['limit' => 5])],
+            ['GET', '/v1/openfga/stores/store_id_1/authorization-models/model_id_1', null, false, static fn (Client $c) => $c->openFga->getAuthorizationModel('store_id_1', 'model_id_1')],
+            ['POST', '/v1/openfga/stores/store_id_1/check', ['x' => 1], false, static fn (Client $c) => $c->openFga->check('store_id_1', ['x' => 1])],
+            ['POST', '/v1/openfga/stores/store_id_1/batch-check', ['x' => 1], false, static fn (Client $c) => $c->openFga->batchCheck('store_id_1', ['x' => 1])],
+            ['POST', '/v1/openfga/stores/store_id_1/expand', ['x' => 1], false, static fn (Client $c) => $c->openFga->expand('store_id_1', ['x' => 1])],
+            ['POST', '/v1/openfga/stores/store_id_1/list-objects', ['x' => 1], false, static fn (Client $c) => $c->openFga->listObjects('store_id_1', ['x' => 1])],
+            ['POST', '/v1/openfga/stores/store_id_1/read', ['x' => 1], false, static fn (Client $c) => $c->openFga->read('store_id_1', ['x' => 1])],
+            ['POST', '/v1/openfga/stores/store_id_1/write', ['x' => 1], false, static fn (Client $c) => $c->openFga->write('store_id_1', ['x' => 1])],
+            ['GET', '/v1/org_ldap_connections?limit=5', null, false, static fn (Client $c) => $c->orgLdapConnections->list(['limit' => 5])],
+            ['POST', '/v1/org_ldap_connections', ['x' => 1], true, static fn (Client $c) => $c->orgLdapConnections->create(['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/org_ldap_connections/id_1', null, false, static fn (Client $c) => $c->orgLdapConnections->get('id_1')],
+            ['PATCH', '/v1/org_ldap_connections/id_1', ['x' => 1], true, static fn (Client $c) => $c->orgLdapConnections->update('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/org_ldap_connections/id_1', null, true, static fn (Client $c) => $c->orgLdapConnections->delete('id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/org_ldap_connections/id_1/test', ['x' => 1], false, static fn (Client $c) => $c->orgLdapConnections->test('id_1', ['x' => 1])],
+            ['GET', '/v1/pca/attestors', null, false, static fn (Client $c) => $c->pca->getAttestors()],
+            ['PUT', '/v1/pca/attestors', ['trusted_attestor_keys' => ['a']], false, static fn (Client $c) => $c->pca->setAttestors(['a'])],
+            ['POST', '/v1/pca/freeze', ['x' => 1], false, static fn (Client $c) => $c->pca->engageKillSwitch(['x' => 1])],
+            ['DELETE', '/v1/pca/freeze', null, false, static fn (Client $c) => $c->pca->clearKillSwitch()],
+            ['POST', '/v1/pca/revocations', ['x' => 1], false, static fn (Client $c) => $c->pca->revoke(['x' => 1])],
+            ['POST', '/v1/pca/stepups/id_1/deny', ['x' => 1], false, static fn (Client $c) => $c->pca->denyStepUp('id_1', ['x' => 1])],
+            ['GET', '/v1/redirect_urls', null, false, static fn (Client $c) => $c->redirectUrls->list()],
+            ['POST', '/v1/redirect_urls', ['url' => 'v'], false, static fn (Client $c) => $c->redirectUrls->create('v')],
+            ['GET', '/v1/redirect_urls/id_1', null, false, static fn (Client $c) => $c->redirectUrls->get('id_1')],
+            ['DELETE', '/v1/redirect_urls/id_1', null, false, static fn (Client $c) => $c->redirectUrls->delete('id_1')],
+            ['GET', '/v1/session_exchange_apps', null, false, static fn (Client $c) => $c->sessionExchangeApps->list()],
+            ['POST', '/v1/session_exchange_apps', ['x' => 1], true, static fn (Client $c) => $c->sessionExchangeApps->create(['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/session_exchange_apps/id_1', null, false, static fn (Client $c) => $c->sessionExchangeApps->get('id_1')],
+            ['PATCH', '/v1/session_exchange_apps/id_1', ['x' => 1], true, static fn (Client $c) => $c->sessionExchangeApps->update('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/session_exchange_apps/id_1', null, true, static fn (Client $c) => $c->sessionExchangeApps->delete('id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/test_instance', ['x' => 1], true, static fn (Client $c) => $c->testing->testInstance(['x' => 1], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/test_users/purge', ['x' => 1], true, static fn (Client $c) => $c->testing->purgeTestUsers(['x' => 1], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/testing_tokens', null, false, static fn (Client $c) => $c->testing->createTestingToken()],
+            ['POST', '/v1/tickets', ['x' => 1], false, static fn (Client $c) => $c->tickets->create(['x' => 1])],
+            ['POST', '/v1/tickets/redeem', ['x' => 1], false, static fn (Client $c) => $c->tickets->redeem(['x' => 1])],
+            ['GET', '/v1/usage?limit=5', null, false, static fn (Client $c) => $c->usage->get(['limit' => 5])],
+            ['GET', '/v1/platform/apps?limit=5', null, false, static fn (Client $c) => $c->platform->apps->list(['limit' => 5])],
+            ['POST', '/v1/platform/apps', ['x' => 1], true, static fn (Client $c) => $c->platform->apps->create(['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/platform/apps/id_1', null, false, static fn (Client $c) => $c->platform->apps->get('id_1')],
+            ['PATCH', '/v1/platform/apps/id_1', ['x' => 1], false, static fn (Client $c) => $c->platform->apps->update('id_1', ['x' => 1])],
+            ['DELETE', '/v1/platform/apps/id_1', null, false, static fn (Client $c) => $c->platform->apps->delete('id_1')],
+            ['POST', '/v1/platform/apps/id_1/archive', null, false, static fn (Client $c) => $c->platform->apps->archive('id_1')],
+            ['POST', '/v1/platform/apps/id_1/unarchive', null, false, static fn (Client $c) => $c->platform->apps->unarchive('id_1')],
+            ['POST', '/v1/platform/apps/bulk_delete', ['ids' => ['a']], false, static fn (Client $c) => $c->platform->apps->bulkDelete(['a'])],
+            ['POST', '/v1/platform/apps/id_1/instances', ['x' => 1], true, static fn (Client $c) => $c->platform->apps->createInstance('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/platform/apps/id_1/instances', null, false, static fn (Client $c) => $c->platform->apps->listInstances('id_1')],
+            ['POST', '/v1/platform/apps/id_1/instances/instance_id_1/rotate_secret', null, true, static fn (Client $c) => $c->platform->apps->rotateInstanceSecret('id_1', 'instance_id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/platform/apps/id_1/rotate_secret', ['x' => 1], true, static fn (Client $c) => $c->platform->apps->rotateSecret('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/platform/apps/id_1/secret_keys', null, false, static fn (Client $c) => $c->platform->apps->listSecretKeys('id_1')],
+            ['POST', '/v1/platform/apps/id_1/transfer', null, true, static fn (Client $c) => $c->platform->apps->transfer('id_1', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/platform/apps/accept_transfer', ['transfer_token' => 'v'], true, static fn (Client $c) => $c->platform->apps->acceptTransfer('v', idempotencyKey: 'idem_1')],
+            ['POST', '/v1/platform/accountless_apps', ['x' => 1], true, static fn (Client $c) => $c->platform->apps->createAccountless(['x' => 1], idempotencyKey: 'idem_1')],
+            ['POST', '/v1/platform/apps/claim', ['claim_token' => 'v'], true, static fn (Client $c) => $c->platform->apps->claim('v', idempotencyKey: 'idem_1')],
+            ['GET', '/v1/platform/atlas_id_apps', null, false, static fn (Client $c) => $c->platform->atlasIdApps->list()],
+            ['POST', '/v1/platform/atlas_id_apps', ['x' => 1], true, static fn (Client $c) => $c->platform->atlasIdApps->create(['x' => 1], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/platform/atlas_id_apps/id_1', null, false, static fn (Client $c) => $c->platform->atlasIdApps->get('id_1')],
+            ['PATCH', '/v1/platform/atlas_id_apps/id_1', ['x' => 1], false, static fn (Client $c) => $c->platform->atlasIdApps->update('id_1', ['x' => 1])],
+            ['DELETE', '/v1/platform/atlas_id_apps/id_1', null, false, static fn (Client $c) => $c->platform->atlasIdApps->delete('id_1')],
+            ['POST', '/v1/platform/atlas_id_apps/id_1/rotate_secret', null, false, static fn (Client $c) => $c->platform->atlasIdApps->rotateSecret('id_1')],
+            ['POST', '/v1/platform/atlas_id_apps/design/preview', ['design' => ['k' => 'v']], false, static fn (Client $c) => $c->platform->atlasIdApps->previewDesign(['k' => 'v'])],
+            ['GET', '/v1/platform/design/assets', null, false, static fn (Client $c) => $c->platform->designAssets->list()],
+            ['DELETE', '/v1/platform/design/assets/asset_id_1', null, false, static fn (Client $c) => $c->platform->designAssets->delete('asset_id_1')],
+        ];
+    }
+
+    public function testEveryAddedOperationHitsItsRoute(): void
+    {
+        $operations = self::operations();
+        $this->assertCount(202, $operations);
+
+        foreach ($operations as [$verb, $path, $body, $idem, $call]) {
+            $mock = new MockClient();
+            $mock->push(200, ['ok' => true]);
+            $call(new Client('sk_test_123', 'https://api.atlas.test', $mock));
+
+            $request = $mock->lastRequest();
+            $this->assertSame($verb, $request->getMethod(), $path);
+            $this->assertSame('https://api.atlas.test' . $path, (string) $request->getUri());
+            $sent = (string) $request->getBody();
+            if ($body === null) {
+                $this->assertSame('', $sent, "{$verb} {$path} should send no body");
+            } else {
+                $this->assertSame($body, json_decode($sent, true), "{$verb} {$path} body");
+                $this->assertSame('application/json', $request->getHeaderLine('Content-Type'));
+            }
+            $this->assertSame($idem ? 'idem_1' : '', $request->getHeaderLine('Idempotency-Key'), "{$verb} {$path} idempotency");
+        }
+    }
+}

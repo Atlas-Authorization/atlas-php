@@ -62,4 +62,22 @@ final class OAuthClients extends Resource
     {
         return $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id));
     }
+
+    /**
+     * `POST /v1/oauth_clients/import` — bulk-import OAuth clients for a migration (idempotent per
+     * client_id).
+     *
+     * @param list<mixed> $clients
+     *
+     * @return array<string,mixed>
+     */
+    public function import(array $clients, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/oauth_clients/import',
+            body: ['clients' => $clients],
+            idempotencyKey: $idempotencyKey,
+        );
+    }
 }

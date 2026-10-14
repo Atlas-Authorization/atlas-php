@@ -17,9 +17,29 @@ final class Webhooks extends Resource
         $this->endpoints = new WebhookEndpoints($http);
     }
 
-    /** Delivery log for an endpoint. @return array<string,mixed> */
-    public function deliveries(string $id): array
+    /**
+     * Delivery log for an endpoint, newest first.
+     *
+     * @param array{limit?:int} $params `limit` defaults to 50, max 100
+     *
+     * @return array<string,mixed>
+     */
+    public function deliveries(string $id, array $params = []): array
     {
-        return $this->http->request('GET', '/v1/webhook_endpoints/' . rawurlencode($id) . '/deliveries');
+        return $this->http->request('GET', '/v1/webhook_endpoints/' . rawurlencode($id) . '/deliveries', query: $params);
+    }
+
+    /**
+     * `POST /v1/webhook_endpoints/:id/deliveries/:deliveryId/redeliver` — redeliver a past event as a
+     * fresh attempt.
+     *
+     * @return array<string,mixed>
+     */
+    public function redeliver(string $endpointId, string $deliveryId): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/webhook_endpoints/' . rawurlencode($endpointId) . '/deliveries/' . rawurlencode($deliveryId) . '/redeliver',
+        );
     }
 }

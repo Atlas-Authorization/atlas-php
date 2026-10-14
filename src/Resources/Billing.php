@@ -54,4 +54,49 @@ final class Billing extends Resource
     {
         return $this->http->request('GET', '/v1/billing/subscriptions', query: $params);
     }
+
+    /**
+     * `POST /v1/billing/subjects/:type/:id/sync_seats` — sync a per-seat subscription's quantity to the
+     * organization's current member count.
+     *
+     * @return array<string,mixed>
+     */
+    public function syncSeats(string $subjectType, string $subjectId): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/billing/subjects/' . rawurlencode($subjectType) . '/' . rawurlencode($subjectId) . '/sync_seats',
+        );
+    }
+
+    /**
+     * `POST /v1/billing/subscriptions/import` — adopt an existing Stripe subscription onto an Atlas user
+     * or organization without re-charging.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function importSubscription(array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/billing/subscriptions/import',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/billing/usage` — report metered usage for a subject (idempotent on idempotency_key in the
+     * body).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function reportUsage(array $body): array
+    {
+        return $this->http->request('POST', '/v1/billing/usage', body: $body);
+    }
 }

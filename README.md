@@ -1,9 +1,9 @@
 # Atlas PHP SDK
 
 The official PHP backend SDK for [Atlas](https://atlasauth.net) — the secret-key
-Backend API client plus local session-token/JWT verification. It mirrors the
-TypeScript SDK (`@atlas/backend`) namespace-for-namespace, so the same 45
-resource namespaces are available with the same method names.
+Backend API client plus local session-token/JWT verification. It covers every
+Backend API operation and the platform-key API, with namespaces and method names
+that mirror the TypeScript SDK.
 
 - **PSR-18 / PSR-17 transport.** Runs on Guzzle out of the box, or any PSR-18
   client you inject. No network is required to unit-test code that uses it.
@@ -70,24 +70,132 @@ try {
     $e->getStatus();          // int HTTP status
     $e->getErrorCode();       // stable machine code, e.g. "LAST_ADMIN"
     $e->hasCode('LAST_ADMIN');
-    $e->getErrors();          // full §9.1 error envelope
+    $e->getErrors();          // the full error envelope
 }
 ```
 
 `TransportException` is thrown when no response is received at all;
 `ConfigException` on a bad configuration (e.g. an empty key).
 
-### The 45 namespaces
+`Atlas\ErrorCode` names the codes most worth branching on — `UNKNOWN_FIELD`,
+`EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, `PLAN_IN_USE`,
+`WRONG_KEY_SURFACE`, `INVALID_KEY` and more:
 
-`users`, `sessions`, `organizations`, `roles`, `permissions`, `oauthClients`,
+```php
+use Atlas\ErrorCode;
+
+if ($e->hasCode(ErrorCode::EMAIL_DELIVERY_NOT_CONFIGURED)) { /* tell an admin */ }
+```
+
+### Strict request bodies
+
+By default a write that includes a field the endpoint does not accept still
+succeeds; the field is ignored and named in the `Atlas-Unknown-Fields` response
+header. Turn on strict bodies to have such a write refused instead (422
+`UNKNOWN_FIELD`, with `param` naming the field), and/or get told about ignored
+fields:
+
+```php
+use Atlas\UnknownFields;
+
+$atlas = new Client(
+    'sk_live_…',
+    strict: true,   // sends Atlas-Strict: true on every write
+    onUnknownFields: function (UnknownFields $w) use ($logger): void {
+        $logger->warning('Atlas ignored ' . implode(', ', $w->fields) . " on {$w->method} {$w->path}");
+    },
+);
+
+// Override for one call:
+$atlas->withStrict(false)->users->update('user_123', ['legacy_field' => 'x']);
+```
+
+`withStrict(false)` sends `Atlas-Strict: false`, which opts a request out of an
+instance-wide strict default; `withStrict(null)` sends no header.
+
+### Check your setup
+
+```php
+$report = $atlas->instance->preflight();
+if (!$report['ok']) {
+    foreach ($report['findings'] as $f) {
+        echo "{$f['severity']} {$f['code']}: {$f['message']}\n  fix: {$f['fix']}\n";
+    }
+}
+```
+
+### Sign-in page design
+
+```php
+// Upload an image (PNG, JPEG, GIF or WebP; the type is detected from the bytes)
+$asset = $atlas->design->uploadAsset(file_get_contents('hero.jpg'), 'background');
+
+$atlas->design->update([
+    'preset' => 'glass',
+    'palette' => ['primary' => '#4f46e5'],
+    'background' => ['image' => ['assetId' => $asset['asset_id'], 'fit' => 'cover']],
+]);
+$atlas->design->preview(['preset' => 'midnight']);   // compile without saving
+$atlas->organizations->updateDesign('org_123', ['palette' => ['primary' => '#0f766e']]);
+$atlas->design->catalog();                           // presets, fonts, CSS variables
+```
+
+The design array is fully typed (`AtlasDesign`) for static analysers; see
+`Atlas\Resources\Design`.
+
+### Cookie consent
+
+```php
+$atlas->instance->setCookieConsent(['script_url' => 'https://cmp.example.com/loader.js', 'site_id' => 'abc123']);
+$atlas->instance->getCookieConsent();
+$atlas->instance->deleteCookieConsent();
+```
+
+### Platform API: Sign in with Atlas apps
+
+Construct the client with a **platform key** (`psk_…`) to manage apps for your account:
+
+```php
+$platform = (new Client(getenv('ATLAS_PLATFORM_KEY')))->platform;
+
+$app = $platform->atlasIdApps->create([
+    'name' => 'Acme',
+    'redirect_uris' => ['https://acme.com/auth/callback'],
+    'post_logout_redirect_uris' => ['https://acme.com/'],
+    'backchannel_logout_uri' => 'https://acme.com/auth/backchannel-logout',
+    'branding' => ['theme' => 'auto', 'accent_color' => '#4f46e5', 'copy' => ['sign_in_title' => 'Sign in to {app}']],
+]);
+$app['client_secret'];                               // shown once (confidential apps)
+
+$platform->atlasIdApps->rotateSecret($app['id']);
+$logo = $platform->designAssets->upload(file_get_contents('logo.png'), 'logo');
+$platform->atlasIdApps->update($app['id'], ['branding' => ['design' => ['logo' => ['assetId' => $logo['asset_id']]]]]);
+$platform->apps->list();                             // apps (instances) your platform provisions
+```
+
+### All namespaces
+
+`users`, `sessions`, `organizations` (with `memberships`, `invitations`,
+`domains`, `groupRoles`, `auditStreams`, `endUsers`, `readerDomain`, plus
+settings, design and branding), `roles`, `permissions`, `oauthClients`,
 `resourceServers`, `ssoConnections`, `scimTokens`, `domains`, `waitlist`,
 `allowlist`, `blocklist`, `attackProtection`, `actorTokens`, `invitations`,
-`webhooks`, `signInTokens`, `auditLogs`, `jwtTemplates`, `apiKeys`,
-`oauthProviders`, `ssoOnboarding`, `scimProvisioning`, `fga`, `rateLimitPolicy`,
-`riskBasedMfa`, `botSignals`, `networkAcls`, `managedWaf`, `logStreams`,
-`branding`, `emailTemplates`, `smsTemplates`, `localizations`, `actions`,
-`billing`, `messaging`, `importExport`, `dataSubjectRequests`, `radiusClients`,
-`ltiPlatforms`, `instance`, `instanceSecurity`, `tokens`.
+`webhooks`, `signInTokens`, `auditLogs`, `auditEvents`, `jwtTemplates`,
+`apiKeys`, `oauthProviders`, `ssoOnboarding`, `scimProvisioning`, `fga`,
+`openFga`, `rateLimitPolicy`, `riskBasedMfa`, `botSignals`, `networkAcls`,
+`managedWaf`, `logStreams`, `branding`, `design`, `emailTemplates`,
+`smsTemplates`, `localizations`, `actions`, `billing`, `messaging`,
+`importExport`, `dataSubjectRequests`, `radiusClients`, `ltiPlatforms`,
+`instance` (incl. `preflight` and cookie consent), `instanceSecurity`, `tokens`,
+`emailAddresses`, `organizationSettingsSchema`, `entitlementOverrides`,
+`machines` (incl. enrolment tokens), `connectors`, `directory`, `diagnostics`,
+`configChangelog`, `events`, `usage`, `legacyAuthConnection`, `mcp`,
+`mcpConnector`, `notifications` (with `categories` and `templates`),
+`orgLdapConnections`, `pca`, `redirectUrls`, `sessionExchangeApps`, `tickets`,
+`captcha`, `testing` (development-instance helpers), and `platform` (`apps`,
+`atlasIdApps`, `designAssets`; needs a platform key).
+
+Anything not wrapped can be called directly with `$atlas->http->request('GET', '/v1/…')`.
 
 ## Verifying session tokens
 
@@ -147,6 +255,46 @@ Keys are cached in-process. A token carrying an unknown `kid` triggers at most
 one JWKS refetch per minute, so a flood of random `kid` values cannot be turned
 into a flood of outbound requests. Key rotation is picked up automatically with
 no deploy.
+
+## Back-channel logout
+
+When a user signs out, Atlas POSTs a signed `logout_token` to your app's
+`backchannel_logout_uri` (Sign in with Atlas apps and session-exchange apps).
+Verify it, end the matching local sessions, and answer 200:
+
+```php
+use Atlas\Verify\BackchannelLogout;
+use Atlas\Verify\InvalidLogoutTokenException;
+
+$logout = new BackchannelLogout(
+    issuer: 'https://atlasauth.net',                      // your instance's frontend API origin for session-exchange apps
+    jwksUrl: 'https://atlasauth.net/.well-known/jwks.json',
+    clientId: getenv('ATLAS_CLIENT_ID'),                  // the token's audience
+    jtiStore: $myJtiStore,                                // optional: refuse replays (see below)
+);
+
+// POST /auth/backchannel-logout — plain PHP; adapt to your framework's request/response.
+header('Cache-Control: no-store');
+try {
+    $claims = $logout->verify($_POST['logout_token'] ?? '');
+    if ($claims->sid !== null) {
+        $sessions->deleteByAtlasSessionId($claims->sid);  // one session
+    } else {
+        $sessions->deleteByAtlasUserId($claims->sub);     // every session of the user
+    }
+    http_response_code(200);
+} catch (InvalidLogoutTokenException $e) {
+    http_response_code(400);
+}
+```
+
+The verifier checks the RS256 signature, `iss`, `aud`, `iat`, `exp`, `jti`, the
+back-channel logout `events` claim, that `sid` or `sub` is present, that there
+is no `nonce`, and the `logout+jwt` type. To refuse replays, implement
+`Atlas\Verify\JtiStore` (one method, `add(string $jti, int $ttlSeconds): bool`,
+returning false for an id it has seen) over a store all your PHP processes
+share — Redis `SET key 1 NX EX ttl` or a unique database column.
+`InMemoryJtiStore` is included for long-running workers and tests.
 
 ## Laravel
 
@@ -210,6 +358,42 @@ cookie, verifies it locally, and returns a `SelfValidatingPassport` whose user i
 an `Atlas\Symfony\AtlasUser` — identifier `sub`, roles `ROLE_USER` plus
 `ROLE_<ORG_ROLE>`, full claims via `claims()`. A missing/invalid token is a 401.
 Configure it with the `ATLAS_*` environment variables, or under an `atlas` key.
+
+## PSR-15 middleware (Slim, Mezzio, any pipeline)
+
+For a framework without a bespoke integration — or none at all — the SDK ships a
+standard PSR-15 middleware under `Atlas\Psr15` (install `psr/http-server-middleware`).
+It wraps the same framework-free `SessionVerifier`, so there is no second copy of
+the JWT/JWKS crypto. Verification is local — no network on the hot path.
+
+```php
+use Atlas\Psr15\AtlasAuthenticationMiddleware;
+use Atlas\Verify\SessionVerifier;
+
+$verifier = new SessionVerifier(
+    jwksUrl: getenv('ATLAS_JWKS_URL'),
+    issuer: getenv('ATLAS_ISSUER'),
+);
+
+// Slim 4: add it ahead of the routes it should protect.
+$app->add(new AtlasAuthenticationMiddleware($verifier));
+```
+
+It reads an `Authorization: Bearer <jwt>` header or the `__session` cookie off the
+PSR-7 request (header first). On success it attaches the verified result as the
+`atlas` request attribute and calls the next handler; a missing/invalid token
+short-circuits with a `401` JSON body and the handler never runs.
+
+```php
+$result = $request->getAttribute('atlas'); // Atlas\Verify\VerifyResult
+$result->protect(['permission' => 'billing:write']); // throws ForbiddenException on fail
+$userId = $result->claims['sub'];
+```
+
+The attribute name is the fourth constructor argument (default `atlas`); the 401
+response is built with auto-discovered Guzzle PSR-17 factories, or pass your own
+`ResponseFactoryInterface` / `StreamFactoryInterface` as the second and third
+arguments.
 
 ## Testing
 

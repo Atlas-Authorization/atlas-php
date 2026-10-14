@@ -62,4 +62,29 @@ final class ApiKeys extends Resource
     {
         return $this->http->request('DELETE', '/v1/api_keys/' . rawurlencode($id));
     }
+
+    /**
+     * `GET /v1/api_keys/revoked` — keys revoked since a cursor (since), for deny-listing revoked key ids.
+     *
+     * @param array<string,mixed> $params query parameters
+     *
+     * @return array<string,mixed>
+     */
+    public function listRevoked(array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/api_keys/revoked', query: $params);
+    }
+
+    /**
+     * `POST /v1/api_keys/token` — mint a short-lived access JWT for an API key (secret, ttl_seconds,
+     * audience).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function mintToken(array $body): array
+    {
+        return $this->http->request('POST', '/v1/api_keys/token', body: $body);
+    }
 }

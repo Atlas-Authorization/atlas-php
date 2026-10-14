@@ -49,4 +49,31 @@ final class DataSubjectRequests extends Resource
             idempotencyKey: $idempotencyKey,
         );
     }
+
+    /**
+     * `POST /v1/data_subject_requests` — open an export or erasure request for a user (by user_id or
+     * subject_email).
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function create(array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request('POST', '/v1/data_subject_requests', body: $body, idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * `POST /v1/data_subject_requests/:id/cancel` — cancel a scheduled erasure within its grace window.
+     *
+     * @return array<string,mixed>
+     */
+    public function cancel(string $id, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/data_subject_requests/' . rawurlencode($id) . '/cancel',
+            idempotencyKey: $idempotencyKey,
+        );
+    }
 }
