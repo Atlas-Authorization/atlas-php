@@ -2,6 +2,19 @@
 
 Versions are published from git tags.
 
+## 0.4.0
+
+### Added
+
+- `sessions->touch($id)` — `POST /v1/sessions/{id}/touch`, backend session keep-alive. Returns the session plus `extended` (bool). Session arrays now carry `idle_expires_at` (epoch ms).
+- API key spend caps: `apiKeys->create()` and `apiKeys->update()` are typed for `limits` (list of `{unit, amount, period: 'request'|'day'|'month'|'total'}`, or `null` to clear). API key arrays carry `limits` and `usage` (`[{unit, period, amount, used, remaining, window_start, resets_at}]`).
+- `apiKeys->recordUsage($id, $amount, $unit, $idempotencyKey = null)` — `POST /v1/api_keys/{id}/usage`, returns an `api_key_usage_debit` (`key_id`, `unit`, `amount`, `allowed`, `code`, `exceeded`, `usage`, `counters`, `idempotent_replay`).
+- `apiKeys->getUsage($id)` — `GET /v1/api_keys/{id}/usage`, returns an `api_key_usage` (`key_id`, `limits`, `usage`, `counters`).
+- `apiKeys->verify()` valid results carry `name`, `scopes`, `constraints`, `limits` and `usage`.
+- `notify` (bool) typed on `users->create()` and `importExport->importUsers()`.
+- Webhook events `api_key.created`, `api_key.updated` and `api_key.limit_reached`; the `api_key` payload carries `name`, `claims`, `scopes`, `constraints`, `limits`, `max_token_lifetime_seconds`, `expires_at`, `created_at` and `updated_at`.
+- `ErrorCode::LIMIT_EXCEEDED`, `SESSION_REVOKED`, `SESSION_IDLE_EXPIRED`, `SESSION_EXPIRED`.
+
 ## 0.3.0
 
 ### Added

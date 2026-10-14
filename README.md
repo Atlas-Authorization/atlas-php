@@ -173,6 +173,46 @@ $platform->atlasIdApps->update($app['id'], ['branding' => ['design' => ['logo' =
 $platform->apps->list();                             // apps (instances) your platform provisions
 ```
 
+### API key spend caps
+
+Give an end-user API key caps in your own units, then meter what your API consumed against them. A refused debit records nothing and is not an exception, so you enforce it inside your own transaction:
+
+```php
+use Atlas\ErrorCode;
+
+$key = $atlas->apiKeys->create([
+    'subject_type' => 'user', 'subject_id' => 'user_123', 'name' => 'CI',
+    'limits' => [
+        ['unit' => 'requests', 'amount' => 10000, 'period' => 'day'],   // day/month are UTC calendar windows
+        ['unit' => 'usd_cents', 'amount' => 500, 'period' => 'request'], // caps a single debit; "total" never resets
+    ],
+]);
+
+$debit = $atlas->apiKeys->recordUsage($key['id'], 1, 'requests', idempotencyKey: $requestId);
+if (!$debit['allowed']) {                       // $debit['code'] === ErrorCode::LIMIT_EXCEEDED
+    return new Response(429, body: 'quota exceeded');
+}
+
+$atlas->apiKeys->getUsage($key['id']);           // caps with used/remaining/resets_at + raw counters
+$atlas->apiKeys->update($key['id'], ['limits' => null]); // remove every cap
+```
+
+Reusing an idempotency key replays the first outcome (`idempotent_replay: true`) without counting again; reusing it with a different unit or amount throws a `ConflictException` with `IDEMPOTENCY_CONFLICT`. `apiKeys->verify()` also returns the key's `name`, `scopes`, `constraints`, `limits` and `usage`. Subscribe to the `api_key.created`, `api_key.updated` and `api_key.limit_reached` webhooks to mirror keys and react to a filled cap.
+
+### Session keep-alive
+
+If your app loads Atlas on only some pages, keep the session's inactivity window moving from your backend:
+
+```php
+$session = $atlas->sessions->touch($sessionId);
+$session['extended'];        // false when a touch within the last minute already moved it
+$session['idle_expires_at']; // epoch ms the session ends from inactivity
+```
+
+It never extends past the absolute expiry and never revives an ended session (`ConflictException` with `SESSION_REVOKED`, `SESSION_IDLE_EXPIRED` or `SESSION_EXPIRED`). Calling it on every request is safe.
+
+`users->create()` and `importExport->importUsers()` accept `'notify' => false` (the default), which guarantees the user is sent no email, SMS or push as a consequence of the create.
+
 ### All namespaces
 
 `users`, `sessions`, `organizations` (with `memberships`, `invitations`,

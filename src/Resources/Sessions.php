@@ -43,6 +43,20 @@ final class Sessions extends Resource
     }
 
     /**
+     * `POST /v1/sessions/:id/touch` — keep a session alive from your backend: slides its inactivity
+     * window as if the user had just loaded a page, never past the absolute expiry. Returns the session
+     * (with `idle_expires_at`) plus `extended` — false when a touch within the last minute already moved
+     * it, so calling it on every request is safe. An ended session throws a 409 (`SESSION_REVOKED`,
+     * `SESSION_IDLE_EXPIRED` or `SESSION_EXPIRED`).
+     *
+     * @return array<string,mixed>
+     */
+    public function touch(string $id): array
+    {
+        return $this->http->request('POST', '/v1/sessions/' . rawurlencode($id) . '/touch');
+    }
+
+    /**
      * `POST /v1/sessions/:id/tokens/:template` — mint a token from a named JWT template for a session.
      *
      * @return array<string,mixed>

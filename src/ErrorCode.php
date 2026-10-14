@@ -30,7 +30,16 @@ final class ErrorCode
     public const VALIDATION_FAILED = 'VALIDATION_FAILED';
     public const RATE_LIMITED = 'RATE_LIMITED';
     public const SCOPE_MISSING = 'SCOPE_MISSING';
+    /** An idempotency key was reused with a different request (e.g. another unit or amount). */
     public const IDEMPOTENCY_CONFLICT = 'IDEMPOTENCY_CONFLICT';
+    /** A usage debit would exceed one of the API key's spend caps (the `code` of a refused debit). */
+    public const LIMIT_EXCEEDED = 'LIMIT_EXCEEDED';
+    /** The session was revoked. */
+    public const SESSION_REVOKED = 'SESSION_REVOKED';
+    /** The session timed out from inactivity. */
+    public const SESSION_IDLE_EXPIRED = 'SESSION_IDLE_EXPIRED';
+    /** The session passed its absolute expiry. */
+    public const SESSION_EXPIRED = 'SESSION_EXPIRED';
 
     private function __construct()
     {

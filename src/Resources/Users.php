@@ -31,7 +31,10 @@ final class Users extends Resource
     }
 
     /**
-     * @param array<string,mixed> $body {email_address, password?, first_name?, ...}
+     * `notify: false` (the default) guarantees no email, SMS or push is sent to the user as a consequence
+     * of the create.
+     *
+     * @param array<string,mixed> $body {email_address, password?, first_name?, ..., notify?}
      *
      * @return array<string,mixed>
      */
