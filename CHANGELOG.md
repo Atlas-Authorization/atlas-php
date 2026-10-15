@@ -2,6 +2,12 @@
 
 Versions are published from git tags.
 
+## 0.5.1
+
+- **Captcha is bring-your-own-keys.** `ErrorCode::CAPTCHA_KEYS_REQUIRED` (422) and `ErrorCode::CAPTCHA_IN_USE` (409, `meta.flows`).
+- `instanceSecurity->setCaptchaSecret($secret, $provider)` stores the secret for a named provider before captcha is turned on.
+- `instanceSecurity->deleteCaptchaSecret($provider, force: true)` removes a secret a flow uses and turns those flows off (`flows_turned_off`).
+
 ## 0.5.0
 
 All changes are backward compatible: new fields are optional or nullable and the new parameter defaults to the old behaviour.

@@ -112,4 +112,36 @@ final class MessagingTest extends TestCase
             $this->assertSame(['emailCode', 'passwordReset'], $e->getErrors()[0]->meta['features']);
         }
     }
+
+    public function testCaptchaSecretIsBringYourOwnKeys(): void
+    {
+        $this->mock->push(200, ['object' => 'captcha_secret', 'provider' => 'turnstile', 'set' => true]);
+        $this->atlas->instanceSecurity->setCaptchaSecret('s3cret', 'turnstile');
+        $request = $this->mock->lastRequest();
+        $this->assertSame('PUT', $request->getMethod());
+        $this->assertSame(['secret' => 's3cret', 'provider' => 'turnstile'], json_decode((string) $request->getBody(), true));
+
+        $this->mock->push(200, ['object' => 'captcha_secret', 'provider' => 'hcaptcha', 'deleted' => true, 'flows_turned_off' => ['signUp']]);
+        $result = $this->atlas->instanceSecurity->deleteCaptchaSecret('hcaptcha', force: true);
+        $this->assertSame('https://api.atlas.test/v1/instance/captcha_secret?provider=hcaptcha&force=true', (string) $this->mock->lastRequest()->getUri());
+        $this->assertSame(['signUp'], $result['flows_turned_off']);
+
+        $this->mock->push(200, ['object' => 'captcha_secret', 'provider' => 'hcaptcha', 'deleted' => true]);
+        $this->atlas->instanceSecurity->deleteCaptchaSecret();
+        $this->assertSame('https://api.atlas.test/v1/instance/captcha_secret', (string) $this->mock->lastRequest()->getUri());
+    }
+
+    public function testCaptchaInUseIsAConflict(): void
+    {
+        $this->mock->push(409, ['errors' => [[
+            'code' => 'CAPTCHA_IN_USE', 'message' => 'in use', 'meta' => ['flows' => ['signUp']],
+        ]]]);
+        try {
+            $this->atlas->instanceSecurity->deleteCaptchaSecret();
+            $this->fail('expected a conflict');
+        } catch (ConflictException $e) {
+            $this->assertTrue($e->hasCode(ErrorCode::CAPTCHA_IN_USE));
+        }
+        $this->assertSame('CAPTCHA_KEYS_REQUIRED', ErrorCode::CAPTCHA_KEYS_REQUIRED);
+    }
 }

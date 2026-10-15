@@ -30,19 +30,38 @@ final class InstanceSecurity extends Resource
     }
 
     /**
-     * Store the captcha provider secret. Refused while the provider is `none`.
+     * Store a captcha provider secret. `$provider` (default: the configured one) lets you
+     * store it BEFORE turning captcha on — captcha is bring-your-own-keys, and enabling it
+     * without a site key and secret is refused with 422 `CAPTCHA_KEYS_REQUIRED`.
      *
      * @return array<string,mixed>
      */
-    public function setCaptchaSecret(string $secret): array
+    public function setCaptchaSecret(string $secret, ?string $provider = null): array
     {
-        return $this->http->request('PUT', '/v1/instance/captcha_secret', body: ['secret' => $secret]);
+        $body = ['secret' => $secret];
+        if ($provider !== null) {
+            $body['provider'] = $provider;
+        }
+        return $this->http->request('PUT', '/v1/instance/captcha_secret', body: $body);
     }
 
-    /** @return array<string,mixed> */
-    public function deleteCaptchaSecret(): array
+    /**
+     * Remove a captcha secret. Refused with 409 `CAPTCHA_IN_USE` while a flow uses it
+     * (`meta.flows`); `force: true` removes it anyway and turns those flows off
+     * (returned as `flows_turned_off`).
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteCaptchaSecret(?string $provider = null, bool $force = false): array
     {
-        return $this->http->request('DELETE', '/v1/instance/captcha_secret');
+        $query = [];
+        if ($provider !== null) {
+            $query['provider'] = $provider;
+        }
+        if ($force) {
+            $query['force'] = true;
+        }
+        return $this->http->request('DELETE', '/v1/instance/captcha_secret', query: $query === [] ? null : $query);
     }
 
     /**
