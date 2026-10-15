@@ -6,7 +6,16 @@ namespace Atlas\Resources;
 
 use Atlas\Http;
 
-/** `/v1/oauth_clients` — first/third-party OAuth clients and their grants. */
+/**
+ * `/v1/oauth_clients` — first/third-party OAuth clients and their grants.
+ *
+ * `skip_logout_confirmation` (first-party clients only; the API answers 422
+ * `VALIDATION_FAILED` with param `skip_logout_confirmation` on a third-party
+ * client): when true, RP-initiated logout (`/oauth2/logout`) with this
+ * client_id and an exactly registered post_logout_redirect_uri ends the session
+ * and redirects straight back with `state`, without the confirmation page.
+ * Client arrays carry it as a bool (false by default).
+ */
 final class OAuthClients extends Resource
 {
     public readonly OAuthClientGrants $grants;
@@ -32,7 +41,7 @@ final class OAuthClients extends Resource
     /**
      * Create a client; the secret is revealed exactly once, here.
      *
-     * @param array{name:string,redirect_uris:list<string>,allowed_scopes?:list<string>,grant_types?:list<string>,token_endpoint_auth_method?:string,logo_url?:string,first_party?:bool} $body
+     * @param array{name:string,redirect_uris:list<string>,allowed_scopes?:list<string>,grant_types?:list<string>,token_endpoint_auth_method?:string,logo_url?:string,first_party?:bool,skip_logout_confirmation?:bool} $body
      *
      * @return array<string,mixed>
      */
@@ -42,6 +51,9 @@ final class OAuthClients extends Resource
     }
 
     /**
+     * Partially update a client. Send `skip_logout_confirmation` (bool) to turn the logout
+     * confirmation page off or back on for a first-party client.
+     *
      * @param array<string,mixed> $body
      *
      * @return array<string,mixed>

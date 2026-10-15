@@ -6,15 +6,18 @@ namespace Atlas\Tests;
 
 use Atlas\Client;
 use Atlas\ErrorCode;
+use Atlas\Exception\BadRequestException;
 use Atlas\Resources\Design;
+use Atlas\Resources\Instance;
 use Atlas\Resources\Organizations;
 use Atlas\Tests\Support\MockClient;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Sign in with Atlas apps, design (incl. raw image uploads), preflight, cookie
- * consent, OAuth provider filters, webhooks, entitlement overrides and org
- * policy — request shape and response decoding.
+ * consent (incl. the settings link), OAuth clients, OAuth provider filters,
+ * webhooks, entitlement overrides and org policy — request shape and response
+ * decoding.
  */
 final class PlatformDesignTest extends TestCase
 {
@@ -169,6 +172,103 @@ final class PlatformDesignTest extends TestCase
         $this->assertSame('DELETE', $this->mock->lastRequest()->getMethod());
     }
 
+    public function testCookieConsentSettingsLinkRoundTrip(): void
+    {
+        $this->mock->push(200, [
+            'object' => 'cookie_consent', 'enabled' => true, 'script_url' => 'https://cmp.example/s.js',
+            'settings_link' => [
+                'label' => 'Cookie settings', 'preset' => 'cookiebot', 'attributes' => ['class' => 'footer-link'],
+                'rendered_attributes' => ['class' => 'footer-link', 'href' => 'javascript:Cookiebot.renew()'],
+            ],
+        ]);
+
+        $consent = $this->atlas->instance->setCookieConsent([
+            'script_url' => 'https://cmp.example/s.js',
+            'settings_link' => [
+                'label' => 'Cookie settings',
+                'preset' => Instance::COOKIE_SETTINGS_LINK_PRESET_COOKIEBOT,
+                'attributes' => ['class' => 'footer-link'],
+            ],
+        ]);
+
+        $this->assertSame([
+            'script_url' => 'https://cmp.example/s.js',
+            'settings_link' => ['label' => 'Cookie settings', 'preset' => 'cookiebot', 'attributes' => ['class' => 'footer-link']],
+        ], json_decode((string) $this->mock->lastRequest()->getBody(), true));
+        $link = $consent['settings_link'];
+        $this->assertNotNull($link);
+        $this->assertSame('Cookie settings', $link['label']);
+        $this->assertSame('cookiebot', $link['preset']);
+        $this->assertSame(['class' => 'footer-link'], $link['attributes']);
+        $this->assertSame('footer-link', $link['rendered_attributes']['class']);
+        $this->assertArrayHasKey('href', $link['rendered_attributes']);
+    }
+
+    public function testCookieConsentSettingsLinkNullClearsAndUnknownPresetDecodes(): void
+    {
+        $this->mock->push(200, ['object' => 'cookie_consent', 'enabled' => true, 'settings_link' => null]);
+        $consent = $this->atlas->instance->setCookieConsent(['script_url' => 'https://cmp.example/s.js', 'settings_link' => null]);
+        $sent = json_decode((string) $this->mock->lastRequest()->getBody(), true);
+        $this->assertArrayHasKey('settings_link', $sent);
+        $this->assertNull($sent['settings_link']);
+        $this->assertNull($consent['settings_link']);
+
+        $this->mock->push(200, [
+            'object' => 'cookie_consent', 'enabled' => true,
+            'settings_link' => ['label' => 'Privacy', 'preset' => 'newcmp', 'attributes' => [], 'rendered_attributes' => ['data-newcmp' => 'open']],
+        ]);
+        $link = $this->atlas->instance->getCookieConsent()['settings_link'];
+        $this->assertSame('newcmp', $link['preset']);
+        $this->assertSame(['data-newcmp' => 'open'], $link['rendered_attributes']);
+    }
+
+    public function testCookieSettingsLinkPresetConstants(): void
+    {
+        $this->assertSame('cookiemunch', Instance::COOKIE_SETTINGS_LINK_PRESET_COOKIEMUNCH);
+        $this->assertSame('cookiebot', Instance::COOKIE_SETTINGS_LINK_PRESET_COOKIEBOT);
+        $this->assertSame('onetrust', Instance::COOKIE_SETTINGS_LINK_PRESET_ONETRUST);
+        $this->assertSame('custom', Instance::COOKIE_SETTINGS_LINK_PRESET_CUSTOM);
+        $this->assertSame(['cookiemunch', 'cookiebot', 'onetrust', 'custom'], Instance::COOKIE_SETTINGS_LINK_PRESETS);
+    }
+
+    public function testOAuthClientSkipLogoutConfirmation(): void
+    {
+        $this->mock->push(201, ['object' => 'oauth_client', 'id' => 'oc_1', 'first_party' => true, 'skip_logout_confirmation' => true]);
+        $client = $this->atlas->oauthClients->create([
+            'name' => 'Acme', 'redirect_uris' => ['https://app.example.com/cb'], 'first_party' => true,
+            'skip_logout_confirmation' => true,
+        ]);
+        $this->assertSame('POST', $this->mock->lastRequest()->getMethod());
+        $this->assertTrue(json_decode((string) $this->mock->lastRequest()->getBody(), true)['skip_logout_confirmation']);
+        $this->assertTrue($client['skip_logout_confirmation']);
+
+        $this->mock->push(200, ['object' => 'oauth_client', 'id' => 'oc_1', 'skip_logout_confirmation' => false]);
+        $updated = $this->atlas->oauthClients->update('oc_1', ['skip_logout_confirmation' => false]);
+        $this->assertSame('PATCH', $this->mock->lastRequest()->getMethod());
+        $this->assertSame('https://api.atlas.test/v1/oauth_clients/oc_1', (string) $this->mock->lastRequest()->getUri());
+        $this->assertSame('{"skip_logout_confirmation":false}', (string) $this->mock->lastRequest()->getBody());
+        $this->assertFalse($updated['skip_logout_confirmation']);
+
+        $this->mock->push(200, ['object' => 'oauth_client', 'id' => 'oc_1', 'skip_logout_confirmation' => true]);
+        $this->assertTrue($this->atlas->oauthClients->get('oc_1')['skip_logout_confirmation']);
+
+        $this->mock->push(200, ['data' => [['object' => 'oauth_client', 'id' => 'oc_1', 'skip_logout_confirmation' => false]]]);
+        $this->assertFalse($this->atlas->oauthClients->list()['data'][0]['skip_logout_confirmation']);
+    }
+
+    public function testOAuthClientSkipLogoutConfirmationOnThirdPartyIsRefused(): void
+    {
+        $this->mock->push(422, ['errors' => [['code' => 'VALIDATION_FAILED', 'message' => 'first-party only', 'param' => 'skip_logout_confirmation']]]);
+
+        try {
+            $this->atlas->oauthClients->update('oc_3p', ['skip_logout_confirmation' => true]);
+            $this->fail('expected a BadRequestException');
+        } catch (BadRequestException $e) {
+            $this->assertTrue($e->hasCode(ErrorCode::VALIDATION_FAILED));
+            $this->assertSame('skip_logout_confirmation', $e->getErrors()[0]->param);
+        }
+    }
+
     public function testOAuthProvidersListFiltersAndDisplayFields(): void
     {
         $this->mock->push(200, ['data' => [['provider' => 'google', 'icon_url' => null, 'mode' => 'native']]]);
@@ -232,5 +332,7 @@ final class PlatformDesignTest extends TestCase
     {
         $this->assertSame('EMAIL_DELIVERY_NOT_CONFIGURED', ErrorCode::EMAIL_DELIVERY_NOT_CONFIGURED);
         $this->assertSame('WRONG_KEY_SURFACE', ErrorCode::WRONG_KEY_SURFACE);
+        $this->assertSame('EMAIL_PROVIDER_REQUIRED', ErrorCode::EMAIL_PROVIDER_REQUIRED);
+        $this->assertSame('EMAIL_PROVIDER_IN_USE', ErrorCode::EMAIL_PROVIDER_IN_USE);
     }
 }

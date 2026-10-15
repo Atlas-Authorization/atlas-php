@@ -11,8 +11,8 @@ use Atlas\Tests\Support\MockClient;
 use PHPUnit\Framework\TestCase;
 
 /**
- * API key spend caps (limits + usage metering), session keep-alive and the
- * explicit notify flag on user create/import.
+ * API key spend caps (limits + usage metering), session keep-alive and idle
+ * expiry, and the explicit notify flag on user create/import.
  */
 final class ApiKeyLimitsTest extends TestCase
 {
@@ -165,6 +165,48 @@ final class ApiKeyLimitsTest extends TestCase
         } catch (ConflictException $e) {
             $this->assertTrue($e->hasCode(ErrorCode::SESSION_IDLE_EXPIRED));
         }
+    }
+
+    public function testUserSessionsListDecodesIdleExpiryOrgAndImpersonator(): void
+    {
+        $this->mock->push(200, ['object' => 'list', 'data' => [
+            [
+                'object' => 'session', 'id' => 'sess_1', 'user_id' => 'user_1', 'status' => 'active',
+                'abandon_at' => 1760486400000, 'idle_expires_at' => 1760486400000,
+                'last_active_organization_id' => 'org_1', 'impersonated_by' => 'user_admin',
+            ],
+            [
+                'object' => 'session', 'id' => 'sess_2', 'user_id' => 'user_1', 'status' => 'active',
+                'abandon_at' => 1760490000000, 'idle_expires_at' => 1760490000000,
+                'last_active_organization_id' => null, 'impersonated_by' => null,
+            ],
+        ], 'has_more' => false]);
+
+        $page = $this->atlas->users->listSessions('user_1');
+
+        $request = $this->mock->lastRequest();
+        $this->assertSame('GET', $request->getMethod());
+        $this->assertSame('https://api.atlas.test/v1/users/user_1/sessions', (string) $request->getUri());
+        $first = $page['data'][0];
+        $this->assertSame(1760486400000, $first['idle_expires_at']);
+        $this->assertSame($first['abandon_at'], $first['idle_expires_at']);
+        $this->assertSame('org_1', $first['last_active_organization_id']);
+        $this->assertSame('user_admin', $first['impersonated_by']);
+        $second = $page['data'][1];
+        $this->assertSame(1760490000000, $second['idle_expires_at']);
+        $this->assertNull($second['last_active_organization_id']);
+        $this->assertNull($second['impersonated_by']);
+    }
+
+    public function testSessionReadAndListCarryIdleExpiry(): void
+    {
+        $this->mock->push(200, ['object' => 'session', 'id' => 'sess_1', 'abandon_at' => 1760486400000, 'idle_expires_at' => 1760486400000]);
+        $this->assertSame(1760486400000, $this->atlas->sessions->get('sess_1')['idle_expires_at']);
+
+        $this->mock->push(200, ['object' => 'list', 'data' => [['object' => 'session', 'id' => 'sess_1', 'idle_expires_at' => 1760486400000]]]);
+        $page = $this->atlas->sessions->list('user_1');
+        $this->assertSame('https://api.atlas.test/v1/sessions?user_id=user_1', (string) $this->mock->lastRequest()->getUri());
+        $this->assertSame(1760486400000, $page['data'][0]['idle_expires_at']);
     }
 
     public function testUserCreateAndImportSendNotify(): void

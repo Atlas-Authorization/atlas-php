@@ -92,10 +92,23 @@ final class Messaging extends Resource
         return $this->http->request('PUT', '/v1/messaging_providers/sms', body: $body);
     }
 
-    /** @return array<string,mixed> */
-    public function deleteChannel(string $channel): array
+    /**
+     * Remove the channel's provider. Returns `{object: 'messaging_provider', channel, deleted: true}`.
+     *
+     * Removing the email provider is refused with a 409 `EMAIL_PROVIDER_IN_USE` while nothing else
+     * would deliver email; the error's `meta.features` lists the email-dependent features that are on
+     * (e.g. `emailCode`, `emailLink`, `emailVerification`, `passwordReset`). Pass `force: true` to
+     * remove it anyway.
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteChannel(string $channel, bool $force = false): array
     {
-        return $this->http->request('DELETE', '/v1/messaging_providers/' . rawurlencode($channel));
+        return $this->http->request(
+            'DELETE',
+            '/v1/messaging_providers/' . rawurlencode($channel),
+            query: $force ? ['force' => true] : null,
+        );
     }
 
     /**

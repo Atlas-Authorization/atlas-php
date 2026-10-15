@@ -20,6 +20,8 @@ final class ErrorCode
     public const EMAIL_DELIVERY_NOT_CONFIGURED = 'EMAIL_DELIVERY_NOT_CONFIGURED';
     /** An email-based sign-in method cannot be turned on without an email provider. */
     public const EMAIL_PROVIDER_REQUIRED = 'EMAIL_PROVIDER_REQUIRED';
+    /** The email provider cannot be removed while email-dependent features are on (`meta.features` lists them); delete with `force: true` to remove it anyway. */
+    public const EMAIL_PROVIDER_IN_USE = 'EMAIL_PROVIDER_IN_USE';
     /** A billing plan that subscriptions still use cannot be deleted. */
     public const PLAN_IN_USE = 'PLAN_IN_USE';
     /** The key is valid but for a different API surface (e.g. a platform key on an instance route). */

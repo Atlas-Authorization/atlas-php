@@ -78,8 +78,8 @@ try {
 `ConfigException` on a bad configuration (e.g. an empty key).
 
 `Atlas\ErrorCode` names the codes most worth branching on — `UNKNOWN_FIELD`,
-`EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, `PLAN_IN_USE`,
-`WRONG_KEY_SURFACE`, `INVALID_KEY` and more:
+`EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, `EMAIL_PROVIDER_IN_USE`,
+`PLAN_IN_USE`, `WRONG_KEY_SURFACE`, `INVALID_KEY` and more:
 
 ```php
 use Atlas\ErrorCode;
@@ -146,10 +146,45 @@ The design array is fully typed (`AtlasDesign`) for static analysers; see
 ### Cookie consent
 
 ```php
-$atlas->instance->setCookieConsent(['script_url' => 'https://cmp.example.com/loader.js', 'site_id' => 'abc123']);
-$atlas->instance->getCookieConsent();
+use Atlas\Resources\Instance;
+
+$atlas->instance->setCookieConsent([
+    'script_url' => 'https://cmp.example.com/loader.js',
+    'site_id' => 'abc123',
+    // Optional "cookie settings" link on the hosted pages (null or omitted = no link).
+    'settings_link' => ['label' => 'Cookie settings', 'preset' => Instance::COOKIE_SETTINGS_LINK_PRESET_COOKIEBOT],
+]);
+$consent = $atlas->instance->getCookieConsent();
+$consent['settings_link']['rendered_attributes']; // your attributes plus the preset's trigger
 $atlas->instance->deleteCookieConsent();
 ```
+
+A settings link needs a `preset` (`cookiemunch`, `cookiebot`, `onetrust` or
+`custom`) or at least one entry in `attributes` (`data-*`, `aria-*`, `id`,
+`class`, or an https / `#fragment` `href`; at most 10).
+
+### Messaging providers
+
+```php
+$atlas->messaging->deleteChannel('sms');
+$atlas->messaging->deleteChannel('email', force: true);
+```
+
+Removing the email provider is refused with a `ConflictException`
+(`EMAIL_PROVIDER_IN_USE`, with `meta.features` listing the email-dependent
+features that are on) while nothing else would deliver email; `force: true`
+removes it anyway.
+
+### OAuth clients
+
+```php
+$atlas->oauthClients->update($clientId, ['skip_logout_confirmation' => true]);
+```
+
+For a first-party client, `skip_logout_confirmation` makes RP-initiated logout
+(`/oauth2/logout` with this client's `client_id` and an exactly registered
+`post_logout_redirect_uri`) end the session and redirect straight back with
+`state`, without the confirmation page. A third-party client is refused (422).
 
 ### Platform API: Sign in with Atlas apps
 

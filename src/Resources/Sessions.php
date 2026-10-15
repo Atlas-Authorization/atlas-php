@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace Atlas\Resources;
 
-/** `/v1/sessions` — mint, list, read and revoke sessions. */
+/**
+ * `/v1/sessions` — mint, list, read and revoke sessions.
+ *
+ * Every session array (read, list item, touched session, and the items of
+ * `users->listSessions()`) carries `idle_expires_at` — epoch ms the session ends
+ * from inactivity (the same value as `abandon_at`; absent from older responses) —
+ * plus `last_active_organization_id` and `impersonated_by` (string or null).
+ */
 final class Sessions extends Resource
 {
     /**

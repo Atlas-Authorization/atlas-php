@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Atlas\Tests;
 
 use Atlas\Client;
+use Atlas\ErrorCode;
+use Atlas\Exception\ConflictException;
 use Atlas\Tests\Support\MockClient;
 use PHPUnit\Framework\TestCase;
 
-/** Request shape of the messaging-provider writes. */
+/** Request shape of the messaging-provider writes and deletes. */
 final class MessagingTest extends TestCase
 {
     private MockClient $mock;
@@ -58,5 +60,56 @@ final class MessagingTest extends TestCase
             ['transport' => 'twilio', 'config' => ['from' => '+15551234567']],
             json_decode((string) $request->getBody(), true),
         );
+    }
+
+    public function testDeleteChannelSendsNoQueryByDefault(): void
+    {
+        $this->mock->push(200, ['object' => 'messaging_provider', 'channel' => 'sms', 'deleted' => true]);
+
+        $result = $this->atlas->messaging->deleteChannel('sms');
+
+        $request = $this->mock->lastRequest();
+        $this->assertSame('DELETE', $request->getMethod());
+        $this->assertSame('https://api.atlas.test/v1/messaging_providers/sms', (string) $request->getUri());
+        $this->assertTrue($result['deleted']);
+        $this->assertSame('sms', $result['channel']);
+    }
+
+    public function testDeleteChannelWithForceSendsForceTrue(): void
+    {
+        $this->mock->push(200, ['object' => 'messaging_provider', 'channel' => 'email', 'deleted' => true]);
+
+        $result = $this->atlas->messaging->deleteChannel('email', force: true);
+
+        $request = $this->mock->lastRequest();
+        $this->assertSame('DELETE', $request->getMethod());
+        $this->assertSame('https://api.atlas.test/v1/messaging_providers/email?force=true', (string) $request->getUri());
+        $this->assertSame('messaging_provider', $result['object']);
+        $this->assertTrue($result['deleted']);
+    }
+
+    public function testDeleteChannelWithForceFalseSendsNoQuery(): void
+    {
+        $this->mock->push(200, ['object' => 'messaging_provider', 'channel' => 'email', 'deleted' => true]);
+
+        $this->atlas->messaging->deleteChannel('email', false);
+
+        $this->assertSame('https://api.atlas.test/v1/messaging_providers/email', (string) $this->mock->lastRequest()->getUri());
+    }
+
+    public function testDeleteEmailProviderInUseThrowsConflictWithFeatures(): void
+    {
+        $this->mock->push(409, ['errors' => [[
+            'code' => 'EMAIL_PROVIDER_IN_USE', 'message' => 'in use',
+            'meta' => ['features' => ['emailCode', 'passwordReset']],
+        ]]]);
+
+        try {
+            $this->atlas->messaging->deleteChannel('email');
+            $this->fail('expected a ConflictException');
+        } catch (ConflictException $e) {
+            $this->assertTrue($e->hasCode(ErrorCode::EMAIL_PROVIDER_IN_USE));
+            $this->assertSame(['emailCode', 'passwordReset'], $e->getErrors()[0]->meta['features']);
+        }
     }
 }

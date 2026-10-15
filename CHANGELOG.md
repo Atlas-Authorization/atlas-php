@@ -2,6 +2,19 @@
 
 Versions are published from git tags.
 
+## 0.5.0
+
+All changes are backward compatible: new fields are optional or nullable and the new parameter defaults to the old behaviour.
+
+### Added
+
+- OAuth clients: `skip_logout_confirmation` (bool) typed on `oauthClients->create()` and accepted by `oauthClients->update()`; client arrays carry `skip_logout_confirmation` (false by default). First-party clients only (a third-party client is refused with 422 `VALIDATION_FAILED`, param `skip_logout_confirmation`). When true, RP-initiated logout with the client's `client_id` and an exactly registered `post_logout_redirect_uri` ends the session and redirects straight back with `state`, without the confirmation page.
+- Cookie consent: `instance->setCookieConsent()` accepts an optional `settings_link` (`CookieSettingsLinkInput`: `label`, `preset`, `attributes`; `null` or omitted = no link). The cookie consent array carries `settings_link` (`CookieSettingsLink`: `label`, `preset`, `attributes`, `rendered_attributes`, or `null`).
+- `Instance::COOKIE_SETTINGS_LINK_PRESET_COOKIEMUNCH`, `COOKIE_SETTINGS_LINK_PRESET_COOKIEBOT`, `COOKIE_SETTINGS_LINK_PRESET_ONETRUST`, `COOKIE_SETTINGS_LINK_PRESET_CUSTOM` and `Instance::COOKIE_SETTINGS_LINK_PRESETS`. `preset` stays a string, so newer presets decode unchanged.
+- `messaging->deleteChannel($channel, $force = false)` — `force: true` sends `?force=true` to remove the email provider even while email-dependent features are on (otherwise refused with 409 `EMAIL_PROVIDER_IN_USE`, `meta.features` listing them).
+- `ErrorCode::EMAIL_PROVIDER_IN_USE`.
+- Sessions: session arrays (`sessions->get()`, `sessions->list()`, `sessions->touch()` and `users->listSessions()` items) are documented to carry `idle_expires_at` (epoch ms, same value as `abandon_at`), `last_active_organization_id` and `impersonated_by` (string or null).
+
 ## 0.4.0
 
 ### Added

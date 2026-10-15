@@ -114,7 +114,12 @@ final class Users extends Resource
         );
     }
 
-    /** @return array<string,mixed> a ListPage of sessions */
+    /**
+     * `GET /v1/users/:id/sessions` — the user's sessions. Each item carries `idle_expires_at` (epoch ms),
+     * `last_active_organization_id` and `impersonated_by` (string or null), like {@see Sessions::get()}.
+     *
+     * @return array<string,mixed> a ListPage of sessions
+     */
     public function listSessions(string $id): array
     {
         return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/sessions');
