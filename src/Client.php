@@ -24,6 +24,7 @@ use Atlas\Resources\Invitations;
 use Atlas\Resources\JwtTemplates;
 use Atlas\Resources\Localizations;
 use Atlas\Resources\LogStreams;
+use Atlas\Resources\LogoutNotifyEndpoints;
 use Atlas\Resources\LtiPlatforms;
 use Atlas\Resources\ManagedWaf;
 use Atlas\Resources\Messaging;
@@ -130,6 +131,7 @@ final class Client
     public readonly NetworkAcls $networkAcls;
     public readonly ManagedWaf $managedWaf;
     public readonly LogStreams $logStreams;
+    public readonly LogoutNotifyEndpoints $logoutNotifyEndpoints;
     public readonly Branding $branding;
     public readonly EmailTemplates $emailTemplates;
     public readonly SmsTemplates $smsTemplates;
@@ -252,6 +254,7 @@ final class Client
         $this->networkAcls = new NetworkAcls($http);
         $this->managedWaf = new ManagedWaf($http);
         $this->logStreams = new LogStreams($http);
+        $this->logoutNotifyEndpoints = new LogoutNotifyEndpoints($http);
         $this->branding = new Branding($http);
         $this->emailTemplates = new EmailTemplates($http);
         $this->smsTemplates = new SmsTemplates($http);

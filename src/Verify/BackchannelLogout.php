@@ -29,7 +29,14 @@ use Psr\Http\Message\RequestFactoryInterface;
  *         clientId: getenv('ATLAS_CLIENT_ID'),
  *         jtiStore: new InMemoryJtiStore(),   // optional replay protection
  *     );
- *     $claims = $logout->verify($_POST['logout_token'] ?? '');   // throws InvalidLogoutTokenException
+ *     try {
+ *         $claims = $logout->verify($_POST['logout_token'] ?? '');
+ *     } catch (InvalidLogoutTokenException $e) {
+ *         // 503 + Retry-After makes Atlas retry (keys unreachable); 400 is final.
+ *         if ($e->retryable) { header('Retry-After: 30'); }
+ *         http_response_code($e->retryable ? 503 : 400);
+ *         exit;
+ *     }
  */
 final class BackchannelLogout
 {
@@ -83,7 +90,7 @@ final class BackchannelLogout
     }
 
     /**
-     * @throws InvalidLogoutTokenException for any token that must be refused (answer 400)
+     * @throws InvalidLogoutTokenException for any token that must be refused (answer 400, or 503 when retryable)
      */
     public function verify(string $logoutToken): LogoutTokenClaims
     {
@@ -91,9 +98,17 @@ final class BackchannelLogout
             throw new InvalidLogoutTokenException('malformed');
         }
 
-        $keys = $this->jwks->get(JwksCache::readKid($logoutToken));
+        $kid = JwksCache::readKid($logoutToken);
+        $keys = $this->jwks->get($kid);
         if ($keys === null || $keys['keys'] === []) {
             throw new InvalidLogoutTokenException('no_keys');
+        }
+        // A key Atlas just rotated to, whose refetch failed: temporary.
+        if ($kid !== null && $this->jwks->lastOutcome === 'failed') {
+            $known = array_filter($keys['keys'], static fn ($k) => is_array($k) && ($k['kid'] ?? null) === $kid);
+            if ($known === []) {
+                throw new InvalidLogoutTokenException('no_keys');
+            }
         }
 
         try {

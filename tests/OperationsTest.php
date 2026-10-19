@@ -223,13 +223,46 @@ final class OperationsTest extends TestCase
             ['POST', '/v1/platform/atlas_id_apps/design/preview', ['design' => ['k' => 'v']], false, static fn (Client $c) => $c->platform->atlasIdApps->previewDesign(['k' => 'v'])],
             ['GET', '/v1/platform/design/assets', null, false, static fn (Client $c) => $c->platform->designAssets->list()],
             ['DELETE', '/v1/platform/design/assets/asset_id_1', null, false, static fn (Client $c) => $c->platform->designAssets->delete('asset_id_1')],
+            ['POST', '/v1/instance/move_origin', ['from' => 'https://a.example.com', 'to' => 'https://b.example.com'], false, static fn (Client $c) => $c->instance->moveOrigin(['from' => 'https://a.example.com', 'to' => 'https://b.example.com'])],
+            ['GET', '/v1/instance/connections', null, false, static fn (Client $c) => $c->instance->connections()],
+            ['GET', '/v1/instance/integrations/chatly', null, false, static fn (Client $c) => $c->instance->getChatlyIntegration()],
+            ['PUT', '/v1/instance/integrations/chatly', ['channel' => 'support'], false, static fn (Client $c) => $c->instance->setChatlyIntegration(['channel' => 'support'])],
+            ['DELETE', '/v1/instance/integrations/chatly', null, false, static fn (Client $c) => $c->instance->deleteChatlyIntegration()],
+            ['GET', '/v1/instance/integrations/forumulate', null, false, static fn (Client $c) => $c->instance->getForumulateIntegration()],
+            ['PUT', '/v1/instance/integrations/forumulate', ['org_id' => 'o', 'spaces' => ['s']], false, static fn (Client $c) => $c->instance->setForumulateIntegration(['org_id' => 'o', 'spaces' => ['s']])],
+            ['DELETE', '/v1/instance/integrations/forumulate', null, false, static fn (Client $c) => $c->instance->deleteForumulateIntegration()],
+            ['GET', '/v1/logout_notify_endpoints', null, false, static fn (Client $c) => $c->logoutNotifyEndpoints->list()],
+            ['POST', '/v1/logout_notify_endpoints', ['url' => 'https://h.example.com'], true, static fn (Client $c) => $c->logoutNotifyEndpoints->create(['url' => 'https://h.example.com'], idempotencyKey: 'idem_1')],
+            ['GET', '/v1/logout_notify_endpoints/id_1', null, false, static fn (Client $c) => $c->logoutNotifyEndpoints->get('id_1')],
+            ['PATCH', '/v1/logout_notify_endpoints/id_1', ['x' => 1], true, static fn (Client $c) => $c->logoutNotifyEndpoints->update('id_1', ['x' => 1], idempotencyKey: 'idem_1')],
+            ['DELETE', '/v1/logout_notify_endpoints/id_1', null, true, static fn (Client $c) => $c->logoutNotifyEndpoints->delete('id_1', idempotencyKey: 'idem_1')],
+            ['GET', '/v1/logout_notify_endpoints/id_1/deliveries?limit=5', null, false, static fn (Client $c) => $c->logoutNotifyEndpoints->listDeliveries('id_1', ['limit' => 5])],
+            ['GET', '/v1/messaging_providers/email/managed', null, false, static fn (Client $c) => $c->messaging->getManagedEmail()],
+            ['POST', '/v1/messaging_providers/email/managed', ['from_address' => 'a@example.com'], false, static fn (Client $c) => $c->messaging->createManagedEmail(['from_address' => 'a@example.com'])],
+            ['POST', '/v1/messaging_providers/email/managed/verify', null, false, static fn (Client $c) => $c->messaging->verifyManagedEmail()],
+            ['DELETE', '/v1/messaging_providers/email/managed?force=true', null, false, static fn (Client $c) => $c->messaging->deleteManagedEmail(true)],
+            ['GET', '/v1/oauth_clients/id_1/backchannel_deliveries?limit=5', null, false, static fn (Client $c) => $c->oauthClients->listBackchannelDeliveries('id_1', ['limit' => 5])],
+            ['POST', '/v1/oauth_clients/id_1/backchannel_logout/test', null, false, static fn (Client $c) => $c->oauthClients->testBackchannelLogout('id_1')],
+            ['GET', '/v1/platform/atlas_id_apps/id_1/backchannel_deliveries', null, false, static fn (Client $c) => $c->platform->atlasIdApps->listBackchannelDeliveries('id_1')],
+            ['POST', '/v1/platform/atlas_id_apps/id_1/backchannel_logout/test', null, false, static fn (Client $c) => $c->platform->atlasIdApps->testBackchannelLogout('id_1')],
+            ['GET', '/v1/platform/atlas_id_apps/id_1/preflight', null, false, static fn (Client $c) => $c->platform->atlasIdApps->preflight('id_1')],
+            ['GET', '/v1/platform/atlas_id_apps/id_1/users?email=a%40example.com', null, false, static fn (Client $c) => $c->platform->atlasIdApps->findUsers('id_1', 'a@example.com')],
+            ['DELETE', '/v1/platform/atlas_id_apps/id_1/grants/grant_id_1', null, false, static fn (Client $c) => $c->platform->atlasIdApps->revokeGrant('id_1', 'grant_id_1')],
+            ['POST', '/v1/platform/atlas_id_apps/id_1/move_origin', ['from' => 'https://a.example.com', 'to' => 'https://b.example.com', 'dry_run' => true], false, static fn (Client $c) => $c->platform->atlasIdApps->moveOrigin('id_1', ['from' => 'https://a.example.com', 'to' => 'https://b.example.com', 'dry_run' => true])],
+            ['POST', '/v1/platform/atlas_id_apps/id_1/webhook/rotate_secret', null, false, static fn (Client $c) => $c->platform->atlasIdApps->rotateWebhookSecret('id_1')],
+            ['GET', '/v1/platform/atlas_id_publisher', null, false, static fn (Client $c) => $c->platform->atlasIdPublisher->get()],
+            ['PUT', '/v1/platform/atlas_id_publisher', ['name' => 'Acme', 'domain' => 'example.com'], false, static fn (Client $c) => $c->platform->atlasIdPublisher->set(['name' => 'Acme', 'domain' => 'example.com'])],
+            ['PATCH', '/v1/platform/atlas_id_publisher', ['skip_consent' => true], false, static fn (Client $c) => $c->platform->atlasIdPublisher->setSkipConsent(true)],
+            ['DELETE', '/v1/platform/atlas_id_publisher', null, false, static fn (Client $c) => $c->platform->atlasIdPublisher->delete()],
+            ['POST', '/v1/platform/atlas_id_publisher/verify', null, false, static fn (Client $c) => $c->platform->atlasIdPublisher->verify()],
+            ['GET', '/v1/platform/config_changelog?limit=5', null, false, static fn (Client $c) => $c->platform->configChangelog(['limit' => 5])],
         ];
     }
 
     public function testEveryAddedOperationHitsItsRoute(): void
     {
         $operations = self::operations();
-        $this->assertCount(202, $operations);
+        $this->assertCount(235, $operations);
 
         foreach ($operations as [$verb, $path, $body, $idem, $call]) {
             $mock = new MockClient();

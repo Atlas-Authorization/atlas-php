@@ -2,6 +2,22 @@
 
 Versions are published from git tags.
 
+## 0.6.0
+
+- **Back-channel logout, retryable failures.** `InvalidLogoutTokenException` gains `public readonly bool $retryable`, true for `no_keys`: the issuer's keys could not be fetched (a network error, a JWKS outage, or a just-rotated key whose refetch failed). Answer `503` with `Retry-After` then, so Atlas retries the delivery, and `400` otherwise. The exception's code is now `503` for `no_keys` (still `400` for every other reason). A token whose `kid` is unknown after a failed JWKS refetch is now `no_keys` (was `invalid_signature`).
+- **Webhook verification.** `Atlas\Webhook\Webhook::verify($body, $headers, $secret, $nowMs = null)` returns a
+  `WebhookVerification` (`verified`, `reason`, `event`, `deliveryId`, `timestamp`). `deliveryId` is the signed
+  `atlas-id` header, the same on every retry of one event: deduplicate on it. Accepts `getallheaders()` or
+  `$_SERVER`-style (`HTTP_ATLAS_ID`) headers.
+- **Domain moves.** `$atlas->instance->moveOrigin(['from' => …, 'to' => …, 'dry_run' => true])` rewrites every URL on one origin to another; `$platform->atlasIdApps->moveOrigin($id, $body)` does it for one app.
+- **Connections and integrations.** `instance->connections()`, and `instance->get/set/deleteChatlyIntegration()` and `…ForumulateIntegration()`.
+- **Logout fan-out.** New `logoutNotifyEndpoints` resource: `list`, `create`, `get`, `update`, `delete`, `listDeliveries`.
+- **Managed email.** `messaging->getManagedEmail()`, `createManagedEmail($body)`, `verifyManagedEmail()`, `deleteManagedEmail($force)`.
+- **Back-channel logout logs.** `oauthClients->listBackchannelDeliveries()` / `testBackchannelLogout()` and the same on `platform->atlasIdApps`.
+- **Sign in with Atlas apps.** `platform->atlasIdApps->preflight()`, `findUsers($id, $email)`, `revokeGrant($id, $grantId)`, `rotateWebhookSecret($id)`; the `AtlasIdApp` shape gains `webhook_url`, `webhook_events`, `webhook_active`, `webhook_secret`.
+- **Publisher.** `platform->atlasIdPublisher->get / set / setSkipConsent / delete / verify`, and `platform->configChangelog($params)`.
+- The `CookieConsent` shape gains `culture` and `declared_cookies`; `PreflightReport` gains `sdk_versions_seen`.
+
 ## 0.5.1
 
 - **Captcha is bring-your-own-keys.** `ErrorCode::CAPTCHA_KEYS_REQUIRED` (422) and `ErrorCode::CAPTCHA_IN_USE` (409, `meta.flows`).

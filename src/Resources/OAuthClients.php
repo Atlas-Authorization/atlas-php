@@ -76,6 +76,31 @@ final class OAuthClients extends Resource
     }
 
     /**
+     * `GET /v1/oauth_clients/:id/backchannel_deliveries` — the client's back-channel logout
+     * delivery log, newest first (`limit`, `starting_after`). Each delivery has `status`,
+     * `http_status`, `latency_ms`, `error`, `location` (a 3xx is never followed) and `test`.
+     *
+     * @param array{limit?:int,starting_after?:string} $params
+     *
+     * @return array{object:string,data:list<array<string,mixed>>,has_more:bool,next_cursor:string|null}
+     */
+    public function listBackchannelDeliveries(string $id, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/oauth_clients/' . rawurlencode($id) . '/backchannel_deliveries', query: $params);
+    }
+
+    /**
+     * `POST /v1/oauth_clients/:id/backchannel_logout/test` — send a test back-channel logout now
+     * (`ok`, `status`, `latency_ms`, `error`, `location`, `blocked_reason`, `body_excerpt`).
+     *
+     * @return array<string,mixed>
+     */
+    public function testBackchannelLogout(string $id): array
+    {
+        return $this->http->request('POST', '/v1/oauth_clients/' . rawurlencode($id) . '/backchannel_logout/test');
+    }
+
+    /**
      * `POST /v1/oauth_clients/import` — bulk-import OAuth clients for a migration (idempotent per
      * client_id).
      *

@@ -208,6 +208,26 @@ $platform->atlasIdApps->update($app['id'], ['branding' => ['design' => ['logo' =
 $platform->apps->list();                             // apps (instances) your platform provisions
 ```
 
+### Domain moves, logout fan-out and managed email
+
+```php
+// Move every URL from the old origin to the new one. dry_run first shows the diff.
+$preview = $atlas->instance->moveOrigin(['from' => 'https://old.example.com', 'to' => 'https://example.com', 'dry_run' => true]);
+foreach ($preview['changes'] as $c) {
+    echo "{$c['object']} {$c['field']}\n";
+}
+
+// Send the same logout_token your OIDC apps get to another service.
+$atlas->logoutNotifyEndpoints->create(['url' => 'https://api.example.com/atlas/logout']);
+
+// Send email from your own domain through Atlas, then publish the returned DNS records.
+$managed = $atlas->messaging->createManagedEmail(['from_address' => 'Acme <no-reply@example.com>']);
+```
+
+With a platform key, `$platform->atlasIdApps->findUsers($id, $email)` answers a privacy request for one app,
+`revokeGrant($id, $grantId)` revokes one person's approval, and `$platform->atlasIdPublisher` claims and verifies
+the publisher name shown on consent screens.
+
 ### API key spend caps
 
 Give an end-user API key caps in your own units, then meter what your API consumed against them. A refused debit records nothing and is not an exception, so you enforce it inside your own transaction:

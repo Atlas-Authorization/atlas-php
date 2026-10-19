@@ -11,11 +11,22 @@ namespace Atlas\Resources;
  * their own {@see JwtTemplates} resource, not here.
  *
  * @phpstan-type PreflightFinding array{severity:'error'|'warning'|'info',code:string,message:string,fix:string,subject?:array<string,string>}
- * @phpstan-type PreflightReport array{object:string,ok:bool,checked_at:int,findings:list<PreflightFinding>}
+ * @phpstan-type SdkAdvisory array{object:string,package:string,affected:string,fixed_in:string,reason:string,severity:'critical'|'high'|'medium'|'low',summary:string,published_at:string}
+ * @phpstan-type SdkVersionSeen array{package:string,version:string,last_seen_at:int,advisories:list<SdkAdvisory>}
+ * @phpstan-type PreflightReport array{object:string,ok:bool,checked_at:int,findings:list<PreflightFinding>,sdk_versions_seen?:list<SdkVersionSeen>}
  * @phpstan-type CookieSettingsLinkInput array{label:string,preset?:string|null,attributes?:array<string,string>}
  * @phpstan-type CookieSettingsLink array{label:string,preset:string|null,attributes:array<string,string>,rendered_attributes:array<string,string>}
- * @phpstan-type CookieConsent array{object:string,enabled:bool,script_url?:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLink|null}
- * @phpstan-type CookieConsentInput array{script_url:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLinkInput|null}
+ * @phpstan-type DeclaredCookie array{name:string|null,pattern:string|null,store:'cookie'|'localStorage'|'sessionStorage'|'indexedDB',domain:string,lifetime_seconds:int|null,lifetime:string,http_only:bool,category:string,purpose:string,written_when:string,set_by:string}
+ * @phpstan-type CookieConsent array{object:string,enabled:bool,script_url?:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLink|null,culture?:'page'|'browser',declared_cookies?:list<DeclaredCookie>}
+ * @phpstan-type CookieConsentInput array{script_url:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLinkInput|null,culture?:'page'|'browser'|null}
+ * @phpstan-type OriginMoveInput array{from:string,to:string,dry_run?:bool}
+ * @phpstan-type OriginMoveChange array{object:string,id:string,field:string,before:string|list<string>|null,after:string|list<string>|null}
+ * @phpstan-type OriginMove array{object:'origin_move',from:string,to:string,dry_run:bool,applied:bool,changes:list<OriginMoveChange>,problems:list<array<string,string>>,app?:array<string,mixed>}
+ * @phpstan-type InstanceConnection array{object:'connection',kind:string,check:string,ok:bool,severity:'error'|'warning'|'info',subject:array<string,string>,fix_hint:string|null,last_checked_at:int,details:array<string,mixed>}
+ * @phpstan-type InstanceConnections array{object:'instance_connections',ok:bool,checked_at:int,data:list<InstanceConnection>}
+ * @phpstan-type ChatlyIntegration array{object:'chatly_integration',enabled:bool,channel?:string,template?:string,audience?:string,issuer?:string,jwks_url?:string,token_ttl_seconds?:int,identity_verification?:array<string,string>}
+ * @phpstan-type ForumulateIntegration array{object:'forumulate_integration',enabled:bool,org_id?:string,spaces?:list<array{id:string,redeem_url:string}>,audience?:string,issuer?:string,jwks_url?:string,token_ttl_seconds?:int,reader_auth_provider?:array<string,mixed>}
+ * @phpstan-type ForumulateIntegrationInput array{org_id:string,spaces:list<string|array{id:string,redeem_url?:string|null}>,audience?:string|null}
  */
 final class Instance extends Resource
 {
@@ -68,8 +79,98 @@ final class Instance extends Resource
     }
 
     /**
+     * `POST /v1/instance/move_origin` — move every URL that points at one origin to another (a
+     * domain move), across the instance, its OAuth clients, webhooks, redirect URLs and Sign in
+     * with Atlas apps. `dry_run: true` writes nothing; a repeated run returns no changes.
+     *
+     * @param OriginMoveInput $body
+     *
+     * @return OriginMove
+     */
+    public function moveOrigin(array $body): array
+    {
+        return $this->http->request('POST', '/v1/instance/move_origin', body: $body);
+    }
+
+    /**
+     * `GET /v1/instance/connections` — the instance's links to other platforms and their health.
+     *
+     * @return InstanceConnections
+     */
+    public function connections(): array
+    {
+        return $this->http->request('GET', '/v1/instance/connections');
+    }
+
+    /**
+     * `GET /v1/instance/integrations/chatly` — the Chatly connection (enabled: false when none).
+     *
+     * @return ChatlyIntegration
+     */
+    public function getChatlyIntegration(): array
+    {
+        return $this->http->request('GET', '/v1/instance/integrations/chatly');
+    }
+
+    /**
+     * `PUT /v1/instance/integrations/chatly` — connect a Chatly channel.
+     *
+     * @param array{channel:string} $body
+     *
+     * @return ChatlyIntegration
+     */
+    public function setChatlyIntegration(array $body): array
+    {
+        return $this->http->request('PUT', '/v1/instance/integrations/chatly', body: $body);
+    }
+
+    /**
+     * `DELETE /v1/instance/integrations/chatly` — remove the Chatly connection.
+     *
+     * @return ChatlyIntegration
+     */
+    public function deleteChatlyIntegration(): array
+    {
+        return $this->http->request('DELETE', '/v1/instance/integrations/chatly');
+    }
+
+    /**
+     * `GET /v1/instance/integrations/forumulate` — the Forumulate connection (enabled: false when none).
+     *
+     * @return ForumulateIntegration
+     */
+    public function getForumulateIntegration(): array
+    {
+        return $this->http->request('GET', '/v1/instance/integrations/forumulate');
+    }
+
+    /**
+     * `PUT /v1/instance/integrations/forumulate` — connect Forumulate spaces (replaces the whole
+     * connection). Store the returned `reader_auth_provider` on each space.
+     *
+     * @param ForumulateIntegrationInput $body
+     *
+     * @return ForumulateIntegration
+     */
+    public function setForumulateIntegration(array $body): array
+    {
+        return $this->http->request('PUT', '/v1/instance/integrations/forumulate', body: $body);
+    }
+
+    /**
+     * `DELETE /v1/instance/integrations/forumulate` — remove the Forumulate connection.
+     *
+     * @return ForumulateIntegration
+     */
+    public function deleteForumulateIntegration(): array
+    {
+        return $this->http->request('DELETE', '/v1/instance/integrations/forumulate');
+    }
+
+    /**
      * `GET /v1/instance/cookie_consent` — the cookie-consent script injected into the hosted pages
-     * (enabled: false when none), with its `settings_link` (null when none).
+     * (enabled: false when none), with its `settings_link` (null when none), `culture` and
+     * `declared_cookies` (every cookie and storage key Atlas writes, for your cookie policy).
      *
      * @return CookieConsent
      */

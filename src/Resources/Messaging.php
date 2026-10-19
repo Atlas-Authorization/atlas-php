@@ -112,6 +112,57 @@ final class Messaging extends Resource
     }
 
     /**
+     * `GET /v1/messaging_providers/email/managed` — the Atlas-managed sending domain: `status`,
+     * `verified`, the DNS `records` to publish, `limits` and `usage`. 404 when none is configured.
+     *
+     * @return array<string,mixed> the managed_email object
+     */
+    public function getManagedEmail(): array
+    {
+        return $this->http->request('GET', '/v1/messaging_providers/email/managed');
+    }
+
+    /**
+     * `POST /v1/messaging_providers/email/managed` — send from your own domain through Atlas's
+     * email account. Returns the DNS `records` to publish; with `dns` (`provider: cloudflare`,
+     * write-only `api_token`, optional `overwrite`) Atlas writes them itself.
+     *
+     * @param array{from_address:string,region?:string,dns?:array{provider:string,api_token:string,overwrite?:bool}} $body
+     *
+     * @return array<string,mixed> the managed_email object
+     */
+    public function createManagedEmail(array $body): array
+    {
+        return $this->http->request('POST', '/v1/messaging_providers/email/managed', body: $body);
+    }
+
+    /**
+     * `POST /v1/messaging_providers/email/managed/verify` — re-check the DNS records now.
+     *
+     * @return array<string,mixed> the managed_email object
+     */
+    public function verifyManagedEmail(): array
+    {
+        return $this->http->request('POST', '/v1/messaging_providers/email/managed/verify');
+    }
+
+    /**
+     * `DELETE /v1/messaging_providers/email/managed` — stop using managed email (DNS records stay).
+     * Refused with 409 `EMAIL_PROVIDER_IN_USE` while it is the only way to send email; pass
+     * `$force = true` to remove it anyway.
+     *
+     * @return array{object:string,domain:string,deleted:bool}
+     */
+    public function deleteManagedEmail(bool $force = false): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/messaging_providers/email/managed',
+            query: $force ? ['force' => true] : null,
+        );
+    }
+
+    /**
      * Send a fixed, clearly-marked test message through the channel's provider.
      *
      * @param array{to:string} $body

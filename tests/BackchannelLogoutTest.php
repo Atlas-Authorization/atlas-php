@@ -157,4 +157,53 @@ final class BackchannelLogoutTest extends TestCase
         $this->verifier($store)->verify($token);
         $this->assertRejected($token, 'replayed', $store);
     }
+
+    private function verifierWith(MockClient $mock): BackchannelLogout
+    {
+        return new BackchannelLogout(
+            issuer: self::ISSUER,
+            jwksUrl: self::ISSUER . '/.well-known/jwks.json',
+            clientId: self::CLIENT_ID,
+            httpClient: $mock,
+            requestFactory: new HttpFactory(),
+            now: fn (): int => $this->now,
+        );
+    }
+
+    public function testUnreachableJwksIsNoKeysAndRetryable(): void
+    {
+        $mock = new MockClient();
+        $mock->pushException('connection refused');
+        try {
+            $this->verifierWith($mock)->verify($this->sign());
+            $this->fail('expected no_keys');
+        } catch (InvalidLogoutTokenException $e) {
+            $this->assertSame('no_keys', $e->reason);
+            $this->assertTrue($e->retryable);
+            $this->assertSame(503, $e->getCode());
+        }
+    }
+
+    public function testJwks5xxIsRetryable(): void
+    {
+        $mock = new MockClient();
+        $mock->push(503, 'down');
+        try {
+            $this->verifierWith($mock)->verify($this->sign());
+            $this->fail('expected no_keys');
+        } catch (InvalidLogoutTokenException $e) {
+            $this->assertTrue($e->retryable);
+        }
+    }
+
+    public function testABadTokenIsNotRetryable(): void
+    {
+        try {
+            $this->verifier()->verify($this->sign(['aud' => 'someone-else']));
+            $this->fail('expected rejection');
+        } catch (InvalidLogoutTokenException $e) {
+            $this->assertFalse($e->retryable);
+            $this->assertSame(400, $e->getCode());
+        }
+    }
 }
