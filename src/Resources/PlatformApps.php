@@ -44,7 +44,10 @@ final class PlatformApps extends Resource
     }
 
     /**
-     * `PATCH /v1/platform/apps/:id` — update an owned app's name, allowed_origins or tags.
+     * `PATCH /v1/platform/apps/:id` — update an owned app's name, allowed_origins or tags. An
+     * `allowed_origins` entry is an origin string or `['origin' => …, 'integration' => …]`
+     * (`redirect` | `embedded` | `auto`), as on `instance->update()`. App objects carry
+     * `frontend_api_host`, `issuer`, `discovery_url`, `jwks_uri` and `allowed_origin_integrations`.
      *
      * @param array<string,mixed> $body
      *

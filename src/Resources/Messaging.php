@@ -33,11 +33,11 @@ namespace Atlas\Resources;
  * @phpstan-type MailgunConfig array{api_key?:string,domain?:string,region?:'us'|'eu'}
  * @phpstan-type SesConfig array{region?:string,access_key_id?:string,secret_access_key?:string,session_token?:string}
  * @phpstan-type SmtpConfig array{host?:string,port?:int,secure?:bool,username?:string,password?:string}
- * @phpstan-type EmailProviderBody array{transport:'resend',from_address?:string,config?:ResendConfig}
- *     |array{transport:'brevo',from_address?:string,config?:BrevoConfig}
- *     |array{transport:'mailgun',from_address?:string,config?:MailgunConfig}
- *     |array{transport:'ses',from_address?:string,config?:SesConfig}
- *     |array{transport:'smtp',from_address?:string,config?:SmtpConfig}
+ * @phpstan-type EmailProviderBody array{transport:'resend',from_address?:string,mode?:'standard'|'development',config?:ResendConfig}
+ *     |array{transport:'brevo',from_address?:string,mode?:'standard'|'development',config?:BrevoConfig}
+ *     |array{transport:'mailgun',from_address?:string,mode?:'standard'|'development',config?:MailgunConfig}
+ *     |array{transport:'ses',from_address?:string,mode?:'standard'|'development',config?:SesConfig}
+ *     |array{transport:'smtp',from_address?:string,mode?:'standard'|'development',config?:SmtpConfig}
  * @phpstan-type TwilioConfig array{account_sid?:string,auth_token?:string,from?:string,whatsapp_from?:string,voice_from?:string}
  * @phpstan-type VonageConfig array{api_key?:string,api_secret?:string,from?:string}
  * @phpstan-type MessagebirdConfig array{access_key?:string,from?:string}
@@ -58,7 +58,9 @@ namespace Atlas\Resources;
  *     |array{transport:'clicksend',from_address?:string,config?:ClicksendConfig}
  *     |array{transport:'bandwidth',from_address?:string,config?:BandwidthConfig}
  *     |array{transport:'aws_sns',from_address?:string,config?:AwsSnsConfig}
- * @phpstan-type MessagingProvider array{object:'messaging_provider',channel:'email'|'sms',transport:string,from_address:string|null,status:string,config:array<string,string>,secrets_set:array<string,bool>,updated_at:int}
+ * Email bodies accept `mode`: `development` lets a development instance send without a verified
+ * domain (Atlas sign-in templates only, capped); omitted on an update keeps the stored mode.
+ * @phpstan-type MessagingProvider array{object:'messaging_provider',id?:string,channel:'email'|'sms',mode?:'standard'|'development'|'managed_domain',transport:string,from_address:string|null,status:string,config:array<string,string>,secrets_set:array<string,bool>,updated_at:int}
  */
 final class Messaging extends Resource
 {
@@ -112,8 +114,9 @@ final class Messaging extends Resource
     }
 
     /**
-     * `GET /v1/messaging_providers/email/managed` — the Atlas-managed sending domain: `status`,
-     * `verified`, the DNS `records` to publish, `limits` and `usage`. 404 when none is configured.
+     * `GET /v1/messaging_providers/email/managed` — the managed sending domain: `status`,
+     * `verified`, the DNS `records` to publish and `usage` (`limits` is null: your provider
+     * account's own limits apply), plus `backend` and `provider_id`. 404 when none is configured.
      *
      * @return array<string,mixed> the managed_email object
      */
@@ -123,11 +126,13 @@ final class Messaging extends Resource
     }
 
     /**
-     * `POST /v1/messaging_providers/email/managed` — send from your own domain through Atlas's
-     * email account. Returns the DNS `records` to publish; with `dns` (`provider: cloudflare`,
-     * write-only `api_token`, optional `overwrite`) Atlas writes them itself.
+     * `POST /v1/messaging_providers/email/managed` — Atlas sets your sending domain up on YOUR OWN
+     * Resend or Brevo account: pass `transport` with `config.api_key` (write-only), or `provider_id`
+     * of your configured Resend or Brevo provider. Returns the DNS `records` to publish; with `dns`
+     * (`provider: cloudflare`, write-only `api_token`, optional `overwrite`) Atlas writes them itself.
+     * On Brevo the response says whether the bounce webhook was registered (`feedback_webhook`).
      *
-     * @param array{from_address:string,region?:string,dns?:array{provider:string,api_token:string,overwrite?:bool}} $body
+     * @param array{from_address:string,transport?:'resend'|'brevo',config?:array{api_key:string},provider_id?:string,region?:string,dns?:array{provider:string,api_token:string,overwrite?:bool}} $body
      *
      * @return array<string,mixed> the managed_email object
      */
@@ -151,7 +156,7 @@ final class Messaging extends Resource
      * Refused with 409 `EMAIL_PROVIDER_IN_USE` while it is the only way to send email; pass
      * `$force = true` to remove it anyway.
      *
-     * @return array{object:string,domain:string,deleted:bool}
+     * @return array{object:string,domain:string,deleted:bool,provider_removed?:bool}
      */
     public function deleteManagedEmail(bool $force = false): array
     {
@@ -160,6 +165,43 @@ final class Messaging extends Resource
             '/v1/messaging_providers/email/managed',
             query: $force ? ['force' => true] : null,
         );
+    }
+
+    /**
+     * `GET /v1/messaging_providers/email/development` — your email provider in development mode:
+     * `provider_id`, `active`, `transport`, `from_address`, `subject_prefix`, `footer`, `templates`
+     * and `limits` (`daily`, `per_recipient_hourly`). 404 when it is not in development mode.
+     *
+     * @return array<string,mixed> the development_email object
+     */
+    public function getDevelopmentEmail(): array
+    {
+        return $this->http->request('GET', '/v1/messaging_providers/email/development');
+    }
+
+    /**
+     * `POST /v1/messaging_providers/email/development` — put your own email provider in development
+     * mode, so a development instance sends Atlas's sign-in emails without a verified domain
+     * (`[Atlas test] ` subjects, capped). 409 `DEVELOPMENT_EMAIL_NOT_ALLOWED` on a production instance.
+     *
+     * @param array{provider_id?:string,transport?:'resend'|'ses'|'smtp'|'brevo'|'mailgun',from_address?:string,config?:array<string,mixed>} $body
+     *
+     * @return array<string,mixed> the development_email object
+     */
+    public function enableDevelopmentEmail(array $body): array
+    {
+        return $this->http->request('POST', '/v1/messaging_providers/email/development', body: $body);
+    }
+
+    /**
+     * `DELETE /v1/messaging_providers/email/development` — back to standard mode (the provider and
+     * its key stay).
+     *
+     * @return array{object:string,deleted:bool,provider_id:string,mode:string}
+     */
+    public function disableDevelopmentEmail(): array
+    {
+        return $this->http->request('DELETE', '/v1/messaging_providers/email/development');
     }
 
     /**

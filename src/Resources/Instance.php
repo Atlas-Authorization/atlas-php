@@ -42,7 +42,13 @@ final class Instance extends Resource
     /** The cookie settings link presets the API knows about (a response may carry a newer one). */
     public const COOKIE_SETTINGS_LINK_PRESETS = ['cookiemunch', 'cookiebot', 'onetrust', 'custom'];
 
-    /** @return array<string,mixed> the Instance object */
+    /**
+     * The instance, including `issuer`, `discovery_url` and `jwks_uri` (they change when a custom
+     * domain goes active, so read them rather than hard-coding them) and
+     * `allowed_origin_integrations` (origin => `redirect` | `embedded`).
+     *
+     * @return array<string,mixed> the Instance object
+     */
     public function get(): array
     {
         return $this->http->request('GET', '/v1/instance');
@@ -51,7 +57,13 @@ final class Instance extends Resource
     /**
      * `PATCH /v1/instance` echoes only the mutable fields, not a full Instance.
      *
-     * @param array{allowed_origins?:list<string>,auth_config?:array<string,mixed>} $body
+     * An `allowed_origins` entry is an origin string, or `['origin' => …, 'integration' => …]` where
+     * `integration` is `redirect` (hosted-redirect OIDC), `embedded` (the sign-in components run on the
+     * origin) or `auto` / null (clear the hint). A plain string keeps the origin's current hint.
+     * `auth_config` also takes `strictRequestBodies`, `dangerouslyReportSkippedEmailsAsVerified` and
+     * `branding.audiences`.
+     *
+     * @param array{allowed_origins?:list<string|array{origin:string,integration?:'redirect'|'embedded'|'auto'|null}>,auth_config?:array<string,mixed>} $body
      *
      * @return array<string,mixed>
      */

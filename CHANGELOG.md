@@ -2,6 +2,17 @@
 
 Versions are published from git tags.
 
+## 0.7.0
+
+- **OAuth client secret rotation with overlap.** `oauthClients->rotateSecret($id, ?array $body = null, ?string $idempotencyKey = null)` takes `['overlap_seconds' => int]` (default 86400, `0` revokes the old secret now, at most 604800). The response carries `client_secret`, `overlap_seconds` and `previous_secret_expires_at`; client objects carry `previous_secret_expires_at`.
+- **Development email sender.** `messaging->getDevelopmentEmail()`, `enableDevelopmentEmail($body)` (`provider_id`, or `transport` + `config`) and `disableDevelopmentEmail()`.
+- **Managed email on your own provider account.** `messaging->createManagedEmail()` takes `transport` (`resend` | `brevo`) with `config.api_key`, or `provider_id`. Responses carry `backend`, `provider_id` and `feedback_webhook`; `limits` is now `null` and `reputation` is `your_provider_account`; delete returns `provider_removed`.
+- **Provider mode.** The email provider body type accepts `mode` (`standard` | `development`); the `MessagingProvider` type gains `id` and `mode`.
+- **Allowed origins with an integration.** `instance->update()` and the platform app, instance and accountless-app bodies accept `allowed_origins` entries `['origin' => …, 'integration' => 'redirect' | 'embedded' | 'auto' | null]`. Instance and platform app objects carry `allowed_origin_integrations`, `issuer`, `discovery_url` and `jwks_uri` (and `frontend_api_host` on platform apps).
+- Responses also carry `integration` and `checks[].applies` on login readiness, `verification` (`status`, `strategy`) on email addresses, and `audiences` on branding.
+- **Error codes.** `ErrorCode` adds `READ_ONLY_FIELD`, `DEVELOPMENT_EMAIL_NOT_ALLOWED`, `DEVELOPMENT_EMAIL_UNAVAILABLE`, `DEVELOPMENT_EMAIL_LIMIT_REACHED` and `DEVELOPMENT_EMAIL_TEMPLATE_NOT_ALLOWED`.
+- **Webhooks, several signatures.** `Webhook::verify()` accepts an `atlas-signature` header with several space-separated `v1,<signature>` entries and verifies when any one matches (each compared in constant time). A single signature works as before.
+
 ## 0.6.0
 
 - **Back-channel logout, retryable failures.** `InvalidLogoutTokenException` gains `public readonly bool $retryable`, true for `no_keys`: the issuer's keys could not be fetched (a network error, a JWKS outage, or a just-rotated key whose refetch failed). Answer `503` with `Retry-After` then, so Atlas retries the delivery, and `400` otherwise. The exception's code is now `503` for `no_keys` (still `400` for every other reason). A token whose `kid` is unknown after a failed JWKS refetch is now `no_keys` (was `invalid_signature`).

@@ -186,6 +186,16 @@ For a first-party client, `skip_logout_confirmation` makes RP-initiated logout
 `post_logout_redirect_uri`) end the session and redirect straight back with
 `state`, without the confirmation page. A third-party client is refused (422).
 
+Rotating a secret keeps the previous one working for `overlap_seconds` (default 24 hours, at
+most 7 days), so you can deploy the new secret without downtime. Pass `0` to revoke the old one
+now, for example after a leak:
+
+```php
+$rotated = $atlas->oauthClients->rotateSecret($clientId, ['overlap_seconds' => 3600]);
+$rotated['client_secret'];              // shown once
+$rotated['previous_secret_expires_at']; // epoch ms, or null when the old secret already stopped
+```
+
 ### Platform API: Sign in with Atlas apps
 
 Construct the client with a **platform key** (`psk_…`) to manage apps for your account:
@@ -220,9 +230,21 @@ foreach ($preview['changes'] as $c) {
 // Send the same logout_token your OIDC apps get to another service.
 $atlas->logoutNotifyEndpoints->create(['url' => 'https://api.example.com/atlas/logout']);
 
-// Send email from your own domain through Atlas, then publish the returned DNS records.
-$managed = $atlas->messaging->createManagedEmail(['from_address' => 'Acme <no-reply@example.com>']);
+// Set your domain up on your own Resend or Brevo account, then publish the returned DNS records.
+$managed = $atlas->messaging->createManagedEmail([
+    'from_address' => 'Acme <no-reply@example.com>',
+    'transport' => 'resend',
+    'config' => ['api_key' => getenv('RESEND_API_KEY')],
+]);
+
+// A development instance can send sign-in emails through your provider without a verified domain.
+$atlas->messaging->enableDevelopmentEmail(['provider_id' => 'mp_123']);
+$atlas->messaging->disableDevelopmentEmail();
 ```
+
+`Webhook::verify` accepts an `atlas-signature` header that carries several signatures separated
+by spaces (`v1,<sig> v1,<sig>`). While an endpoint secret rotates, Atlas may sign each delivery
+with the old and the new secret; the delivery verifies when any one signature matches.
 
 With a platform key, `$platform->atlasIdApps->findUsers($id, $email)` answers a privacy request for one app,
 `revokeGrant($id, $grantId)` revokes one person's approval, and `$platform->atlasIdPublisher` claims and verifies

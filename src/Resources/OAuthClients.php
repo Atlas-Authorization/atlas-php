@@ -63,10 +63,24 @@ final class OAuthClients extends Resource
         return $this->http->request('PATCH', '/v1/oauth_clients/' . rawurlencode($id), body: $body);
     }
 
-    /** @return array<string,mixed> the client with a freshly revealed secret */
-    public function rotateSecret(string $id): array
+    /**
+     * Mint a new secret, revealed exactly once. The previous secret keeps working for
+     * `overlap_seconds` (default 86400 = 24 hours, at most 604800 = 7 days; `0` revokes it now,
+     * e.g. after a leak). The response carries `client_secret`, `overlap_seconds` and
+     * `previous_secret_expires_at` (epoch ms, or null when the old secret already stopped).
+     *
+     * @param array{overlap_seconds?:int}|null $body
+     *
+     * @return array<string,mixed> the client with a freshly revealed secret
+     */
+    public function rotateSecret(string $id, ?array $body = null, ?string $idempotencyKey = null): array
     {
-        return $this->http->request('POST', '/v1/oauth_clients/' . rawurlencode($id) . '/rotate_secret');
+        return $this->http->request(
+            'POST',
+            '/v1/oauth_clients/' . rawurlencode($id) . '/rotate_secret',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
     }
 
     /** @return array<string,mixed> */

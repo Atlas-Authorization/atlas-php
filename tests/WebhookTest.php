@@ -51,4 +51,19 @@ final class WebhookTest extends TestCase
         $bad = ['Atlas-Signature' => 'v2,abc'] + $headers;
         self::assertSame('malformed_signature', Webhook::verify(self::BODY, $bad, self::SECRET, self::NOW)->reason);
     }
+
+    public function testSeveralSignaturesVerifyWhenOneMatches(): void
+    {
+        $headers = self::sign('evt_1', self::NOW, self::BODY);
+        $fresh = $headers['Atlas-Signature'];
+        $stale = self::sign('evt_1', self::NOW, self::BODY, 'whsec_old_secret')['Atlas-Signature'];
+        foreach (["{$stale} {$fresh}", "{$fresh} {$stale}", "v2,abc {$fresh}"] as $value) {
+            $result = Webhook::verify(self::BODY, ['Atlas-Signature' => $value] + $headers, self::SECRET, self::NOW);
+            self::assertTrue($result->verified, $value);
+        }
+        $onlyStale = ['Atlas-Signature' => "{$stale} {$stale}"] + $headers;
+        self::assertSame('signature_mismatch', Webhook::verify(self::BODY, $onlyStale, self::SECRET, self::NOW)->reason);
+        $noV1 = ['Atlas-Signature' => 'v2,abc v0,def'] + $headers;
+        self::assertSame('malformed_signature', Webhook::verify(self::BODY, $noV1, self::SECRET, self::NOW)->reason);
+    }
 }
