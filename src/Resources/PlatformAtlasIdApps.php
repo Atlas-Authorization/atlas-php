@@ -20,7 +20,7 @@ namespace Atlas\Resources;
  * @phpstan-type AtlasIdAppBrandingInput array{theme?:'auto'|'light'|'dark'|null,accent_color?:string|null,background_color?:string|null,privacy_policy_url?:string|null,terms_of_service_url?:string|null,copy?:AtlasIdAppCopy|null,design?:AtlasDesign|null}
  * @phpstan-type AtlasIdAppInput array{name?:string,redirect_uris?:list<string>,post_logout_redirect_uris?:list<string>,backchannel_logout_uri?:string|null,backchannel_logout_session_required?:bool,frontchannel_logout_uri?:string|null,frontchannel_logout_session_required?:bool,logo_url?:string|null,homepage_url?:string|null,allowed_scopes?:list<'openid'|'profile'|'email'|'offline_access'>,branding?:AtlasIdAppBrandingInput,type?:'confidential'|'public',webhook_url?:string|null}
  * @phpstan-type AtlasIdAppBranding array{theme:'auto'|'light'|'dark',accent_color:string|null,background_color:string|null,privacy_policy_url:string|null,terms_of_service_url:string|null,copy:AtlasIdAppCopy,design?:AtlasDesign|null,resolved_design?:array<string,mixed>}
- * @phpstan-type AtlasIdApp array{object:'atlas_id_app',id:string,client_id:string,name:string,logo_url?:string|null,homepage_url?:string|null,branding?:AtlasIdAppBranding,redirect_uris:list<string>,post_logout_redirect_uris:list<string>,backchannel_logout_uri:string|null,backchannel_logout_session_required:bool,frontchannel_logout_uri:string|null,frontchannel_logout_session_required:bool,allowed_scopes:list<string>,type:'confidential'|'public',secret_prefix?:string|null,managed_by_instance_id?:string|null,created_at:int,updated_at:int,user_count?:int,client_secret?:string,webhook_url?:string|null,webhook_events?:list<string>,webhook_active?:bool|null,webhook_secret?:string}
+ * @phpstan-type AtlasIdApp array{object:'atlas_id_app',id:string,client_id:string,name:string,logo_url?:string|null,homepage_url?:string|null,branding?:AtlasIdAppBranding,redirect_uris:list<string>,post_logout_redirect_uris:list<string>,backchannel_logout_uri:string|null,backchannel_logout_session_required:bool,frontchannel_logout_uri:string|null,frontchannel_logout_session_required:bool,allowed_scopes:list<string>,type:'confidential'|'public',secret_prefix?:string|null,managed_by_instance_id?:string|null,created_at:int,updated_at:int,user_count?:int,client_secret?:string,webhook_url?:string|null,webhook_events?:list<string>,webhook_active?:bool|null,webhook_secret?:string,webhook_previous_secret_expires_at?:int|null,previous_secret_expires_at?:int|null,secret_issued_at?:int|null,overlap_seconds?:int}
  */
 final class PlatformAtlasIdApps extends Resource
 {
@@ -99,13 +99,16 @@ final class PlatformAtlasIdApps extends Resource
     /**
      * `POST /v1/platform/atlas_id_apps/:id/rotate_secret` — rotate a confidential
      * app's client_secret. The new secret is returned once; the old one keeps
-     * working for 24 hours.
+     * working for `overlap_seconds` (default 86400 = 24 hours; `0` revokes it now)
+     * until `previous_secret_expires_at`.
+     *
+     * @param array{overlap_seconds?:int}|null $body
      *
      * @return AtlasIdApp
      */
-    public function rotateSecret(string $id): array
+    public function rotateSecret(string $id, ?array $body = null): array
     {
-        return $this->http->request('POST', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/rotate_secret');
+        return $this->http->request('POST', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/rotate_secret', body: $body);
     }
 
     /**
@@ -180,13 +183,17 @@ final class PlatformAtlasIdApps extends Resource
 
     /**
      * `POST /v1/platform/atlas_id_apps/:id/webhook/rotate_secret` — rotate the app's webhook
-     * signing secret (`webhook_secret`, returned once).
+     * signing secret (`webhook_secret`, returned once). By default the old secret stops
+     * signing at once; with `overlap_seconds` it signs each delivery too until
+     * `webhook_previous_secret_expires_at`.
+     *
+     * @param array{overlap_seconds?:int}|null $body
      *
      * @return AtlasIdApp
      */
-    public function rotateWebhookSecret(string $id): array
+    public function rotateWebhookSecret(string $id, ?array $body = null): array
     {
-        return $this->http->request('POST', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/webhook/rotate_secret');
+        return $this->http->request('POST', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/webhook/rotate_secret', body: $body);
     }
 
     /**

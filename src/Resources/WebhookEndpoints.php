@@ -55,13 +55,17 @@ final class WebhookEndpoints extends Resource
 
     /**
      * `POST /v1/webhook_endpoints/:id/rotate_secret` — rotate the signing secret. The new secret is shown
-     * once.
+     * once. By default the old secret stops signing at once. With `overlap_seconds` (at most 604800) every
+     * delivery is signed with both until `previous_secret_expires_at` (epoch ms), so a verifier holding
+     * either passes. Choose an overlap only once every receiver accepts several signatures (0.7.0+).
+     *
+     * @param array{overlap_seconds?:int}|null $body
      *
      * @return array<string,mixed>
      */
-    public function rotateSecret(string $id): array
+    public function rotateSecret(string $id, ?array $body = null): array
     {
-        return $this->http->request('POST', '/v1/webhook_endpoints/' . rawurlencode($id) . '/rotate_secret');
+        return $this->http->request('POST', '/v1/webhook_endpoints/' . rawurlencode($id) . '/rotate_secret', body: $body);
     }
 
     /**

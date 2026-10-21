@@ -2,6 +2,13 @@
 
 Versions are published from git tags.
 
+## 0.8.0
+
+- **Trusted reverse proxy secret.** `instanceSecurity->getProxySecret()`, `createProxySecret(?array $body = null)` (`['overlap_seconds' => int]` on a rotation: default 86400, `0` stops the old secret now, at most 604800; the response carries `secret`, shown once, and `rotated`) and `deleteProxySecret()`. The view carries `set`, `created_at`, `previous_expires_at`, `secret_header` and `client_ip_header`.
+- **Webhook secret rotation with an overlap.** `webhooks->endpoints->rotateSecret($id, ?array $body = null)` takes `['overlap_seconds' => int]` (default 0, at most 604800). The response carries `overlap_seconds` and `previous_secret_expires_at`; endpoint objects carry `previous_secret_expires_at` while an overlap is open.
+- **Per-instance platform rotation with an overlap.** `platform->apps->rotateInstanceSecret($id, $instanceId, array|string|null $bodyOrIdempotencyKey = null, ?string $idempotencyKey = null)` takes `['overlap_seconds' => int]` (default 259200, `0` revokes the prior keys now); the 0.7 call with the idempotency key as the third argument still works. The response carries `app_id`, `instance_id`, `overlap_seconds` and `previous_keys_expire_at`. Without a body the server now keeps the prior keys for 72 hours; pass `['overlap_seconds' => 0]` for the old behaviour.
+- **Sign in with Atlas apps.** `platform->atlasIdApps->rotateSecret($id, ?array $body = null)` (default 24 hours) and `rotateWebhookSecret($id, ?array $body = null)` (default 0) take `['overlap_seconds' => int]`. The `AtlasIdApp` type gains `previous_secret_expires_at`, `secret_issued_at`, `webhook_previous_secret_expires_at` and `overlap_seconds`.
+
 ## 0.7.0
 
 - **OAuth client secret rotation with overlap.** `oauthClients->rotateSecret($id, ?array $body = null, ?string $idempotencyKey = null)` takes `['overlap_seconds' => int]` (default 86400, `0` revokes the old secret now, at most 604800). The response carries `client_secret`, `overlap_seconds` and `previous_secret_expires_at`; client objects carry `previous_secret_expires_at`.

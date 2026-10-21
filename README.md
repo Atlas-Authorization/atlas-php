@@ -246,6 +246,33 @@ $atlas->messaging->disableDevelopmentEmail();
 by spaces (`v1,<sig> v1,<sig>`). While an endpoint secret rotates, Atlas may sign each delivery
 with the old and the new secret; the delivery verifies when any one signature matches.
 
+A rotation stops the old secret at once by default. Pass `overlap_seconds` (at most 7 days) to
+keep it signing each delivery next to the new one while you deploy; choose an overlap only once
+every receiver accepts several signatures:
+
+```php
+$rotated = $atlas->webhooks->endpoints->rotateSecret($endpointId, ['overlap_seconds' => 3600]);
+$rotated['previous_secret_expires_at']; // epoch ms, or null when the old secret already stopped
+```
+
+### Trusted reverse proxy
+
+If a reverse proxy serves the Frontend API from your own origin, give it a proxy secret. It sends
+the secret in `X-Atlas-Proxy-Secret` and the browser's IP in `X-Atlas-Client-IP`; Atlas then uses
+that IP for rate limits, lockout, risk signals and audit logs.
+
+```php
+$created = $atlas->instanceSecurity->createProxySecret();
+$created['secret'];                                   // shown once; store it in your proxy's environment
+$atlas->instanceSecurity->getProxySecret();           // set, created_at, previous_expires_at (never the secret)
+$atlas->instanceSecurity->createProxySecret(['overlap_seconds' => 3600]); // rotate; the old one works 1 hour
+$atlas->instanceSecurity->deleteProxySecret();
+```
+
+Platform rotations take an overlap too: `$platform->apps->rotateInstanceSecret($appId, $instanceId, ['overlap_seconds' => 0])`
+(default 72 hours), `$platform->atlasIdApps->rotateSecret($id, ['overlap_seconds' => 3600])` (default 24 hours) and
+`$platform->atlasIdApps->rotateWebhookSecret($id, ['overlap_seconds' => 3600])` (default 0).
+
 With a platform key, `$platform->atlasIdApps->findUsers($id, $email)` answers a privacy request for one app,
 `revokeGrant($id, $grantId)` revokes one person's approval, and `$platform->atlasIdPublisher` claims and verifies
 the publisher name shown on consent screens.

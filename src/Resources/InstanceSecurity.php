@@ -81,6 +81,44 @@ final class InstanceSecurity extends Resource
     }
 
     /**
+     * `GET /v1/instance/proxy_secret` — whether a trusted reverse proxy secret is set
+     * (`set`, `created_at`, `previous_expires_at`, `secret_header`, `client_ip_header`).
+     * Never the secret.
+     *
+     * @return array{object:'proxy_secret',set:bool,created_at:int|null,previous_expires_at:int|null,secret_header:string,client_ip_header:string}
+     */
+    public function getProxySecret(): array
+    {
+        return $this->http->request('GET', '/v1/instance/proxy_secret');
+    }
+
+    /**
+     * `POST /v1/instance/proxy_secret` — create, or rotate, the trusted reverse proxy
+     * secret. The response adds `secret` (shown once) and `rotated`. On a rotation the
+     * replaced secret keeps working for `overlap_seconds` (default 86400, `0` stops it
+     * now, at most 604800).
+     *
+     * @param array{overlap_seconds?:int|null}|null $body
+     *
+     * @return array{object:'proxy_secret',set:bool,created_at:int|null,previous_expires_at:int|null,secret_header:string,client_ip_header:string,secret:string,rotated:bool}
+     */
+    public function createProxySecret(?array $body = null): array
+    {
+        return $this->http->request('POST', '/v1/instance/proxy_secret', body: $body);
+    }
+
+    /**
+     * `DELETE /v1/instance/proxy_secret` — remove the proxy secret: `X-Atlas-Client-IP`
+     * is ignored again.
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteProxySecret(): array
+    {
+        return $this->http->request('DELETE', '/v1/instance/proxy_secret');
+    }
+
+    /**
      * Store an LDAP connection's service-account bind password. The connection
      * must already exist in `auth_config.ldap.connections`.
      *

@@ -130,17 +130,28 @@ final class PlatformApps extends Resource
     }
 
     /**
-     * `POST /v1/platform/apps/:id/instances/:instanceId/rotate_secret` — rotate one instance's secret key
-     * (no overlap). The new secret is returned once.
+     * `POST /v1/platform/apps/:id/instances/:instanceId/rotate_secret` — rotate one instance's secret key.
+     * The new secret is returned once; the prior keys stay valid for `overlap_seconds` (default 259200 =
+     * 72 hours, at most 604800; `0` revokes them now). The response carries `app_id`, `instance_id`,
+     * `overlap_seconds` and `previous_keys_expire_at`. The third argument may also be the idempotency key
+     * (the 0.7 signature).
+     *
+     * @param array{overlap_seconds?:int}|string|null $bodyOrIdempotencyKey
      *
      * @return array<string,mixed>
      */
-    public function rotateInstanceSecret(string $id, string $instanceId, ?string $idempotencyKey = null): array
-    {
+    public function rotateInstanceSecret(
+        string $id,
+        string $instanceId,
+        array|string|null $bodyOrIdempotencyKey = null,
+        ?string $idempotencyKey = null,
+    ): array {
+        $legacyKey = is_string($bodyOrIdempotencyKey);
         return $this->http->request(
             'POST',
             '/v1/platform/apps/' . rawurlencode($id) . '/instances/' . rawurlencode($instanceId) . '/rotate_secret',
-            idempotencyKey: $idempotencyKey,
+            body: $legacyKey ? null : $bodyOrIdempotencyKey,
+            idempotencyKey: $legacyKey ? $bodyOrIdempotencyKey : $idempotencyKey,
         );
     }
 
