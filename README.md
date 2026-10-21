@@ -277,6 +277,30 @@ With a platform key, `$platform->atlasIdApps->findUsers($id, $email)` answers a 
 `revokeGrant($id, $grantId)` revokes one person's approval, and `$platform->atlasIdPublisher` claims and verifies
 the publisher name shown on consent screens.
 
+### Referral attribution
+
+With referral attribution on, Atlas reports every interactive sign-up to your referral platform before
+`user.created` is sent. Users carry `referral` (who referred them, or null), `referral_code` and `referral_link`.
+
+```php
+$atlas->referrals->update([
+    'enabled' => true,
+    'provider' => 'webhook', // the Atlas referral protocol; or a built-in vendor adapter
+    'endpoint_url' => 'https://referrals.example.com/atlas',
+    'signing_secret' => getenv('REFERRAL_SIGNING_SECRET'),
+    'security' => ['on_high_risk' => 'hold'],
+]);
+$atlas->referrals->test();                                    // ['ok' => true, 'http_status' => 404, ...]
+$failed = $atlas->referrals->listCalls(['status' => 'failed', 'limit' => 20]);
+$atlas->referrals->retryCall($failed['data'][0]['id']);
+
+$atlas->users->update('user_123', ['referral_code' => 'ada-1']); // 409 REFERRAL_CODE_TAKEN if held
+$atlas->users->flagReferral('user_123', 'self-referral');
+```
+
+Enabling without what the provider needs is `422 REFERRALS_NOT_CONFIGURED`. A late answer from the platform arrives
+as the `user.referral_attributed` webhook.
+
 ### API key spend caps
 
 Give an end-user API key caps in your own units, then meter what your API consumed against them. A refused debit records nothing and is not an exception, so you enforce it inside your own transaction:

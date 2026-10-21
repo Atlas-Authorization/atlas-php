@@ -2,6 +2,14 @@
 
 Versions are published from git tags.
 
+## 0.9.0
+
+- **Referral attribution settings.** New `referrals` namespace: `get()`, `update(array $body, ?string $idempotencyKey = null)` (`GET`/`PATCH /v1/instance/referrals`; `null` clears; nested `security` with `challenge_referred_signups`, `on_high_risk`, `hold_until_email_verified`, `max_referred_signups_per_ip_hour`; `signing_secret` and `api_key` are write-only), `test()` (`ok`, `http_status`, `latency_ms`, `error`), `listCalls(array $params = [])` (`limit`, `status`, `kind`, `user_id`) and `retryCall(string $id, ?string $idempotencyKey = null)`.
+- **Users.** User objects carry `referral` (`partner_id`, `referrer_external_id`, `referrer_user_id`, `matched_via`, `status`, `risk_level`, `flagged`, or null), `referral_code` and `referral_link`. `users->create` accepts `referral` (`code`, `click_id`, `anon_id`) and `referral_code`; `users->update` accepts `referral_code` (null clears). New `users->flagReferral(string $id, ?string $reason = null, ?string $idempotencyKey = null)`.
+- **Webhooks.** New event `user.referral_attributed` (the referral platform answered after `user.created`).
+- **Error codes.** `ErrorCode::REFERRALS_NOT_CONFIGURED` (422) and `ErrorCode::REFERRAL_CODE_TAKEN` (409). Preflight can report `referrals_enabled_unverified` and `referrals_without_bot_protection`.
+- Compatible: new methods only.
+
 ## 0.8.0
 
 - **Trusted reverse proxy secret.** `instanceSecurity->getProxySecret()`, `createProxySecret(?array $body = null)` (`['overlap_seconds' => int]` on a rotation: default 86400, `0` stops the old secret now, at most 604800; the response carries `secret`, shown once, and `rotated`) and `deleteProxySecret()`. The view carries `set`, `created_at`, `previous_expires_at`, `secret_header` and `client_ip_header`.

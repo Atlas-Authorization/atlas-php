@@ -35,6 +35,7 @@ use Atlas\Resources\Organizations;
 use Atlas\Resources\Permissions;
 use Atlas\Resources\RadiusClients;
 use Atlas\Resources\RateLimitPolicy;
+use Atlas\Resources\Referrals;
 use Atlas\Resources\ResourceServers;
 use Atlas\Resources\Restriction;
 use Atlas\Resources\RiskBasedMfa;
@@ -145,6 +146,7 @@ final class Client
     public readonly LtiPlatforms $ltiPlatforms;
     public readonly Instance $instance;
     public readonly InstanceSecurity $instanceSecurity;
+    public readonly Referrals $referrals;
     public readonly Tokens $tokens;
     public readonly EmailAddresses $emailAddresses;
     public readonly OrganizationSettingsSchema $organizationSettingsSchema;
@@ -268,6 +270,7 @@ final class Client
         $this->ltiPlatforms = new LtiPlatforms($http);
         $this->instance = new Instance($http);
         $this->instanceSecurity = new InstanceSecurity($http);
+        $this->referrals = new Referrals($http);
         $this->tokens = new Tokens($http);
         $this->emailAddresses = new EmailAddresses($http);
         $this->organizationSettingsSchema = new OrganizationSettingsSchema($http);

@@ -34,7 +34,7 @@ final class Users extends Resource
      * `notify: false` (the default) guarantees no email, SMS or push is sent to the user as a consequence
      * of the create.
      *
-     * @param array<string,mixed> $body {email_address, password?, first_name?, ..., notify?}
+     * @param array<string,mixed> $body {email_address, password?, first_name?, ..., notify?, referral?, referral_code?}
      *
      * @return array<string,mixed>
      */
@@ -44,7 +44,7 @@ final class Users extends Resource
     }
 
     /**
-     * @param array<string,mixed> $body {first_name?, last_name?, public_metadata?, private_metadata?}
+     * @param array<string,mixed> $body {first_name?, last_name?, public_metadata?, private_metadata?, referral_code?}
      *
      * @return array<string,mixed>
      */
@@ -91,6 +91,31 @@ final class Users extends Resource
     public function unlock(string $id): array
     {
         return $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/unlock');
+    }
+
+    /**
+     * `POST /v1/users/:id/referral/flag` — mark the user's referral fraudulent. The user's
+     * `referral` reads `flagged: true`, the referral platform is sent a `fraud_confirmed`
+     * signal (when referrals are on) and the action is audited; the account is not changed.
+     * 404 when the user has no referral. `$reason` (at most 500 characters) is sent to the
+     * platform.
+     *
+     * Users carry `referral` (`partner_id`, `referrer_external_id`, `referrer_user_id`,
+     * `matched_via`, `status`, `risk_level`, `flagged`, or null), `referral_code` and
+     * `referral_link`; `create` accepts `referral` (`code`, `click_id`, `anon_id`) and
+     * `referral_code`, `update` accepts `referral_code` (null clears; 409
+     * `REFERRAL_CODE_TAKEN` when held).
+     *
+     * @return array<string,mixed> {object: user_referral, user_id, status, flagged, flag_reason, flagged_at, risk_level}
+     */
+    public function flagReferral(string $id, ?string $reason = null, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/referral/flag',
+            body: $reason === null ? new \stdClass() : ['reason' => $reason],
+            idempotencyKey: $idempotencyKey,
+        );
     }
 
     /** @return array<string,mixed> a DeletedObject */
