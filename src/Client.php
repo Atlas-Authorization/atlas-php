@@ -48,6 +48,7 @@ use Atlas\Resources\SmsTemplates;
 use Atlas\Resources\SsoConnections;
 use Atlas\Resources\SsoOnboarding;
 use Atlas\Resources\Tokens;
+use Atlas\Resources\UserHooks;
 use Atlas\Resources\Users;
 use Atlas\Resources\Waitlist;
 use Atlas\Resources\Webhooks;
@@ -147,6 +148,7 @@ final class Client
     public readonly Instance $instance;
     public readonly InstanceSecurity $instanceSecurity;
     public readonly Referrals $referrals;
+    public readonly UserHooks $userHooks;
     public readonly Tokens $tokens;
     public readonly EmailAddresses $emailAddresses;
     public readonly OrganizationSettingsSchema $organizationSettingsSchema;
@@ -271,6 +273,7 @@ final class Client
         $this->instance = new Instance($http);
         $this->instanceSecurity = new InstanceSecurity($http);
         $this->referrals = new Referrals($http);
+        $this->userHooks = new UserHooks($http);
         $this->tokens = new Tokens($http);
         $this->emailAddresses = new EmailAddresses($http);
         $this->organizationSettingsSchema = new OrganizationSettingsSchema($http);

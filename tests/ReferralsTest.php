@@ -147,4 +147,109 @@ final class ReferralsTest extends TestCase
         }
         $this->assertSame('REFERRALS_NOT_CONFIGURED', ErrorCode::REFERRALS_NOT_CONFIGURED);
     }
+    public function testV2SettingsPingTestAndCallPaging(): void
+    {
+        $settings = self::SETTINGS + [
+            'tracking_token' => 'tt_public_1', 'signup_code_field' => true, 'include_referral_claims' => true,
+            'connection' => [
+                'last_ping' => ['ok' => true, 'org_name' => 'Acme', 'clock_skew_warning' => true],
+                'alert' => ['code' => 'signature_rejected', 'message' => '401', 'at' => 9],
+            ],
+        ];
+        $this->mock->push(200, $settings);
+        $view = $this->atlas->referrals->get();
+        $this->assertSame('tt_public_1', $view['tracking_token']);
+        $this->assertSame('signature_rejected', $view['connection']['alert']['code']);
+
+        $this->mock->push(200, $settings);
+        $this->atlas->referrals->update([
+            'provider' => 'referally', 'tracking_token' => 'tt_public_1', 'code_lookup_url' => null,
+            'forward_lifecycle' => false, 'mirror_to_public_metadata' => true, 'include_referral_claims' => true,
+        ]);
+        $this->assertSame(
+            '{"provider":"referally","tracking_token":"tt_public_1","code_lookup_url":null,"forward_lifecycle":false,"mirror_to_public_metadata":true,"include_referral_claims":true}',
+            $this->rawBody(),
+        );
+
+        $this->mock->push(200, ['ok' => true, 'method' => 'ping', 'ping' => ['ok' => true, 'org_name' => 'Acme'], 'warnings' => ['clock skew']]);
+        $tested = $this->atlas->referrals->test();
+        $this->assertSame(['ping', 'Acme'], [$tested['method'], $tested['ping']['org_name']]);
+
+        $this->mock->push(200, ['object' => 'list', 'data' => [self::CALL + ['error_code' => 'signature_rejected', 'batch_id' => 'rbf_1']], 'has_more' => true]);
+        $page = $this->atlas->referrals->listCalls(['limit' => 1000, 'error_code' => 'signature_rejected', 'starting_after' => 'rfc_0']);
+        $this->assertSame(
+            ['GET', self::BASE . '/v1/instance/referrals/calls?limit=1000&error_code=signature_rejected&starting_after=rfc_0'],
+            $this->sent(),
+        );
+        $this->assertSame('rbf_1', $page['data'][0]['batch_id']);
+    }
+
+    public function testV2RetryFailedSimulateBackfillAndUserResult(): void
+    {
+        $this->mock->push(200, ['object' => 'referral_retry', 'requeued' => 4]);
+        $this->assertSame(4, $this->atlas->referrals->retryFailed(['error_code' => 'signature_rejected'], 'k1')['requeued']);
+        $this->assertSame(['POST', self::BASE . '/v1/instance/referrals/calls/retry_failed'], $this->sent());
+        $this->assertSame('{"error_code":"signature_rejected"}', $this->rawBody());
+        $this->assertSame('k1', $this->mock->lastRequest()->getHeaderLine('Idempotency-Key'));
+        $this->mock->push(200, ['object' => 'referral_retry', 'requeued' => 0]);
+        $this->atlas->referrals->retryFailed();
+        $this->assertSame('{}', $this->rawBody());
+
+        $this->mock->push(200, [
+            'object' => 'referral_simulation', 'ok' => true, 'customer_ref' => 'atlas_test_abc',
+            'result' => ['referral' => ['partner_external_ref' => 'cust_9'], 'partner' => null, 'notes' => ['n']],
+        ]);
+        $sim = $this->atlas->referrals->simulate('ACME10');
+        $this->assertSame('cust_9', $sim['result']['referral']['partner_external_ref']);
+        $this->assertSame(['POST', self::BASE . '/v1/instance/referrals/simulate'], $this->sent());
+        $this->assertSame('{"code":"ACME10"}', $this->rawBody());
+        $this->mock->push(200, ['object' => 'referral_simulation', 'ok' => false]);
+        $this->atlas->referrals->simulate();
+        $this->assertSame('{}', $this->rawBody());
+
+        $job = ['object' => 'referral_backfill', 'id' => 'rbf_1', 'status' => 'running', 'calls' => ['pending' => 10]];
+        $this->mock->push(200, $job);
+        $out = $this->atlas->referrals->backfill(['since' => '2026-01-01', 'codes' => ['cust_1' => 'ACME10']], 'k2');
+        $this->assertSame(10, $out['calls']['pending']);
+        $this->assertSame(['POST', self::BASE . '/v1/instance/referrals/backfill'], $this->sent());
+        $this->assertSame('{"since":"2026-01-01","codes":{"cust_1":"ACME10"}}', $this->rawBody());
+        $this->mock->push(200, ['status' => 'completed'] + $job);
+        $this->assertSame('completed', $this->atlas->referrals->getBackfill('rbf_1')['status']);
+        $this->assertSame(['GET', self::BASE . '/v1/instance/referrals/backfill/rbf_1'], $this->sent());
+
+        $this->mock->push(200, [
+            'object' => 'user_referral', 'user_id' => 'user_1', 'status' => 'attributed', 'customer_ref' => 'cust_1',
+            'referral_status' => 'active', 'notes' => ['n'],
+        ]);
+        $res = $this->atlas->referrals->getForUser('user_1');
+        $this->assertSame(['attributed', 'active'], [$res['status'], $res['referral_status']]);
+        $this->assertSame(['GET', self::BASE . '/v1/users/user_1/referral'], $this->sent());
+    }
+
+    public function testV2SetExternalIdAndBeforeUserCreateHook(): void
+    {
+        $this->mock->push(200, ['object' => 'user', 'id' => 'user_1', 'external_id' => 'cust_1', 'referral' => ['status' => 'pending']]);
+        $this->assertSame('pending', $this->atlas->users->setExternalId('user_1', 'cust_1')['referral']['status']);
+        $this->assertSame(['PATCH', self::BASE . '/v1/users/user_1'], $this->sent());
+        $this->assertSame('{"external_id":"cust_1"}', $this->rawBody());
+        $this->mock->push(200, ['object' => 'user', 'id' => 'user_1']);
+        $this->atlas->users->setExternalId('user_1', null);
+        $this->assertSame('{"external_id":null}', $this->rawBody());
+
+        $hook = [
+            'object' => 'before_user_create_hook', 'enabled' => true, 'url' => 'https://app.example.com/hooks/before-create',
+            'signing_secret_set' => true, 'timeout_ms' => 3000, 'last_call' => ['at' => 3, 'status' => 'ok', 'error' => null],
+        ];
+        $this->mock->push(200, $hook);
+        $this->assertSame('ok', $this->atlas->userHooks->getBeforeUserCreate()['last_call']['status']);
+        $this->assertSame(['GET', self::BASE . '/v1/instance/hooks/before_user_create'], $this->sent());
+        $this->mock->push(200, $hook);
+        $this->atlas->userHooks->updateBeforeUserCreate(['enabled' => true, 'url' => null, 'timeout_ms' => 2000], 'k3');
+        $this->assertSame(['PATCH', self::BASE . '/v1/instance/hooks/before_user_create'], $this->sent());
+        $this->assertSame('{"enabled":true,"url":null,"timeout_ms":2000}', $this->rawBody());
+        $this->assertSame('k3', $this->mock->lastRequest()->getHeaderLine('Idempotency-Key'));
+        $this->mock->push(200, ['ok' => true, 'latency_ms' => 12, 'answer' => ['external_id' => 'cust_1']]);
+        $this->assertSame('cust_1', $this->atlas->userHooks->testBeforeUserCreate()['answer']['external_id']);
+        $this->assertSame(['POST', self::BASE . '/v1/instance/hooks/before_user_create/test'], $this->sent());
+    }
 }

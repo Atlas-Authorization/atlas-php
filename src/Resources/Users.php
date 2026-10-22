@@ -44,13 +44,25 @@ final class Users extends Resource
     }
 
     /**
-     * @param array<string,mixed> $body {first_name?, last_name?, public_metadata?, private_metadata?, referral_code?}
+     * @param array<string,mixed> $body {first_name?, last_name?, external_id?, public_metadata?, private_metadata?, referral_code?}
      *
      * @return array<string,mixed>
      */
     public function update(string $id, array $body): array
     {
         return $this->http->request('PATCH', '/v1/users/' . rawurlencode($id), body: $body);
+    }
+
+    /**
+     * Set (or clear with null) the user's `external_id`. With referral attribution on, Atlas
+     * forwards the change to the referral platform as an alias (old id, or the Atlas user id,
+     * to the new one).
+     *
+     * @return array<string,mixed>
+     */
+    public function setExternalId(string $id, ?string $externalId): array
+    {
+        return $this->http->request('PATCH', '/v1/users/' . rawurlencode($id), body: ['external_id' => $externalId]);
     }
 
     /**
@@ -100,8 +112,10 @@ final class Users extends Resource
      * 404 when the user has no referral. `$reason` (at most 500 characters) is sent to the
      * platform.
      *
-     * Users carry `referral` (`partner_id`, `referrer_external_id`, `referrer_user_id`,
-     * `matched_via`, `status`, `risk_level`, `flagged`, or null), `referral_code` and
+     * Users carry `referral` (`status`: `pending`, `attributed`, `none`, `failed`, `held` or
+     * `flagged`; `partner_id`, `partner_external_ref`, `referrer_external_id`,
+     * `referrer_user_id`, `matched_via`, `referral_status` (the platform's own status), `notes`,
+     * `risk_level`, `flagged`; null when never reported), `referral_code` and
      * `referral_link`; `create` accepts `referral` (`code`, `click_id`, `anon_id`) and
      * `referral_code`, `update` accepts `referral_code` (null clears; 409
      * `REFERRAL_CODE_TAKEN` when held).

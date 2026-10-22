@@ -2,6 +2,17 @@
 
 Versions are published from git tags.
 
+## 0.10.0
+
+- **Referral attribution v2.** `referrals->retryFailed(array $filter = [], ?string $idempotencyKey = null)` (`POST /v1/instance/referrals/calls/retry_failed`; `kind`, `error_code`; returns `requeued`), `referrals->simulate(?string $code = null)` (`POST /v1/instance/referrals/simulate`; `call_id`, `customer_ref`, `result`, `response`, `error`), `referrals->backfill(array $body, ?string $idempotencyKey = null)` and `referrals->getBackfill(string $id)` (`POST /v1/instance/referrals/backfill`, `GET /v1/instance/referrals/backfill/:id`; body `since`, `codes`, `code_metadata_path`; job `users_scanned`, `users_skipped`, `calls_queued`, `truncated`, `next_since`, `calls`), and `referrals->getForUser(string $userId)` (`GET /v1/users/:id/referral`).
+- **Settings.** The referral settings gain `tracking_token`, `code_lookup_url`, `signup_code_field`, `forward_lifecycle`, `mirror_to_public_metadata` and `include_referral_claims` (read and write). `provider` can be `referally`. Provider capabilities gain `alias`, `user` and `ping`. `connection` gains `last_ping` and `alert` (`signature_rejected` or `connection_paused`). `referrals->test()` returns `method` (`ping` or `probe`), `ping` and `warnings`.
+- **Call log.** `listCalls` takes `error_code` and `starting_after`; `limit` goes up to 1000. Kinds add `alias`, `user` and `ping`; calls carry `latency_ms`, `error_code`, `response`, `highlights`, `request_id` and `batch_id`.
+- **Users.** New `users->setExternalId(string $id, ?string $externalId)` (`PATCH /v1/users/:id`; null clears; with referrals on, the change is forwarded to the platform as an alias). The user `referral` gains `partner_external_ref`, `referral_status` and `notes`. New event `user.referral_resolved` (`data` is the full user).
+- **before_user_create hook.** New `userHooks` namespace: `getBeforeUserCreate()`, `updateBeforeUserCreate(array $body, ?string $idempotencyKey = null)` and `testBeforeUserCreate()` (`/v1/instance/hooks/before_user_create`). The hook call is signed like a webhook with type `user.before_create`; verify it with `Webhook::verify`.
+- **Preflight** can report `referrals_secret_invalid`, `referrals_program_inactive`, `referrals_unreachable`, `referrals_clock_skew` and `referrals_external_id_unset`.
+- **Changed on the server.** `referral['status']` is now where attribution stands (`pending`, `attributed`, `none`, `failed`, `held`, `flagged`); the platform's own status moved to `referral_status`. `user.created` carries `status: "pending"` while the platform has not answered.
+- Compatible: new methods only.
+
 ## 0.9.0
 
 - **Referral attribution settings.** New `referrals` namespace: `get()`, `update(array $body, ?string $idempotencyKey = null)` (`GET`/`PATCH /v1/instance/referrals`; `null` clears; nested `security` with `challenge_referred_signups`, `on_high_risk`, `hold_until_email_verified`, `max_referred_signups_per_ip_hour`; `signing_secret` and `api_key` are write-only), `test()` (`ok`, `http_status`, `latency_ms`, `error`), `listCalls(array $params = [])` (`limit`, `status`, `kind`, `user_id`) and `retryCall(string $id, ?string $idempotencyKey = null)`.

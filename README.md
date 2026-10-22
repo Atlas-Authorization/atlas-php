@@ -280,12 +280,14 @@ the publisher name shown on consent screens.
 ### Referral attribution
 
 With referral attribution on, Atlas reports every interactive sign-up to your referral platform before
-`user.created` is sent. Users carry `referral` (who referred them, or null), `referral_code` and `referral_link`.
+`user.created` is sent. Users carry `referral` (where attribution stands and, once attributed, who referred them;
+null when never reported), `referral_code` and `referral_link`. `referral['status']` is `pending`, `attributed`,
+`none`, `failed`, `held` or `flagged`; the platform's own status is `referral['referral_status']`.
 
 ```php
 $atlas->referrals->update([
     'enabled' => true,
-    'provider' => 'webhook', // the Atlas referral protocol; or a built-in vendor adapter
+    'provider' => 'webhook', // the Atlas referral protocol; or 'referally' or another built-in adapter
     'endpoint_url' => 'https://referrals.example.com/atlas',
     'signing_secret' => getenv('REFERRAL_SIGNING_SECRET'),
     'security' => ['on_high_risk' => 'hold'],
@@ -296,10 +298,32 @@ $atlas->referrals->retryCall($failed['data'][0]['id']);
 
 $atlas->users->update('user_123', ['referral_code' => 'ada-1']); // 409 REFERRAL_CODE_TAKEN if held
 $atlas->users->flagReferral('user_123', 'self-referral');
+
+$atlas->referrals->simulate('ACME10');                           // a made-up user; nothing is stored
+$atlas->referrals->retryFailed(['error_code' => 'signature_rejected']); // after pasting the new secret
+$atlas->referrals->listCalls(['limit' => 1000, 'starting_after' => 'rfc_123', 'error_code' => 'timeout']);
+$job = $atlas->referrals->backfill(['since' => '2026-01-01', 'code_metadata_path' => 'public_metadata.referral_code']);
+$atlas->referrals->getBackfill($job['id']);                      // running, then completed
+$atlas->referrals->getForUser('user_123');                       // the stored result, no call to the platform
+$atlas->users->setExternalId('user_123', 'cust_42');             // forwarded to the platform as an alias
 ```
 
-Enabling without what the provider needs is `422 REFERRALS_NOT_CONFIGURED`. A late answer from the platform arrives
-as the `user.referral_attributed` webhook.
+Enabling without what the provider needs is `422 REFERRALS_NOT_CONFIGURED`. When the platform has not answered by the
+time `user.created` is sent, `referral['status']` is `pending` and the `user.referral_resolved` webhook follows with the
+final user (`attributed`, `none` or `failed`). `user.referral_attributed` still fires for a late attribution.
+
+To give each user your own id before the first referral call, turn on the `before_user_create` hook. Atlas then sends
+your endpoint a signed `POST` (verify it with `Webhook::verify`) of type `user.before_create` for every self-service
+sign-up, and stamps the `external_id` and metadata you answer:
+
+```php
+$atlas->userHooks->updateBeforeUserCreate([
+    'enabled' => true,
+    'url' => 'https://app.example.com/hooks/before-create',
+    'signing_secret' => getenv('BEFORE_CREATE_SECRET'),
+]);
+$atlas->userHooks->testBeforeUserCreate(); // ['ok' => true, 'answer' => [...]]
+```
 
 ### API key spend caps
 
