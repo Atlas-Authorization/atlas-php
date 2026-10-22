@@ -98,6 +98,23 @@ final class ReferralsTest extends TestCase
         $this->assertSame('{"inbound_secret":null,"inbound_endpoint_id":null}', $this->rawBody());
     }
 
+    public function testBrowserCaptureFields(): void
+    {
+        $this->mock->push(200, self::SETTINGS + ['browser_sources' => ['rewardful', 'dub'], 'browser_sources_default' => false, 'consent_provider' => 'onetrust']);
+        $view = $this->atlas->referrals->get();
+        $this->assertSame(['rewardful', 'dub'], $view['browser_sources']);
+        $this->assertFalse($view['browser_sources_default']);
+        $this->assertSame('onetrust', $view['consent_provider']);
+
+        $this->mock->push(200, self::SETTINGS);
+        $this->atlas->referrals->update(['browser_sources' => ['rewardful', 'dub'], 'consent_provider' => 'app']);
+        $this->assertSame('{"browser_sources":["rewardful","dub"],"consent_provider":"app"}', $this->rawBody());
+
+        $this->mock->push(200, self::SETTINGS);
+        $this->atlas->referrals->update(['browser_sources' => null]);
+        $this->assertSame('{"browser_sources":null}', $this->rawBody());
+    }
+
     public function testCallLogAndRetry(): void
     {
         $this->mock->push(200, ['object' => 'list', 'data' => [self::CALL], 'has_more' => false]);

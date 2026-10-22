@@ -19,6 +19,12 @@ namespace Atlas\Resources;
  * Two-way sync: a provider with the `inbound` capability sends referral changes made after
  * sign-up to `inbound.url`; reads report `inbound` (`url`, `secret_set`, `endpoint_id`,
  * `last_event` with `at`, `type`, `outcome`).
+ *
+ * Browser capture: `browser_sources` lists the referral programs whose script or cookie the
+ * browser reads, in order (`referally`, `rewardful`, `tolt`, `promotekit`, `firstpromoter`,
+ * `partnerstack`, `dub`; `null` goes back to the provider's default, reported by
+ * `browser_sources_default`), and `consent_provider` picks the consent manager that decides
+ * (`auto`, one manager such as `onetrust`, or `app`).
  */
 final class Referrals extends Resource
 {
@@ -38,7 +44,8 @@ final class Referrals extends Resource
      * @param array<string,mixed> $body {enabled?, provider?, endpoint_url?, program_id?, connection_id?,
      *   signing_secret?, api_key?, inbound_secret?, inbound_endpoint_id?, url_params?, context_cookie?, consent_category?, consent_fallback_category?,
      *   auto_enroll_users?, link_template?, timeout_ms?, security?, tracking_token?, code_lookup_url?,
-     *   signup_code_field?, forward_lifecycle?, mirror_to_public_metadata?, include_referral_claims?}
+     *   signup_code_field?, browser_sources?, consent_provider?, forward_lifecycle?, mirror_to_public_metadata?,
+     *   include_referral_claims?}
      *
      * @return array<string,mixed>
      */
