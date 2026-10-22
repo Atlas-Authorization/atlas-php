@@ -13,8 +13,12 @@ namespace Atlas\Resources;
  * `referral_link`). A late answer arrives as the `user.referral_resolved` webhook (and
  * `user.referral_attributed` when it attributes the user). `provider` is `webhook` (the Atlas
  * referral protocol), `referally` or another built-in adapter.
- * `signing_secret` and `api_key` are write-only: reads return `signing_secret_set`
- * / `api_key_set`.
+ * `signing_secret`, `api_key` and `inbound_secret` are write-only: reads return
+ * `signing_secret_set` / `api_key_set` / `inbound.secret_set`.
+ *
+ * Two-way sync: a provider with the `inbound` capability sends referral changes made after
+ * sign-up to `inbound.url`; reads report `inbound` (`url`, `secret_set`, `endpoint_id`,
+ * `last_event` with `at`, `type`, `outcome`).
  */
 final class Referrals extends Resource
 {
@@ -32,7 +36,7 @@ final class Referrals extends Resource
      * (`signature_rejected` or `connection_paused` while delivery is blocked).
      *
      * @param array<string,mixed> $body {enabled?, provider?, endpoint_url?, program_id?, connection_id?,
-     *   signing_secret?, api_key?, url_params?, context_cookie?, consent_category?, consent_fallback_category?,
+     *   signing_secret?, api_key?, inbound_secret?, inbound_endpoint_id?, url_params?, context_cookie?, consent_category?, consent_fallback_category?,
      *   auto_enroll_users?, link_template?, timeout_ms?, security?, tracking_token?, code_lookup_url?,
      *   signup_code_field?, forward_lifecycle?, mirror_to_public_metadata?, include_referral_claims?}
      *

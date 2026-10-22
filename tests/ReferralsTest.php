@@ -78,6 +78,26 @@ final class ReferralsTest extends TestCase
         $this->assertSame(['POST', self::BASE . '/v1/instance/referrals/test'], $this->sent());
     }
 
+    public function testInboundTwoWaySyncFields(): void
+    {
+        $inbound = [
+            'url' => 'https://api.example.test/v1/webhooks/referrals/ins_1', 'secret_set' => true, 'endpoint_id' => 'we_1',
+            'last_event' => ['at' => 1700000000000, 'type' => 'referral.updated', 'outcome' => 'applied'],
+        ];
+        $this->mock->push(200, self::SETTINGS + ['inbound' => $inbound]);
+        $view = $this->atlas->referrals->get();
+        $this->assertSame('https://api.example.test/v1/webhooks/referrals/ins_1', $view['inbound']['url']);
+        $this->assertSame('applied', $view['inbound']['last_event']['outcome']);
+
+        $this->mock->push(200, self::SETTINGS);
+        $this->atlas->referrals->update(['inbound_secret' => 'whsec_' . str_repeat('y', 32), 'inbound_endpoint_id' => 'we_1']);
+        $this->assertSame('{"inbound_secret":"whsec_' . str_repeat('y', 32) . '","inbound_endpoint_id":"we_1"}', $this->rawBody());
+
+        $this->mock->push(200, self::SETTINGS);
+        $this->atlas->referrals->update(['inbound_secret' => null, 'inbound_endpoint_id' => null]);
+        $this->assertSame('{"inbound_secret":null,"inbound_endpoint_id":null}', $this->rawBody());
+    }
+
     public function testCallLogAndRetry(): void
     {
         $this->mock->push(200, ['object' => 'list', 'data' => [self::CALL], 'has_more' => false]);
