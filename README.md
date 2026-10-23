@@ -560,6 +560,39 @@ an `Atlas\Symfony\AtlasUser` — identifier `sub`, roles `ROLE_USER` plus
 `ROLE_<ORG_ROLE>`, full claims via `claims()`. A missing/invalid token is a 401.
 Configure it with the `ATLAS_*` environment variables, or under an `atlas` key.
 
+### Better Auth bridge (Laravel, Symfony)
+
+During a migration from Better Auth, both integrations ship the same bridge as the PSR-15
+`BetterAuthBridgeMiddleware`, built on `SessionBridge`: GET / HEAD only; a request with a Better Auth
+session cookie and no Atlas session is exchanged once and answered `303` back to the same URL with
+`__session` / `__atlas_rt` set; if a second factor is owed it redirects to your sign-in URL with
+`__atlas_attempt` / `__atlas_status`; Better Auth cookies are cleared only on a final refusal (a closed
+bridge, a 429 or an outage keeps them). The end user's IP is the framework's own client IP, so your
+trusted-proxy setup applies.
+
+Laravel: set `ATLAS_SECRET_KEY` and (optionally) `ATLAS_BETTER_AUTH_SIGN_IN_URL`,
+`ATLAS_BETTER_AUTH_COOKIE_PREFIX`, `ATLAS_BETTER_AUTH_COOKIE_NAME`, `ATLAS_BETTER_AUTH_COOKIE_DOMAIN`
+(the `atlas.better_auth_bridge` config key), then put the `atlas.better_auth_bridge` alias ahead of
+`atlas.auth`, or add `Atlas\Laravel\BetterAuthBridge` as global middleware (before cookie encryption is fine:
+it reads the raw `Cookie` header):
+
+```php
+Route::middleware(['atlas.better_auth_bridge', 'atlas.auth'])->group(/* ... */);
+```
+
+Symfony: enable it under the `atlas` key; it registers `Atlas\Symfony\BetterAuthBridgeSubscriber` on
+`kernel.request` (priority 64, ahead of the firewall):
+
+```yaml
+# config/packages/atlas.yaml
+atlas:
+    secret_key: '%env(ATLAS_SECRET_KEY)%'
+    better_auth_bridge:
+        enabled: true
+        sign_in_url: /sign-in      # optional
+        # cookie_prefix, cookie_name, cookie_domain, secure: false (plain-http dev only)
+```
+
 ## PSR-15 middleware (Slim, Mezzio, any pipeline)
 
 For a framework without a bespoke integration — or none at all — the SDK ships a

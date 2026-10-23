@@ -29,4 +29,17 @@ return [
 
     // Backend API base URL, for verifyOnline only.
     'bapi_base_url' => env('ATLAS_BAPI_URL', 'https://api.atlasauth.net'),
+
+    // Better Auth session bridge (migration from Better Auth). Used by the `atlas.better_auth_bridge`
+    // route middleware; needs `secret_key`. `sign_in_url` is where a user who still owes a second
+    // factor is sent (with __atlas_attempt / __atlas_status); null continues unauthenticated.
+    'better_auth_bridge' => [
+        'sign_in_url' => env('ATLAS_BETTER_AUTH_SIGN_IN_URL'),
+        'cookie_prefix' => env('ATLAS_BETTER_AUTH_COOKIE_PREFIX', 'better-auth'),
+        'cookie_name' => env('ATLAS_BETTER_AUTH_COOKIE_NAME'),
+        // The `domain` the Better Auth cookies were set on (crossSubDomainCookies.domain), so they clear.
+        'cookie_domain' => env('ATLAS_BETTER_AUTH_COOKIE_DOMAIN'),
+        // false only for plain-http local development.
+        'secure' => env('ATLAS_BETTER_AUTH_SECURE', true),
+    ],
 ];

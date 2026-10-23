@@ -44,6 +44,8 @@ final class SessionVerifier
     /** @var callable(): int|null returns the current time in UNIX seconds */
     private $now;
 
+    private readonly ?LegacyIssuerVerifier $legacy;
+
     /**
      * @param string                       $jwksUrl            the instance's JWKS URL
      * @param string                       $issuer            expected `iss`; required — an unchecked issuer accepts any Atlas instance
@@ -55,6 +57,13 @@ final class SessionVerifier
      * @param StreamFactoryInterface|null   $streamFactory     PSR-17 stream factory; Guzzle is auto-discovered when null (online verify only)
      * @param callable():int|null           $now               clock override (UNIX seconds), for tests
      * @param int                          $leeway            clock-skew tolerance in seconds
+     * @param list<LegacyIssuer>           $legacyIssuers     cutover from another auth provider (Better Auth): ALSO accept JWTs
+     *                                                        from these issuers until each one's `until`, verified against that
+     *                                                        issuer's own key set, with `sub` mapped to the Atlas user id (the
+     *                                                        old id is the user's `external_id`). The claims then carry `sub` =
+     *                                                        the Atlas id, `external_id` = the old id and `legacy` =
+     *                                                        `{kind, issuer, sub}`. Atlas tokens are unaffected. The default
+     *                                                        subject lookup uses `$secretKey` and `$bapiBaseUrl`.
      */
     public function __construct(
         private readonly string $jwksUrl,
@@ -67,6 +76,7 @@ final class SessionVerifier
         ?StreamFactoryInterface $streamFactory = null,
         ?callable $now = null,
         private readonly int $leeway = self::CLOCK_SKEW_SECONDS,
+        array $legacyIssuers = [],
     ) {
         if ($issuer === '') {
             throw new ConfigException('SessionVerifier requires a non-empty issuer; an unchecked issuer accepts any Atlas instance.');
@@ -89,6 +99,25 @@ final class SessionVerifier
             requestFactory: $this->requestFactory,
             now: $now === null ? null : static fn (): int => (int) ($now() * 1000),
         );
+
+        $legacy = null;
+        if ($legacyIssuers !== []) {
+            foreach ($legacyIssuers as $entry) {
+                if ($entry instanceof LegacyIssuer && $entry->issuer === $issuer) {
+                    throw new ConfigException('SessionVerifier: a legacy issuer cannot be the Atlas issuer itself.');
+                }
+            }
+            $legacy = new LegacyIssuerVerifier(
+                array_values($legacyIssuers),
+                $this->client,
+                $this->requestFactory,
+                secretKey: $secretKey,
+                apiUrl: $bapiBaseUrl !== null && $bapiBaseUrl !== '' ? $bapiBaseUrl : \Atlas\Http::DEFAULT_API_URL,
+                now: $now === null ? null : static fn (): int => (int) ($now() * 1000),
+                leeway: $leeway,
+            );
+        }
+        $this->legacy = $legacy;
     }
 
     /** Exposed so a caller (or a test) can inspect the cache's last outcome. */
@@ -105,6 +134,27 @@ final class SessionVerifier
     {
         if ($token === '' || count(explode('.', $token)) !== 3) {
             return VerifyResult::fail('malformed');
+        }
+
+        // A token from a configured legacy issuer (inside its window) is verified against THAT
+        // issuer's keys only, never the Atlas keys: the `iss` routes, the signature decides.
+        if ($this->legacy !== null) {
+            $entry = $this->legacy->match(LegacyIssuerVerifier::peekIssuer($token));
+            if ($entry !== null) {
+                [$outcome, $legacyClaims] = $this->legacy->verify($token, $entry);
+                if ($outcome === 'no_keys') {
+                    return VerifyResult::fail('no_keys');
+                }
+                if ($legacyClaims === null) {
+                    return VerifyResult::fail('invalid');
+                }
+                $azp = $legacyClaims['azp'] ?? null;
+                if ($this->authorizedParties !== [] && $azp !== null && !in_array($azp, $this->authorizedParties, true)) {
+                    return VerifyResult::fail('unauthorized_party');
+                }
+
+                return VerifyResult::ok($legacyClaims);
+            }
         }
 
         $keys = $this->jwks->get(JwksCache::readKid($token));

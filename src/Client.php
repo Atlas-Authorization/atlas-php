@@ -13,6 +13,8 @@ use Atlas\Resources\ApiKeys;
 use Atlas\Resources\AppRoles;
 use Atlas\Resources\AttackProtection;
 use Atlas\Resources\AuditLogs;
+use Atlas\Resources\BetterAuthBridge;
+use Atlas\Resources\BetterAuthImports;
 use Atlas\Resources\Billing;
 use Atlas\Resources\BotSignals;
 use Atlas\Resources\Branding;
@@ -172,6 +174,10 @@ final class Client
     public readonly EntitlementOverrides $entitlementOverrides;
     public readonly Events $events;
     public readonly LegacyAuthConnection $legacyAuthConnection;
+    /** Migrate from Better Auth: sealed-bundle imports (`/v1/better_auth_imports`). */
+    public readonly BetterAuthImports $betterAuthImports;
+    /** Migrate from Better Auth: the session bridge settings and the secret-key exchange. */
+    public readonly BetterAuthBridge $betterAuthBridge;
     public readonly Machines $machines;
     public readonly Mcp $mcp;
     public readonly McpConnector $mcpConnector;
@@ -302,6 +308,8 @@ final class Client
         $this->entitlementOverrides = new EntitlementOverrides($http);
         $this->events = new Events($http);
         $this->legacyAuthConnection = new LegacyAuthConnection($http);
+        $this->betterAuthImports = new BetterAuthImports($http);
+        $this->betterAuthBridge = new BetterAuthBridge($http);
         $this->machines = new Machines($http);
         $this->mcp = new Mcp($http);
         $this->mcpConnector = new McpConnector($http);

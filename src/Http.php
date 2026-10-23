@@ -87,6 +87,8 @@ final class Http
      * @param string|null              $contentType the content type of $rawBody
      * @param bool|null                $strict  override the client-wide strict setting for this request
      *                                          (true → `Atlas-Strict: true`, false → `Atlas-Strict: false`, null → inherit)
+     * @param array<string,string>|null $headers extra request headers (e.g. the end user's forwarded IP); they can never
+     *                                          replace the Bearer secret
      *
      * @return mixed decoded JSON (associative array), raw string, or null for an empty/204 body
      *
@@ -103,6 +105,7 @@ final class Http
         ?string $rawBody = null,
         ?string $contentType = null,
         ?bool $strict = null,
+        ?array $headers = null,
     ): mixed {
         $method = strtoupper($method);
         $url = $this->baseUrl . ($path[0] === '/' ? $path : '/' . $path) . self::serializeQuery($query);
@@ -127,6 +130,13 @@ final class Http
 
         if ($idempotencyKey !== null && $idempotencyKey !== '') {
             $request = $request->withHeader('Idempotency-Key', $idempotencyKey);
+        }
+
+        foreach ($headers ?? [] as $name => $value) {
+            if (strcasecmp((string) $name, 'authorization') === 0 || $value === '') {
+                continue;
+            }
+            $request = $request->withHeader((string) $name, $value);
         }
 
         $effectiveStrict = $strict ?? $this->strict;

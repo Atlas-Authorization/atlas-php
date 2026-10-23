@@ -2,6 +2,15 @@
 
 Versions are published from git tags.
 
+## 0.15.0 — 2026-10-24
+
+### Added
+
+- **Migrate from Better Auth: sealed-bundle imports.** `$client->betterAuthImports`: `getPublicKey`, `rotatePublicKey`, `create`, `list`, `get`, `uploadPart` (a `text/plain` part), `finalize`, `dryRun`, `apply` (resumes a failed import), `delete`, `listJwks`, `deleteJwk`. Helpers: `upload($bundle, $options, $partBytes, $onPart)` creates the import, uploads the bundle in line-aligned parts of at most 8 MiB (`BetterAuthImports::splitBundleParts`, `PART_BYTES`) and finalizes it; `waitFor($id, $intervalSeconds, $timeoutSeconds, $onProgress)` polls until the import leaves `analyzing` / `queued` / `applying`.
+- **Better Auth session bridge.** `$client->betterAuthBridge`: `get` / `update` / `delete` (migration window, cookie prefix, live fallback; the old app's secret is write-only) and `exchange($token, $clientIp, $userAgent, $remember)` on the secret-key Backend API route, forwarding the end user's IP and user agent (`X-Atlas-Client-IP`, `X-Atlas-Client-User-Agent`). `Atlas\BetterAuth\BetterAuth::exchange()` classifies the outcome (`ExchangeResult`: `session`, `needs_mfa`, `refused` with the `meta.bridge_outcome`; never throws for a refusal or an outage). `Atlas\BetterAuth\SessionBridge` turns a request's cookies into a `BridgeDecision` (Atlas cookies to set, Better Auth cookies to clear only on a final refusal, `continuationUrl()` for a second factor); `BetterAuth::cookieNames()`, `readSessionCookie()`, `BridgeCookie::toHeader()`. PSR-15: `Atlas\Psr15\BetterAuthBridgeMiddleware` (GET/HEAD only; 303 to the same URL signed in, or to your sign-in page when a second factor is owed), also accepted by `AtlasAuthenticationMiddleware` as `$betterAuthBridge`. `Http::request()` takes per-call `$headers` (never the `Authorization` header).
+- **Better Auth bridge for Laravel and Symfony.** `Atlas\Laravel\BetterAuthBridge` (route alias `atlas.better_auth_bridge`, config key `atlas.better_auth_bridge`) and `Atlas\Symfony\BetterAuthBridgeSubscriber` (`kernel.request`, enabled under `atlas.better_auth_bridge`), behaving like the PSR-15 middleware through the new shared `SessionBridge::plan()` / `BridgePlan`; the client IP comes from `$request->ip()` / `getClientIp()` (trusted proxies apply).
+- **Better Auth JWTs during the cutover.** `new SessionVerifier(..., legacyIssuers: [new LegacyIssuer($issuer, $until, jwks: | jwksUrl:, audience:, algorithms:, resolveSubject:)])`: a token from that issuer, inside its window, is verified against that issuer's keys only (EdDSA/Ed25519, ES256, ES512, RS256, PS256 through ext-openssl and ext-sodium; `exp` required) and its `sub` is mapped to the Atlas user id through `external_id` (Backend API lookup with `secretKey` / `bapiBaseUrl`, cached 5 minutes per process, at most 10 000 entries; failures are not cached). The claims carry `external_id` and `legacy`.
+
 ## 0.14.0 — 2026-10-24
 
 ### Added

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Atlas\Symfony\DependencyInjection;
 
+use Atlas\Symfony\BetterAuthBridgeSubscriber;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * DI extension for {@see \Atlas\Symfony\AtlasBundle}.
@@ -43,6 +45,28 @@ final class AtlasExtension extends Extension
             self::nullableStr($merged['bapi_base_url'] ?? getenv('ATLAS_BAPI_URL') ?: 'https://api.atlasauth.net'),
         );
         $container->setParameter('atlas.authorized_parties', self::parties($merged['authorized_parties'] ?? getenv('ATLAS_AUTHORIZED_PARTIES')));
+
+        $bridge = is_array($merged['better_auth_bridge'] ?? null) ? $merged['better_auth_bridge'] : [];
+        if (($bridge['enabled'] ?? false) === true) {
+            $container->register('atlas.better_auth_client', \Atlas\Client::class)
+                ->setArguments([
+                    '$secretKey' => '%atlas.secret_key%',
+                    '$baseUrl' => '%atlas.bapi_base_url%',
+                ])->setPublic(false);
+            $container->register(\Atlas\BetterAuth\SessionBridge::class, \Atlas\BetterAuth\SessionBridge::class)
+                ->setArguments([
+                    '$client' => new Reference('atlas.better_auth_client'),
+                    '$cookiePrefix' => self::str($bridge['cookie_prefix'] ?? '') ?: \Atlas\BetterAuth\BetterAuth::COOKIE_PREFIX,
+                    '$cookieName' => self::nullableStr($bridge['cookie_name'] ?? null),
+                    '$betterAuthCookieDomain' => self::nullableStr($bridge['cookie_domain'] ?? null),
+                    '$secure' => ($bridge['secure'] ?? true) !== false,
+                ])->setPublic(false);
+            $container->register(BetterAuthBridgeSubscriber::class, BetterAuthBridgeSubscriber::class)
+                ->setArguments([
+                    '$bridge' => new Reference(\Atlas\BetterAuth\SessionBridge::class),
+                    '$signInUrl' => self::nullableStr($bridge['sign_in_url'] ?? null),
+                ])->addTag('kernel.event_subscriber')->setPublic(false);
+        }
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Atlas\Laravel;
 
+use Atlas\BetterAuth\BetterAuth;
+use Atlas\BetterAuth\SessionBridge;
+use Atlas\Client;
+use Atlas\Http;
 use Atlas\Verify\SessionVerifier;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
@@ -40,6 +44,29 @@ final class AtlasServiceProvider extends ServiceProvider
                 bapiBaseUrl: $config['bapi_base_url'] ?? null,
             );
         });
+
+        $this->app->singleton(SessionBridge::class, static function (Application $app): SessionBridge {
+            /** @var array<string,mixed> $config */
+            $config = $app['config']->get('atlas', []);
+            /** @var array<string,mixed> $bridge */
+            $bridge = (array) ($config['better_auth_bridge'] ?? []);
+            $name = $bridge['cookie_name'] ?? null;
+            $domain = $bridge['cookie_domain'] ?? null;
+
+            return new SessionBridge(
+                new Client((string) ($config['secret_key'] ?? ''), (string) ($config['bapi_base_url'] ?: Http::DEFAULT_API_URL)),
+                cookiePrefix: (string) ($bridge['cookie_prefix'] ?? '') !== '' ? (string) $bridge['cookie_prefix'] : BetterAuth::COOKIE_PREFIX,
+                cookieName: is_string($name) && $name !== '' ? $name : null,
+                betterAuthCookieDomain: is_string($domain) && $domain !== '' ? $domain : null,
+                secure: filter_var($bridge['secure'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            );
+        });
+
+        $this->app->singleton(BetterAuthBridge::class, static function (Application $app): BetterAuthBridge {
+            $url = $app['config']->get('atlas.better_auth_bridge.sign_in_url');
+
+            return new BetterAuthBridge($app->make(SessionBridge::class), is_string($url) && $url !== '' ? $url : null);
+        });
     }
 
     public function boot(Router $router): void
@@ -50,5 +77,6 @@ final class AtlasServiceProvider extends ServiceProvider
 
         $router->aliasMiddleware('atlas.auth', AtlasAuthenticate::class);
         $router->aliasMiddleware('atlas.permission', RequirePermission::class);
+        $router->aliasMiddleware('atlas.better_auth_bridge', BetterAuthBridge::class);
     }
 }

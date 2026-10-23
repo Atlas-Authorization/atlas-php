@@ -34,6 +34,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  * `$request->getAttribute('atlas')`, which carries `->claims` and the
  * `has()` / `protect()` authorization helpers. On a missing or invalid token the
  * handler never runs — the middleware short-circuits with a `401` JSON response.
+ *
+ * Moving from Better Auth: pass a {@see BetterAuthBridgeMiddleware} as `$betterAuthBridge` and a GET
+ * or HEAD carrying a Better Auth session cookie is exchanged for an Atlas session first (redirecting
+ * to the same URL signed in) so nobody is signed out by the switch.
  */
 final class AtlasAuthenticationMiddleware implements MiddlewareInterface
 {
@@ -45,12 +49,14 @@ final class AtlasAuthenticationMiddleware implements MiddlewareInterface
      * @param ResponseFactoryInterface|null $responseFactory PSR-17 factory for the 401 response; Guzzle is auto-discovered when null
      * @param StreamFactoryInterface|null   $streamFactory   PSR-17 factory for the 401 body; Guzzle is auto-discovered when null
      * @param string                        $attribute       the request attribute the verified result is stored under
+     * @param BetterAuthBridgeMiddleware|null $betterAuthBridge exchange Better Auth sessions during a migration window
      */
     public function __construct(
         private readonly SessionVerifier $verifier,
         ?ResponseFactoryInterface $responseFactory = null,
         ?StreamFactoryInterface $streamFactory = null,
         private readonly string $attribute = 'atlas',
+        private readonly ?BetterAuthBridgeMiddleware $betterAuthBridge = null,
     ) {
         if ($responseFactory === null || $streamFactory === null) {
             $factory = self::guzzleFactory();
@@ -63,16 +69,23 @@ final class AtlasAuthenticationMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        if ($this->betterAuthBridge !== null) {
+            $redirect = $this->betterAuthBridge->bridge($request);
+            if ($redirect !== null) {
+                return $redirect;
+            }
+        }
+
         // The verifier reads an `Authorization: Bearer <jwt>` header or, failing
         // that, the `__session` cookie off the PSR-7 message itself (header
         // first) — the same two carriers every other Atlas integration honours.
         $result = $this->verifier->authenticateRequest($request);
         if (!$result->ok) {
-            return $this->unauthorized($result);
+            return BetterAuthBridgeMiddleware::finish($request, $this->unauthorized($result));
         }
 
         // Attach the verified result and let the rest of the pipeline run.
-        return $handler->handle($request->withAttribute($this->attribute, $result));
+        return BetterAuthBridgeMiddleware::finish($request, $handler->handle($request->withAttribute($this->attribute, $result)));
     }
 
     private function unauthorized(VerifyResult $result): ResponseInterface
