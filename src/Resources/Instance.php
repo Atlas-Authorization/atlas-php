@@ -227,4 +227,33 @@ final class Instance extends Resource
     {
         return $this->http->request('DELETE', '/v1/instance/cookie_consent');
     }
+
+    /**
+     * Write `auth_config.accountLinkingTrust`: keys are an exact provider key, a `prefix*`
+     * or `*`; values `always` (vouch for the provider's email, for linking only),
+     * `verified` or `never` (refused with 409 `IDENTITY_ALREADY_LINKED`). An account that
+     * never proved its email is never linked. See {@see \Atlas\Constants::LINKING_TRUST_LEVELS}.
+     *
+     * @param array<string,'always'|'verified'|'never'> $trust
+     *
+     * @return array<string,mixed>
+     */
+    public function setAccountLinkingTrust(array $trust): array
+    {
+        return $this->update(['auth_config' => ['accountLinkingTrust' => $trust === [] ? new \stdClass() : $trust]]);
+    }
+
+    /**
+     * Merge `auth_config.captcha`: `provider` (see {@see \Atlas\Constants::CAPTCHA_PROVIDERS}),
+     * `siteKey`, `widget`, `minScore`, per-flow / per-action overrides and, for Vercel
+     * BotID, `attestationUrl` (https or a root-relative path).
+     *
+     * @param array<string,mixed> $captcha
+     *
+     * @return array<string,mixed>
+     */
+    public function setCaptchaConfig(array $captcha): array
+    {
+        return $this->update(['auth_config' => ['captcha' => $captcha]]);
+    }
 }

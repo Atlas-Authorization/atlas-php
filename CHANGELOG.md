@@ -2,6 +2,26 @@
 
 Versions are published from git tags.
 
+## 0.14.0 — 2026-10-24
+
+### Added
+
+- **DPoP (RFC 9449) on the access-token verifier.** A DPoP-bound token (`cnf.jkt`) is accepted only with the DPoP scheme and a valid proof (never as Bearer): `typ` `dpop+jwt`, `Dpop::ALGS` (ES256/384/512, RS256/384/512, PS256/384/512, EdDSA via ext-sodium), public embedded JWK, signature, `htm`, normalised `htu` (`Dpop::normalizeHtu()`; `publicOrigin` for path-only URLs), `iat` window, `ath`, `jti` replay via a `JtiStore` (`InMemoryJtiStore` by default; pass a shared one under PHP-FPM), RFC 7638 `Dpop::jwkThumbprint()` match. `requireDpop` refuses unbound tokens; `dpopNonces` (`HmacDpopNonceSource`, stateless across processes) demands a server nonce (`use_dpop_nonce`, `AccessTokenResult::$dpopNonce` for the `DPoP-Nonce` header). `verify($authorization, $scopes, $method, $url, $dpop)` and `verifyRequest(RequestInterface)`; challenges use the `DPoP` scheme with `algs`. `AtlasAccessTokenMiddleware` checks the proof against the PSR-7 request and sets `DPoP-Nonce`. Metadata advertises `dpop_signing_alg_values_supported` and takes `dpopBoundAccessTokensRequired`.
+- **Billing: several subscriptions per subject, add-ons, Chargebee / Autumn / Commet.** `billing->getSubscription`, `syncPlanEntitlements`, `getSettings` / `updateSettings` (limit merge `max` / `sum`), `checkFeature`; plans take `kind` (`base` / `addon`), `limits`, `seat_feature_id`; usage takes `feature` and `subscription_id`; provider config keys for `chargebee`, `autumn`, `commet` documented on `setProvider`. `Constants::BILLING_PROVIDERS`.
+- **Custom OAuth / OIDC providers.** `customOAuthProviders`: `list`, `get`, `create`, `update`, `delete`, `discover`, `previewProfileMapping` (ad hoc or by id), `listSigningKeys` / `rotateSigningKey` / `retireSigningKey`. OIDC SSO connections gain `previewProfileMapping` and the same signing-key methods.
+- **Actions gallery.** `actionGallery` (`list`, `get`, `install`, `installs`, `update`) and `actionTemplates` (`list`, `create`, `get`, `update`, `delete`, `addVersion`, `submitVersion`, `deleteVersion`, `publish`, `unlist`).
+- **Session custom data.** `sessions->setCustomData` (replace; null clears) and `updateCustomData` (merge; null removes a key). `Constants::WEBHOOK_EVENT_SESSION_UPDATED`.
+- **Sign-in settings.** `instanceSecurity->setWalletRpcSecret($chainId, $url)`; rate-limit `rules` pass through `rateLimitPolicy->update`; `instance->setAccountLinkingTrust`, `instance->setCaptchaConfig`; `Constants::CAPTCHA_PROVIDERS` (incl. `captchafox`, `vercel_botid`), `Constants::LINKING_TRUST_LEVELS`.
+- **Vercel BotID attestations.** `BotId::createAttestation($secret, $isBot, ...)` signs a verdict in Atlas's `atlas_botid.v1` format.
+- **Enterprise SSO.** `ssoConnections->getSamlEncryptionKey`, `createSamlEncryptionKey` (create or rotate), `retirePreviousSamlEncryptionKey`, `deleteSamlEncryptionKey`; the SAML Single Logout and encrypted-assertion fields pass through create/update. Attack protection `dormant_accounts`; `Constants::WEBHOOK_EVENT_USER_REACTIVATED`, `Constants::EMAIL_TEMPLATE_ACCOUNT_REACTIVATED`.
+- **Atlas as OAuth provider.** `instanceSecurity->getSigningKeyProvider` / `setSigningKeyProvider` / `removeSigningKeyProvider` (AWS KMS, Google Cloud KMS, Azure Key Vault); OAuth client `access_token_format` / `token_lifetimes` and resource-server `access_token_format`, refresh lifetimes and `introspection_client_ids` pass through.
+- **Opaque access tokens.** `new AccessTokenVerifier(..., introspection: ['clientId' => …, 'clientSecret' => …])` (or an `Introspector`) validates non-JWT access tokens at Atlas's RFC 7662 endpoint, cached by token hash (TTL, negative TTL, never past `exp`, bounded; per process); `introspectJwts` checks JWTs live too.
+- **Device sign-in approval.** `new DeviceAuthorizations($frontendApi, $sessionToken)`: `lookup`, `approve`, `deny` with the user's session token; `DeviceAuthorizationException` (`needsReverification()`, `isInvalidCode()`); `formatUserCode`, `userCodeFromUrl`.
+
+### Changed
+
+- Without `introspection`, a token that is not a JWT is refused with "configure `introspection` to accept opaque tokens" instead of "malformed".
+
 ## 0.13.0 — 2026-10-23
 
 ### Added

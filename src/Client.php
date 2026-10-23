@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Atlas;
 
 use Atlas\Exception\ConfigException;
+use Atlas\Resources\ActionGallery;
 use Atlas\Resources\Actions;
+use Atlas\Resources\ActionTemplates;
 use Atlas\Resources\ActorTokens;
 use Atlas\Resources\ApiKeys;
 use Atlas\Resources\AppRoles;
@@ -19,6 +21,7 @@ use Atlas\Resources\Domains;
 use Atlas\Resources\EmailTemplates;
 use Atlas\Resources\Fga;
 use Atlas\Resources\ImportExport;
+use Atlas\Resources\CustomOAuthProviders;
 use Atlas\Resources\Instance;
 use Atlas\Resources\InstanceSecurity;
 use Atlas\Resources\Invitations;
@@ -128,6 +131,7 @@ final class Client
     public readonly JwtTemplates $jwtTemplates;
     public readonly ApiKeys $apiKeys;
     public readonly OAuthProviders $oauthProviders;
+    public readonly CustomOAuthProviders $customOAuthProviders;
     public readonly SsoOnboarding $ssoOnboarding;
     public readonly ScimProvisioning $scimProvisioning;
     public readonly Fga $fga;
@@ -143,6 +147,8 @@ final class Client
     public readonly SmsTemplates $smsTemplates;
     public readonly Localizations $localizations;
     public readonly Actions $actions;
+    public readonly ActionGallery $actionGallery;
+    public readonly ActionTemplates $actionTemplates;
     public readonly Billing $billing;
     public readonly Messaging $messaging;
     public readonly ImportExport $importExport;
@@ -255,6 +261,7 @@ final class Client
         $this->jwtTemplates = new JwtTemplates($http);
         $this->apiKeys = new ApiKeys($http);
         $this->oauthProviders = new OAuthProviders($http);
+        $this->customOAuthProviders = new CustomOAuthProviders($http);
         $this->ssoOnboarding = new SsoOnboarding($http);
         $this->scimProvisioning = new ScimProvisioning($http);
         $this->fga = new Fga($http);
@@ -270,6 +277,8 @@ final class Client
         $this->smsTemplates = new SmsTemplates($http);
         $this->localizations = new Localizations($http);
         $this->actions = new Actions($http);
+        $this->actionGallery = new ActionGallery($http);
+        $this->actionTemplates = new ActionTemplates($http);
         $this->billing = new Billing($http);
         $this->messaging = new Messaging($http);
         $this->importExport = new ImportExport($http);

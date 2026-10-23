@@ -157,7 +157,9 @@ final class Billing extends Resource
      * Store the instance's credentials for a provider (merged onto what is
      * stored). `config` keys: Stripe `secret_key`, `webhook_secret`,
      * `publishable_key`; Polar `access_token`, `webhook_secret`; Dodo and Creem
-     * `api_key`, `webhook_secret`.
+     * `api_key`, `webhook_secret`; Chargebee `api_key`, `site`, `webhook_username` +
+     * `webhook_password`; Autumn `secret_key`, `webhook_secret`; Commet `api_key`,
+     * `webhook_secret`, optional `seat_feature_code`.
      *
      * @param array{environment?:'live'|'test',config?:array<string,string>} $body
      *
@@ -191,5 +193,65 @@ final class Billing extends Resource
             '/v1/billing/providers/' . rawurlencode($provider),
             query: $force ? ['force' => 'true'] : null,
         );
+    }
+
+    /**
+     * `GET /v1/billing/subscriptions/:id` — one subscription (a subject may hold several:
+     * a base plan plus add-ons). Entitlement providers (Autumn, Commet) report what it
+     * grants in `entitlements`.
+     *
+     * @return array<string,mixed>
+     */
+    public function getSubscription(string $id): array
+    {
+        return $this->http->request('GET', '/v1/billing/subscriptions/' . rawurlencode($id));
+    }
+
+    /**
+     * `POST /v1/billing/plans/:id/sync_entitlements` — mirror a plan's features and limits
+     * from its provider (Autumn, Commet).
+     *
+     * @return array<string,mixed>
+     */
+    public function syncPlanEntitlements(string $id): array
+    {
+        return $this->http->request('POST', '/v1/billing/plans/' . rawurlencode($id) . '/sync_entitlements');
+    }
+
+    /**
+     * `GET /v1/billing/settings` — how numeric limits merge when a subject holds several
+     * entitling subscriptions: `default_limit_merge` and `limit_merge` (`max` | `sum`).
+     *
+     * @return array<string,mixed>
+     */
+    public function getSettings(): array
+    {
+        return $this->http->request('GET', '/v1/billing/settings');
+    }
+
+    /**
+     * `PUT /v1/billing/settings` — `limit_merge` replaces the stored map.
+     *
+     * @param array{default_limit_merge?:'max'|'sum',limit_merge?:array<string,'max'|'sum'>} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function updateSettings(array $body): array
+    {
+        return $this->http->request('PUT', '/v1/billing/settings', body: $body);
+    }
+
+    /**
+     * `POST /v1/billing/check` — may a subject use a feature? Asked live of Autumn/Commet
+     * when the subject is on one (`source: provider`), otherwise from the resolved
+     * entitlement and this period's usage.
+     *
+     * @param array{subject_type:'user'|'org',subject_id:string,feature:string,required?:int|float} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function checkFeature(array $body): array
+    {
+        return $this->http->request('POST', '/v1/billing/check', body: $body);
     }
 }

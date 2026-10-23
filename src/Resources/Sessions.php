@@ -72,4 +72,35 @@ final class Sessions extends Resource
     {
         return $this->http->request('POST', '/v1/sessions/' . rawurlencode($id) . '/tokens/' . rawurlencode($template));
     }
+
+    /**
+     * `PUT /v1/sessions/:id/custom_data` — replace the session's custom data (null clears
+     * it). At most 2 KB; only an active session can be changed. Not for secrets: the
+     * signed-in user can read it. Sends the `session.updated` webhook.
+     *
+     * @param array<string,mixed>|null $customData
+     *
+     * @return array<string,mixed> the session, with `custom_data`
+     */
+    public function setCustomData(string $id, ?array $customData): array
+    {
+        return $this->http->request('PUT', '/v1/sessions/' . rawurlencode($id) . '/custom_data', body: [
+            'custom_data' => $customData === [] ? new \stdClass() : $customData,
+        ]);
+    }
+
+    /**
+     * `PATCH /v1/sessions/:id/custom_data` — merge keys into the session's custom data; a
+     * key set to null is removed.
+     *
+     * @param array<string,mixed> $patch
+     *
+     * @return array<string,mixed>
+     */
+    public function updateCustomData(string $id, array $patch): array
+    {
+        return $this->http->request('PATCH', '/v1/sessions/' . rawurlencode($id) . '/custom_data', body: [
+            'custom_data' => $patch === [] ? new \stdClass() : $patch,
+        ]);
+    }
 }

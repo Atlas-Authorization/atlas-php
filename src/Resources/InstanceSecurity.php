@@ -164,4 +164,55 @@ final class InstanceSecurity extends Resource
             '/v1/instance/ldap_connections/' . rawurlencode($connectionId) . '/bind_password',
         );
     }
+
+    /**
+     * `GET /v1/instance/signing_key_provider` — the key management service the signing key
+     * lives in (`local` when none). Never carries credentials.
+     *
+     * @return array<string,mixed>
+     */
+    public function getSigningKeyProvider(): array
+    {
+        return $this->http->request('GET', '/v1/instance/signing_key_provider');
+    }
+
+    /**
+     * `PUT /v1/instance/signing_key_provider` — sign every token with a key in your own KMS.
+     *  - `aws_kms`: config `{region, key_id?, alg?}`, credentials `{access_key_id, secret_access_key, session_token?}`
+     *  - `gcp_kms`: config `{crypto_key, key_version?}`, credentials `{service_account_json}`
+     *  - `azure_key_vault`: config `{vault_url, key_name, key_version?, alg?}`, credentials `{tenant_id, client_id, client_secret}`
+     *
+     * @param array{provider:'aws_kms'|'gcp_kms'|'azure_key_vault',config:array<string,mixed>,credentials:array<string,mixed>,grace_period_seconds?:int,emergency?:bool} $body
+     *
+     * @return array<string,mixed> the settings plus `rotation`
+     */
+    public function setSigningKeyProvider(array $body): array
+    {
+        return $this->http->request('PUT', '/v1/instance/signing_key_provider', body: $body);
+    }
+
+    /**
+     * `DELETE /v1/instance/signing_key_provider` — rotate back to a key Atlas holds and
+     * forget the KMS credentials.
+     *
+     * @param array{grace_period_seconds?:int,emergency?:bool} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function removeSigningKeyProvider(array $body = []): array
+    {
+        return $this->http->request('DELETE', '/v1/instance/signing_key_provider', body: $body);
+    }
+
+    /**
+     * `PUT /v1/instance/wallet_rpc_secret` — store (write-only, encrypted) the wallet RPC
+     * endpoint for an EIP-155 chain, used by wallet token gating and the Sign in with
+     * Ethereum ENS lookup. An empty url removes it.
+     *
+     * @return array<string,mixed>
+     */
+    public function setWalletRpcSecret(int $chainId, string $url): array
+    {
+        return $this->http->request('PUT', '/v1/instance/wallet_rpc_secret', body: ['chain_id' => $chainId, 'url' => $url]);
+    }
 }

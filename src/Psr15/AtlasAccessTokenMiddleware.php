@@ -14,10 +14,13 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * PSR-15 middleware that protects an API with an Atlas-issued OAuth access token
- * (an `Authorization: Bearer` header, never a cookie). A refusal short-circuits
- * with the verifier's status and RFC 6750 / RFC 9728 `WWW-Authenticate`
- * challenge; on success the {@see \Atlas\Verify\AccessTokenResult} is attached as
- * the `atlas_access_token` attribute (configurable).
+ * (an `Authorization: Bearer` or `DPoP` header, never a cookie). A DPoP-bound
+ * token must come with a valid `DPoP` proof for this request (RFC 9449). A
+ * refusal short-circuits with the verifier's status and RFC 6750 / RFC 9449 /
+ * RFC 9728 `WWW-Authenticate` challenge; on success the
+ * {@see \Atlas\Verify\AccessTokenResult} is attached as the `atlas_access_token`
+ * attribute (configurable). The verifier's `DPoP-Nonce`, when it issues nonces,
+ * is set on every response.
  */
 final class AtlasAccessTokenMiddleware implements MiddlewareInterface
 {
@@ -39,16 +42,18 @@ final class AtlasAccessTokenMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $result = $this->verifier->verify($request->getHeaderLine('Authorization'), $this->requiredScopes);
+        $result = $this->verifier->verifyRequest($request, $this->requiredScopes);
         if (!$result->ok) {
             $body = json_encode(['error' => $result->error ?? 'unauthorized'], JSON_THROW_ON_ERROR);
-
-            return $this->responseFactory->createResponse($result->status)
+            $response = $this->responseFactory->createResponse($result->status)
                 ->withHeader('Content-Type', 'application/json')
                 ->withHeader('WWW-Authenticate', $result->wwwAuthenticate)
                 ->withBody($this->streamFactory->createStream($body));
-        }
 
-        return $handler->handle($request->withAttribute($this->attribute, $result));
+            return $result->dpopNonce !== null ? $response->withHeader('DPoP-Nonce', $result->dpopNonce) : $response;
+        }
+        $response = $handler->handle($request->withAttribute($this->attribute, $result));
+
+        return $result->dpopNonce !== null ? $response->withHeader('DPoP-Nonce', $result->dpopNonce) : $response;
     }
 }
