@@ -73,6 +73,40 @@ final class VerifyResult
     }
 
     /**
+     * The `pol` claim: the accepted version of each required policy, by policy key (empty unless
+     * the instance turned the session claim on).
+     *
+     * @return array<string,string>
+     */
+    public function policies(): array
+    {
+        if (!$this->ok || $this->claims === null) {
+            return [];
+        }
+        $pol = $this->claims['pol'] ?? null;
+        if (is_object($pol)) {
+            $pol = get_object_vars($pol);
+        }
+        if (!is_array($pol)) {
+            return [];
+        }
+        $out = [];
+        foreach ($pol as $key => $version) {
+            if (is_string($version) || is_int($version) || is_float($version)) {
+                $out[(string) $key] = (string) $version;
+            }
+        }
+
+        return $out;
+    }
+
+    /** The version of policy `$key` the user accepted, from the `pol` claim. */
+    public function acceptedPolicyVersion(string $key): ?string
+    {
+        return $this->policies()[$key] ?? null;
+    }
+
+    /**
      * Assert the condition; returns the claims on success, throws
      * {@see ForbiddenException} otherwise. The server-side gate for a route.
      *

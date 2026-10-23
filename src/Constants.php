@@ -33,6 +33,12 @@ final class Constants
     /** A dormant account signed in again. */
     public const WEBHOOK_EVENT_USER_REACTIVATED = 'user.reactivated';
 
+    /** A user accepted a policy version (payload: `policy_acceptance` with its evidence). */
+    public const WEBHOOK_EVENT_USER_POLICY_ACCEPTED = 'user.policy_accepted';
+
+    /** A policy version was published. */
+    public const WEBHOOK_EVENT_POLICY_VERSION_PUBLISHED = 'policy.version_published';
+
     /** The security notice sent when a dormant account signs in again. */
     public const EMAIL_TEMPLATE_ACCOUNT_REACTIVATED = 'account_reactivated';
 }

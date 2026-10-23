@@ -398,6 +398,49 @@ settings, design and branding), `roles`, `permissions`, `oauthClients`,
 
 Anything not wrapped can be called directly with `$atlas->http->request('GET', '/v1/…')`.
 
+## Policy acceptance
+
+Terms of Service, privacy policies and any other policy your users accept at sign-up (and again
+at sign-in when a new version takes effect). A version goes draft, published (with an
+`effective_at`), retired; each acceptance is kept as evidence.
+
+```php
+$atlas->policies->create(['key' => 'tos', 'title' => 'Terms of Service', 'applies_to' => 'sign_in_and_sign_up']);
+$atlas->policies->versions->create('tos', ['version' => '2026-10-24', 'content_markdown' => "# Terms\n..."]);
+$atlas->policies->versions->publish('tos', '2026-10-24', ['effective_at' => '2026-11-01T00:00:00Z']);
+$atlas->policies->listAcceptances('tos', ['version' => '2026-10-24', 'limit' => 50]);
+$csv = $atlas->policies->exportAcceptancesCsv('tos');
+$atlas->policies->forUser('user_123');                          // standing on every policy, incl. needs_acceptance
+$atlas->policies->settings->update(['session_claim' => true]);  // put `pol` on session tokens
+```
+
+With the session claim on, `$result->policies()` / `$result->acceptedPolicyVersion('tos')` on a
+`VerifyResult` read the `pol` claim. The `user.policy_accepted` and `policy.version_published`
+webhook events have the constants `Constants::WEBHOOK_EVENT_USER_POLICY_ACCEPTED` and
+`Constants::WEBHOOK_EVENT_POLICY_VERSION_PUBLISHED`. `users->recordConsent()` takes the
+acceptance evidence (`policy_version_id`, `content_sha256`, `display`, `scrolled_to_end`,
+`view_ms`, `locale`).
+
+### Serving policies from your own system (policy source)
+
+Point Atlas at a CMS or service with `$atlas->policySource->update(['enabled' => true,
+'endpoint_url' => ..., 'signing_secret' => ...])` (the secret is write-only), then `test()` /
+`sync()`. In your service, verify Atlas's signed `GET {endpoint}/policies[?key=...]` and answer a
+feed:
+
+```php
+use Atlas\PolicySource\PolicySourceProtocol;
+
+$v = PolicySourceProtocol::verifyFeedRequest($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'], getallheaders(), $secret);
+if (!$v->verified) { http_response_code(401); return; }
+header('Content-Type: application/json');
+echo json_encode(['object' => 'policy_list', 'policies' => buildPolicies($v->key)]); // one policy when $v->key is set
+
+// When a policy changes, tell Atlas (it re-fetches; nothing in the event is trusted as content):
+$signed = PolicySourceProtocol::signEvent(['type' => 'policy.published', 'key' => 'tos', 'version' => '2026-10-24'], $secret);
+// POST $signed->body to the webhook_url with Content-Type: application/json and the $signed->headers
+```
+
 ## Verifying session tokens
 
 `Atlas\Verify\SessionVerifier` verifies a session JWT locally: RS256 against

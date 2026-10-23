@@ -2,6 +2,14 @@
 
 Versions are published from git tags.
 
+## 0.16.0 — 2026-10-24
+
+### Added
+
+- **Policy acceptance.** `$client->policies` (`list`, `create`, `get`, `update`, `delete`, `listAcceptances`, `exportAcceptancesCsv`, `forUser`) with `->versions` (`list`, `create`, `get`, `update`, `delete`, `publish`, `retire`) and `->settings` (`get`, `update`: the `pol` session claim), and `$client->policySource` (`get`, `update`, `delete`, `test`, `sync`, `listDeliveries`; the signing secret is write-only). `users->recordConsent()` and consent records carry the acceptance evidence (`policy_version_id`, `content_sha256`, `display`, `scrolled_to_end`, `view_ms`, `locale`).
+- **Policy source helpers** for a CMS written in PHP: `PolicySourceProtocol::verifyFeedRequest($method, $pathAndQuery, $headers, $secret)` checks Atlas's signed feed request (`atlas-id`, `atlas-timestamp` in ms, `atlas-signature` with one or more `v1,<base64 HMAC-SHA256>` values over `{id}.{ts}.GET\n{path+query}`, five-minute window) and returns the `key` Atlas asked for; `PolicySourceProtocol::signEvent($event, $secret)` signs a `policy.published` / `policy.retired` event for Atlas.
+- `VerifyResult::policies()` and `acceptedPolicyVersion($key)` read the `pol` session claim. `Constants::WEBHOOK_EVENT_USER_POLICY_ACCEPTED`, `Constants::WEBHOOK_EVENT_POLICY_VERSION_PUBLISHED`.
+
 ## 0.15.0 — 2026-10-24
 
 ### Added

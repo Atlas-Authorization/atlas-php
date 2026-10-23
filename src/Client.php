@@ -16,6 +16,8 @@ use Atlas\Resources\AuditLogs;
 use Atlas\Resources\BetterAuthBridge;
 use Atlas\Resources\BetterAuthImports;
 use Atlas\Resources\Billing;
+use Atlas\Resources\Policies;
+use Atlas\Resources\PolicySource;
 use Atlas\Resources\BotSignals;
 use Atlas\Resources\Branding;
 use Atlas\Resources\DataSubjectRequests;
@@ -152,6 +154,8 @@ final class Client
     public readonly ActionGallery $actionGallery;
     public readonly ActionTemplates $actionTemplates;
     public readonly Billing $billing;
+    public readonly Policies $policies;
+    public readonly PolicySource $policySource;
     public readonly Messaging $messaging;
     public readonly ImportExport $importExport;
     public readonly DataSubjectRequests $dataSubjectRequests;
@@ -286,6 +290,8 @@ final class Client
         $this->actionGallery = new ActionGallery($http);
         $this->actionTemplates = new ActionTemplates($http);
         $this->billing = new Billing($http);
+        $this->policies = new Policies($http);
+        $this->policySource = new PolicySource($http);
         $this->messaging = new Messaging($http);
         $this->importExport = new ImportExport($http);
         $this->dataSubjectRequests = new DataSubjectRequests($http);
