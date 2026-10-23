@@ -39,9 +39,14 @@ final class ApiKeys extends Resource
      * @return array<string,mixed> `{ valid: false }` or `{ valid: true, ... }` — a valid result carries the
      *                             subject, `name`, `claims`, `scopes`, `constraints`, `limits` and `usage`
      */
-    public function verify(string $secret): array
+    public function verify(string $secret, ?array $requiredScopes = null): array
     {
-        return $this->http->request('POST', '/v1/api_keys/verify', body: ['secret' => $secret]);
+        $body = ['secret' => $secret];
+        if ($requiredScopes !== null) {
+            $body['required_scopes'] = $requiredScopes;
+        }
+
+        return $this->http->request('POST', '/v1/api_keys/verify', body: $body);
     }
 
     /** @return array<string,mixed> */

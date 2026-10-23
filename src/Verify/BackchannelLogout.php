@@ -7,7 +7,6 @@ namespace Atlas\Verify;
 use Atlas\Exception\ConfigException;
 use Firebase\JWT\BeforeValidException;
 use Firebase\JWT\ExpiredException;
-use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -112,7 +111,7 @@ final class BackchannelLogout
         }
 
         try {
-            $keySet = JWK::parseKeySet($keys, 'RS256');
+            $keySet = SigningKeys::parse($keys);
         } catch (\Throwable) {
             throw new InvalidLogoutTokenException('no_keys');
         }
@@ -124,7 +123,7 @@ final class BackchannelLogout
         JWT::$timestamp = $now;
         $header = new \stdClass();
         try {
-            // parseKeySet pins every key to RS256, so any other `alg` fails here.
+            // SigningKeys pins every key to RS256 or ES256, so any other `alg` fails here.
             $payload = JWT::decode($logoutToken, $keySet, $header);
         } catch (ExpiredException) {
             throw new InvalidLogoutTokenException('expired');

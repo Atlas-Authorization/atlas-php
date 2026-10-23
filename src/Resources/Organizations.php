@@ -32,6 +32,8 @@ final class Organizations extends Resource
     public readonly OrganizationReaderDomain $readerDomain;
     public readonly OrganizationEndUsers $endUsers;
     public readonly OrganizationAuditStreams $auditStreams;
+    public readonly OrganizationTeams $teams;
+    public readonly OrganizationRoles $roles;
 
     public function __construct(Http $http)
     {
@@ -43,6 +45,28 @@ final class Organizations extends Resource
         $this->auditStreams = new OrganizationAuditStreams($http);
         $this->endUsers = new OrganizationEndUsers($http);
         $this->readerDomain = new OrganizationReaderDomain($http);
+        $this->teams = new OrganizationTeams($http);
+        $this->roles = new OrganizationRoles($http);
+    }
+
+    /**
+     * Fetch an organization by slug (case-insensitive).
+     *
+     * @return array<string,mixed>
+     */
+    public function getBySlug(string $slug): array
+    {
+        return $this->http->request('GET', '/v1/organizations/by_slug/' . rawurlencode($slug));
+    }
+
+    /**
+     * Whether a slug is valid and free: `{ slug, valid, available }`.
+     *
+     * @return array<string,mixed>
+     */
+    public function checkSlug(string $slug): array
+    {
+        return $this->http->request('GET', '/v1/organizations/check_slug', query: ['slug' => $slug]);
     }
 
     /**

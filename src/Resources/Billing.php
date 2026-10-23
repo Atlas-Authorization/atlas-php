@@ -99,4 +99,97 @@ final class Billing extends Resource
     {
         return $this->http->request('POST', '/v1/billing/usage', body: $body);
     }
+
+    /**
+     * Switch a subscription to another plan or interval on the billing
+     * provider, now (prorated) or with `schedule_at_period_end`.
+     *
+     * @param array{plan_id:string,interval?:'month'|'year',schedule_at_period_end?:bool} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function changeSubscription(string $id, array $body): array
+    {
+        return $this->http->request('POST', '/v1/billing/subscriptions/' . rawurlencode($id) . '/change', body: $body);
+    }
+
+    /**
+     * Cancel at the end of the current period, or now with `$immediately`.
+     *
+     * @return array<string,mixed>
+     */
+    public function cancelSubscription(string $id, bool $immediately = false): array
+    {
+        $body = $immediately ? ['immediately' => true] : (object) [];
+
+        return $this->http->request('POST', '/v1/billing/subscriptions/' . rawurlencode($id) . '/cancel', body: $body);
+    }
+
+    /**
+     * Undo a cancellation scheduled for the period end.
+     *
+     * @return array<string,mixed>
+     */
+    public function restoreSubscription(string $id): array
+    {
+        return $this->http->request('POST', '/v1/billing/subscriptions/' . rawurlencode($id) . '/restore');
+    }
+
+    /**
+     * The billing providers (stripe, polar, dodo, creem) this instance has its
+     * OWN credentials for. Secrets are never returned (`secrets_set` only);
+     * each carries the `webhook_url` to register with the provider.
+     *
+     * @return array<string,mixed>
+     */
+    public function listProviders(): array
+    {
+        return $this->http->request('GET', '/v1/billing/providers');
+    }
+
+    /** @return array<string,mixed> */
+    public function getProvider(string $provider): array
+    {
+        return $this->http->request('GET', '/v1/billing/providers/' . rawurlencode($provider));
+    }
+
+    /**
+     * Store the instance's credentials for a provider (merged onto what is
+     * stored). `config` keys: Stripe `secret_key`, `webhook_secret`,
+     * `publishable_key`; Polar `access_token`, `webhook_secret`; Dodo and Creem
+     * `api_key`, `webhook_secret`.
+     *
+     * @param array{environment?:'live'|'test',config?:array<string,string>} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function setProvider(string $provider, array $body): array
+    {
+        return $this->http->request('PUT', '/v1/billing/providers/' . rawurlencode($provider), body: $body);
+    }
+
+    /**
+     * One read-only call with the stored credentials: `{ ok, error, account }`.
+     *
+     * @return array<string,mixed>
+     */
+    public function testProvider(string $provider): array
+    {
+        return $this->http->request('POST', '/v1/billing/providers/' . rawurlencode($provider) . '/test');
+    }
+
+    /**
+     * Remove a provider's credentials; refused while subscriptions or plans
+     * depend on it unless `$force`.
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteProvider(string $provider, bool $force = false): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/billing/providers/' . rawurlencode($provider),
+            query: $force ? ['force' => 'true'] : null,
+        );
+    }
 }

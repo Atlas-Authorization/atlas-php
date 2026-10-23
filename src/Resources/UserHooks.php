@@ -41,4 +41,16 @@ final class UserHooks extends Resource
     {
         return $this->http->request('POST', '/v1/instance/hooks/before_user_create/test');
     }
+
+    /**
+     * The hook's delivery log, newest first (kept 30 days).
+     *
+     * @param array{limit?:int,status?:string,test?:bool,starting_after?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function listBeforeUserCreateCalls(array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/instance/hooks/before_user_create/calls', query: $params === [] ? null : $params);
+    }
 }

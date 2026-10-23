@@ -13,9 +13,11 @@ namespace Atlas\Resources;
 final class Users extends Resource
 {
     /**
-     * `GET /v1/users` — cursor-paginated.
+     * `GET /v1/users` — cursor-paginated (or `offset`). Every filter combines
+     * with AND; `created_after` / `created_before` are epoch ms; booleans are
+     * sent as `true` / `false`.
      *
-     * @param array{limit?:int,starting_after?:string} $params
+     * @param array{limit?:int,starting_after?:string,offset?:int,query?:string,email_address?:string,username?:string,phone_number?:string,external_id?:string,banned?:bool,email_verified?:bool,organization_id?:string,created_after?:int,created_before?:int,order_by?:'created_at'|'-created_at'|'last_sign_in_at'|'-last_sign_in_at',include_total_count?:bool} $params
      *
      * @return array<string,mixed> a CursorPage: `{ data, has_more, next_cursor }`
      */
@@ -78,9 +80,21 @@ final class Users extends Resource
     }
 
     /** @return array<string,mixed> */
-    public function ban(string $id): array
+    /**
+     * Permanent by default; `expires_in_seconds` or `expires_at` (epoch ms)
+     * makes a timed ban that lifts itself.
+     *
+     * @param array{reason?:string,note?:string,expires_in_seconds?:int,expires_at?:int} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function ban(string $id, array $body = []): array
     {
-        return $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/ban');
+        if ($body === []) {
+            return $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/ban');
+        }
+
+        return $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/ban', body: $body);
     }
 
     /** @return array<string,mixed> */

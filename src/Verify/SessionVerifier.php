@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Atlas\Verify;
 
 use Atlas\Exception\ConfigException;
-use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
@@ -114,7 +113,7 @@ final class SessionVerifier
         }
 
         try {
-            $keySet = JWK::parseKeySet($keys, 'RS256');
+            $keySet = SigningKeys::parse($keys);
         } catch (\Throwable) {
             return VerifyResult::fail('no_keys');
         }
@@ -127,9 +126,9 @@ final class SessionVerifier
         }
 
         try {
-            // `parseKeySet` pins each key to RS256, so a token whose header says
-            // `alg: none` — or any algorithm coerced onto the key material —
-            // fails to decode. Signature + exp/nbf (with leeway) are enforced here.
+            // `SigningKeys::parse` pins each key to the one algorithm its type
+            // allows (RS256 or ES256), so a token whose header says `alg: none`
+            // — or any algorithm coerced onto the key material — fails to decode. Signature + exp/nbf (with leeway) are enforced here.
             $payload = JWT::decode($token, $keySet);
             /** @var array<string,mixed> $claims */
             $claims = json_decode(json_encode($payload, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);

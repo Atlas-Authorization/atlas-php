@@ -36,4 +36,17 @@ final class OrganizationInvitations extends Resource
             '/v1/organizations/' . rawurlencode($orgId) . '/invitations/' . rawurlencode($invitationId) . '/revoke',
         );
     }
+
+    /**
+     * Resend a pending invitation: same id and role, a fresh expiry.
+     *
+     * @return array<string,mixed>
+     */
+    public function resend(string $orgId, string $invitationId): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/organizations/' . rawurlencode($orgId) . '/invitations/' . rawurlencode($invitationId) . '/resend',
+        );
+    }
 }

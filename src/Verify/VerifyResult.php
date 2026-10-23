@@ -43,8 +43,9 @@ final class VerifyResult
      * True when the verified claims satisfy the condition. An empty condition
      * means "signed in" — any successfully verified token passes.
      *
-     * Supported keys: `role`, `permission`, `anyPermission` (list), and
-     * `allPermissions` (list). Reads `org_role` / `org_permissions` straight off
+     * Supported keys: `role`, `permission`, `anyPermission` (list),
+     * `allPermissions` (list), `appRole` and `appPermission` (the instance-wide
+     * `app_roles` / `app_permissions` claims; no active organization needed). Reads `org_role` / `org_permissions` straight off
      * the token — never a network call — so a permission change takes effect
      * within one token lifetime, the same bound as revocation.
      *
@@ -57,6 +58,18 @@ final class VerifyResult
         }
 
         return self::evaluate($this->claims, $condition) === null;
+    }
+
+    /** True when the `app_permissions` claim contains `$permission`. */
+    public function hasAppPermission(string $permission): bool
+    {
+        return $this->has(['appPermission' => $permission]);
+    }
+
+    /** True when the `app_roles` claim contains `$role`. */
+    public function hasAppRole(string $role): bool
+    {
+        return $this->has(['appRole' => $role]);
     }
 
     /**
@@ -115,6 +128,13 @@ final class VerifyResult
             if (!$any) {
                 return 'missing_permission';
             }
+        }
+        if (isset($condition['appRole']) && !in_array($condition['appRole'], self::stringList($claims['app_roles'] ?? []), true)) {
+            return 'missing_role';
+        }
+        if (isset($condition['appPermission'])
+            && !in_array($condition['appPermission'], self::stringList($claims['app_permissions'] ?? []), true)) {
+            return 'missing_permission';
         }
         if (isset($condition['allPermissions']) && is_array($condition['allPermissions'])) {
             foreach ($condition['allPermissions'] as $p) {

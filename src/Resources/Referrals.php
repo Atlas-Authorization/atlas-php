@@ -82,6 +82,16 @@ final class Referrals extends Resource
     }
 
     /**
+     * One call of the delivery log, by its id or the platform's request id.
+     *
+     * @return array<string,mixed>
+     */
+    public function getCall(string $id): array
+    {
+        return $this->http->request('GET', '/v1/instance/referrals/calls/' . rawurlencode($id));
+    }
+
+    /**
      * Retry a failed, retrying or skipped call now (not a connection test).
      *
      * @return array<string,mixed> the ReferralCall

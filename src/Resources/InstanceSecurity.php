@@ -30,6 +30,29 @@ final class InstanceSecurity extends Resource
     }
 
     /**
+     * The published token-signing keys: `current` and, inside a rotation's
+     * grace window, `previous` with `retires_at`.
+     *
+     * @return array<string,mixed>
+     */
+    public function listSigningKeys(): array
+    {
+        return $this->http->request('GET', '/v1/instance/signing_keys');
+    }
+
+    /**
+     * Rotate the instance signing key, optionally switching `alg` (RS256 or ES256).
+     *
+     * @param array{alg?:'RS256'|'ES256',grace_period_seconds?:int,emergency?:bool} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function rotateSigningKey(array $body = []): array
+    {
+        return $this->http->request('POST', '/v1/instance/signing_keys/rotate', body: $body);
+    }
+
+    /**
      * Store a captcha provider secret. `$provider` (default: the configured one) lets you
      * store it BEFORE turning captcha on — captcha is bring-your-own-keys, and enabling it
      * without a site key and secret is refused with 422 `CAPTCHA_KEYS_REQUIRED`.

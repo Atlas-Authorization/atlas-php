@@ -2,6 +2,23 @@
 
 Versions are published from git tags.
 
+## 0.13.0 — 2026-10-23
+
+### Added
+
+- **App roles.** `$client->appRoles`: `list`, `create`, `get`, `update`, `delete`, `listUsers`, `getForUser`, `setForUser` (replace, or add/remove), `removeFromUser`. `VerifyResult::hasAppRole()` / `hasAppPermission()` and the `appRole` / `appPermission` conditions of `has()` / `protect()` read the `app_roles` / `app_permissions` claims (no active organization needed).
+- **Organization teams and custom roles.** `organizations->teams` (list, create, get, update, delete, members list/add/remove) and `organizations->roles` (the roles an org can assign; create/update/delete its own, `$reassignTo`). `organizations->getBySlug()`, `organizations->checkSlug()`, `organizations->invitations->resend()`.
+- **User search and timed bans.** `users->list()` documents the search filters (`query`, `email_address`, `username`, `phone_number`, `external_id`, `banned`, `email_verified`, `organization_id`, `created_after` / `created_before`, `order_by`, `offset`, `include_total_count`); `users->ban($id, ['expires_in_seconds' => ...])`.
+- **API key controls.** Create and update bodies take `enabled`, `rate_limit`, `remaining`, `prefix`, `expires_in_seconds`; `apiKeys->verify($secret, $requiredScopes)` and a refusal of a live key carries `code` (`insufficient_scope`, `rate_limited`, `usage_exhausted`).
+- **Billing providers (bring your own key).** `billing->listProviders()`, `getProvider()`, `setProvider()`, `testProvider()`, `deleteProvider($force)`; `billing->changeSubscription()`, `cancelSubscription($immediately)`, `restoreSubscription()`. Plans take `provider`, `provider_price_id`, `annual_price_id`, `annual_amount`.
+- **OAuth server administration.** `instanceSecurity->listSigningKeys()` / `rotateSigningKey()` (`alg` RS256 or ES256); `$client->oauthInitialAccessTokens` (list, create, revoke). OAuth clients take `disabled`, `require_pkce`, `subject_type`, `sector_identifier_uri`, `secret_expires_in_seconds`; resource servers take `signing_alg` and `publish_resource_metadata`.
+- **Access-token verification for your API.** `Atlas\Verify\AccessTokenVerifier` checks an Atlas-issued OAuth access token locally (issuer, expiry, `token_use`, audience, scopes) and returns the RFC 6750 / RFC 9728 `WWW-Authenticate` challenge on refusal; `Atlas\Psr15\AtlasAccessTokenMiddleware`; `buildWwwAuthenticate()`, `protectedResourceMetadata()`, `protectedResourceMetadataPath()`. DPoP-bound tokens are refused.
+- `scimTokens->update()`, `userHooks->listBeforeUserCreateCalls()`, `referrals->getCall()`.
+
+### Changed
+
+- Session and logout-token verification accept **ES256** as well as RS256 (`Atlas\Verify\SigningKeys::ALGS`), and nothing else; each published key is bound to the one algorithm its type allows.
+
 ## 0.12.0
 
 ### Added

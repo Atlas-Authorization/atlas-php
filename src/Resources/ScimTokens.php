@@ -28,4 +28,17 @@ final class ScimTokens extends Resource
     {
         return $this->http->request('POST', '/v1/scim_tokens/' . rawurlencode($id) . '/revoke');
     }
+
+    /**
+     * Change a SCIM token's `name`, `scopes` (`['read']` = read-only) or
+     * `role_mappings` (`[['value' => ..., 'role' => ...]]`). The secret is unchanged.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function update(string $id, array $body): array
+    {
+        return $this->http->request('PATCH', '/v1/scim_tokens/' . rawurlencode($id), body: $body);
+    }
 }
