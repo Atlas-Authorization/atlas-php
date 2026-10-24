@@ -2,6 +2,16 @@
 
 Versions are published from git tags.
 
+## 0.18.0 — 2026-10-24
+
+### Added
+
+- **Enterprise SSO claims.** `OidcClaims::sso()` also returns `organization_id` (`sso_organization_id`, null for an instance-wide connection) and `type` (`sso_connection_type`, `saml` or `oidc`); `VerifyResult::sso()` reads the same from a verified session. Scope a per-organization "require SSO" rule on `organization_id`, never on "signed in via SSO".
+- **Adopting a Sign in with Atlas app.** `platform->atlasIdApps->setManagedBy($id, $instanceIdOrNull)` (`PUT /v1/platform/atlas_id_apps/{id}/managed_by`). App objects carry `managed_via` (`instance_toggle` | `adopted`) and `button_rendered_origins`.
+- **Instance-surface app setup check.** `atlasIdGrants->preflight($id)` (`GET /v1/atlas_id_apps/{id}/preflight`); both preflights answer `button_rendered_origins`, `authorize_requests_7d`, `fallback_origins`, `homepage_includes_script`.
+- **Dry run.** `DryRunResult::fromArray($answer)`: `mode` (`native` | `rollback` | `plan`), `validated`, `changes`, `warnings`, `wouldReturn`, `wouldReturnStatus`, `suppressed`, `validationSkipped`.
+- **Sealed secrets.** `secretRecipient` on the `Client` constructor and `withOptions(secretRecipient: ...)` sends `X-Secret-Recipient` on every request, so every route that returns a shown-once secret answers with `sealed_secret` / `sealed_client_secret` / `sealed_webhook_secret` and `secrets_sealed`.
+
 ## 0.17.0 — 2026-10-24
 
 ### Added

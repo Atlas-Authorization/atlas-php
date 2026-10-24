@@ -249,10 +249,11 @@ final class Client
         ?StreamFactoryInterface $streamFactory = null,
         ?bool $strict = null,
         ?callable $onUnknownFields = null,
+        ?string $secretRecipient = null,
     ) {
         [$client, $reqFactory, $strFactory] = self::discover($httpClient, $requestFactory, $streamFactory);
 
-        $this->wire(new Http($secretKey, $baseUrl, $client, $reqFactory, $strFactory, $strict, $onUnknownFields));
+        $this->wire(new Http($secretKey, $baseUrl, $client, $reqFactory, $strFactory, $strict, $onUnknownFields, false, null, $secretRecipient));
     }
 
     /**
@@ -277,13 +278,17 @@ final class Client
      * - `traceparent`: a W3C `traceparent` header value (see {@see Traceparent::generate()}) sent on every
      *   request; Atlas carries it onto the webhooks, back-channel logouts and privacy cases the call causes.
      *
+     * - `secretRecipient`: an `x25519:<base64 public key>` sent as `X-Secret-Recipient` on every request, so every
+     *   route that returns a shown-once secret answers sealed (`sealed_secret`, `sealed_client_secret`,
+     *   `sealed_webhook_secret`, with `secrets_sealed` naming the fields). Also the constructor's last argument.
+     *
      *     $atlas->withOptions(dryRun: true)->users->update('user_1', ['first_name' => 'Ada']);
      *     $atlas->withOptions(traceparent: Traceparent::generate())->users->ban('user_1');
      */
-    public function withOptions(?bool $dryRun = null, ?string $traceparent = null): self
+    public function withOptions(?bool $dryRun = null, ?string $traceparent = null, ?string $secretRecipient = null): self
     {
         $copy = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
-        $copy->wire($this->http->withOptions($dryRun ?? $this->http->dryRun(), $traceparent ?? $this->http->traceparent()));
+        $copy->wire($this->http->withOptions($dryRun ?? $this->http->dryRun(), $traceparent ?? $this->http->traceparent(), $secretRecipient));
 
         return $copy;
     }

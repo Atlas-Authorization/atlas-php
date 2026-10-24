@@ -100,6 +100,26 @@ final class VerifyResult
         return $out;
     }
 
+    /**
+     * The enterprise SSO context of the session (`sso_connection_id`, `sso_organization_id`, `sso_connection_type`), or null when
+     * the session was not made through an SSO connection. `organization_id` is independent of `org_id`.
+     *
+     * @return array{connection_id:string,organization_id:string|null,type:'saml'|'oidc'|null}|null
+     */
+    public function sso(): ?array
+    {
+        if (!$this->ok || $this->claims === null || !is_string($this->claims['sso_connection_id'] ?? null)) {
+            return null;
+        }
+        $type = $this->claims['sso_connection_type'] ?? null;
+
+        return [
+            'connection_id' => $this->claims['sso_connection_id'],
+            'organization_id' => is_string($this->claims['sso_organization_id'] ?? null) ? $this->claims['sso_organization_id'] : null,
+            'type' => $type === 'saml' || $type === 'oidc' ? $type : null,
+        ];
+    }
+
     /** The version of policy `$key` the user accepted, from the `pol` claim. */
     public function acceptedPolicyVersion(string $key): ?string
     {

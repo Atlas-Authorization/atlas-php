@@ -43,6 +43,8 @@ final class Http
      *                                                      answers `{object: "dry_run", dry_run: true, ...}` without saving; no Idempotency-Key is sent
      * @param string|null                  $traceparent     a W3C `traceparent` header value sent on every request, so one operation can be followed
      *                                                      from your code through Atlas and onward to the receivers (see {@see Traceparent})
+     * @param string|null                  $secretRecipient `x25519:<base64 public key>` sent as `X-Secret-Recipient` on every request: each
+     *                                                      shown-once secret in an answer comes back sealed (`sealed_*`, `secrets_sealed`)
      */
     public function __construct(
         private readonly string $secretKey,
@@ -54,6 +56,7 @@ final class Http
         ?callable $onUnknownFields = null,
         private readonly bool $dryRun = false,
         private readonly ?string $traceparent = null,
+        private readonly ?string $secretRecipient = null,
     ) {
         if ($secretKey === '') {
             throw new ConfigException('Atlas\\Client requires a non-empty secret key.');
@@ -81,6 +84,7 @@ final class Http
             $this->onUnknownFields,
             $this->dryRun,
             $this->traceparent,
+            $this->secretRecipient,
         );
     }
 
@@ -88,6 +92,12 @@ final class Http
     public function dryRun(): bool
     {
         return $this->dryRun;
+    }
+
+    /** The `X-Secret-Recipient` sent on every request, or null. */
+    public function secretRecipient(): ?string
+    {
+        return $this->secretRecipient;
     }
 
     /** The W3C `traceparent` sent on every request, or null. */
@@ -100,7 +110,7 @@ final class Http
      * A copy of this transport with a different dry-run setting and/or traceparent. Pass the current
      * value (`$http->dryRun()`) to keep one.
      */
-    public function withOptions(bool $dryRun, ?string $traceparent): self
+    public function withOptions(bool $dryRun, ?string $traceparent, ?string $secretRecipient = null): self
     {
         return new self(
             $this->secretKey,
@@ -112,6 +122,7 @@ final class Http
             $this->onUnknownFields,
             $dryRun,
             $traceparent,
+            $secretRecipient ?? $this->secretRecipient,
         );
     }
 
@@ -173,6 +184,10 @@ final class Http
 
         if ($this->traceparent !== null && $this->traceparent !== '') {
             $request = $request->withHeader('traceparent', $this->traceparent);
+        }
+
+        if ($this->secretRecipient !== null && $this->secretRecipient !== '') {
+            $request = $request->withHeader('X-Secret-Recipient', $this->secretRecipient);
         }
 
         if ($idempotencyKey !== null && $idempotencyKey !== '' && !$dryRun) {

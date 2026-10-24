@@ -77,11 +77,11 @@ final class GapFixesTest extends TestCase
         $claims = [
             'sub' => 'u1', 'org_id' => 'org_1', 'org_slug' => 'acme', 'org_role' => 'admin', 'org_permissions' => ['org:read', 3],
             'orgs' => [['id' => 'org_1', 'slug' => 'acme', 'role' => 'admin'], ['slug' => 'x']],
-            'sso_connection_id' => 'sso_1', 'sso_tenant_id' => 'tid', 'sso_issuer' => 'https://idp', 'sso_domain' => 'acme.com',
+            'sso_connection_id' => 'sso_1', 'sso_organization_id' => 'org_1', 'sso_connection_type' => 'saml', 'sso_tenant_id' => 'tid', 'sso_issuer' => 'https://idp', 'sso_domain' => 'acme.com',
         ];
         $this->assertSame(['id' => 'org_1', 'slug' => 'acme', 'role' => 'admin', 'permissions' => ['org:read']], OidcClaims::organization($claims));
         $this->assertSame([['id' => 'org_1', 'slug' => 'acme', 'role' => 'admin']], OidcClaims::organizations($claims));
-        $this->assertSame(['connection_id' => 'sso_1', 'tenant_id' => 'tid', 'issuer' => 'https://idp', 'domain' => 'acme.com'], OidcClaims::sso($claims));
+        $this->assertSame(['connection_id' => 'sso_1', 'organization_id' => 'org_1', 'type' => 'saml', 'tenant_id' => 'tid', 'issuer' => 'https://idp', 'domain' => 'acme.com'], OidcClaims::sso($claims));
         $this->assertNull(OidcClaims::organization(['sub' => 'u']));
         $this->assertNull(OidcClaims::organizations(['sub' => 'u']));
         $this->assertNull(OidcClaims::sso(['sub' => 'u']));

@@ -20,7 +20,7 @@ namespace Atlas\Resources;
  * @phpstan-type AtlasIdAppBrandingInput array{theme?:'auto'|'light'|'dark'|null,accent_color?:string|null,background_color?:string|null,privacy_policy_url?:string|null,terms_of_service_url?:string|null,copy?:AtlasIdAppCopy|null,design?:AtlasDesign|null}
  * @phpstan-type AtlasIdAppInput array{name?:string,redirect_uris?:list<string>,post_logout_redirect_uris?:list<string>,backchannel_logout_uri?:string|null,backchannel_logout_session_required?:bool,frontchannel_logout_uri?:string|null,frontchannel_logout_session_required?:bool,logo_url?:string|null,homepage_url?:string|null,allowed_scopes?:list<'openid'|'profile'|'email'|'offline_access'>,branding?:AtlasIdAppBrandingInput,type?:'confidential'|'public',webhook_url?:string|null}
  * @phpstan-type AtlasIdAppBranding array{theme:'auto'|'light'|'dark',accent_color:string|null,background_color:string|null,privacy_policy_url:string|null,terms_of_service_url:string|null,copy:AtlasIdAppCopy,design?:AtlasDesign|null,resolved_design?:array<string,mixed>}
- * @phpstan-type AtlasIdApp array{object:'atlas_id_app',id:string,client_id:string,name:string,logo_url?:string|null,homepage_url?:string|null,branding?:AtlasIdAppBranding,redirect_uris:list<string>,post_logout_redirect_uris:list<string>,backchannel_logout_uri:string|null,backchannel_logout_session_required:bool,frontchannel_logout_uri:string|null,frontchannel_logout_session_required:bool,allowed_scopes:list<string>,type:'confidential'|'public',secret_prefix?:string|null,managed_by_instance_id?:string|null,created_at:int,updated_at:int,user_count?:int,client_secret?:string,webhook_url?:string|null,webhook_events?:list<string>,webhook_active?:bool|null,webhook_secret?:string,webhook_previous_secret_expires_at?:int|null,previous_secret_expires_at?:int|null,secret_issued_at?:int|null,overlap_seconds?:int}
+ * @phpstan-type AtlasIdApp array{object:'atlas_id_app',id:string,client_id:string,name:string,logo_url?:string|null,homepage_url?:string|null,branding?:AtlasIdAppBranding,redirect_uris:list<string>,post_logout_redirect_uris:list<string>,backchannel_logout_uri:string|null,backchannel_logout_session_required:bool,frontchannel_logout_uri:string|null,frontchannel_logout_session_required:bool,allowed_scopes:list<string>,type:'confidential'|'public',secret_prefix?:string|null,managed_by_instance_id?:string|null,managed_via?:'instance_toggle'|'adopted'|null,button_rendered_origins?:list<array{origin:string,last_seen_at:int,requests:int}>,sealed_client_secret?:string,sealed_webhook_secret?:string,secrets_sealed?:array{algorithm:string,recipient:string,fields:list<string>},created_at:int,updated_at:int,user_count?:int,client_secret?:string,webhook_url?:string|null,webhook_events?:list<string>,webhook_active?:bool|null,webhook_secret?:string,webhook_previous_secret_expires_at?:int|null,previous_secret_expires_at?:int|null,secret_issued_at?:int|null,overlap_seconds?:int}
  */
 final class PlatformAtlasIdApps extends Resource
 {
@@ -137,7 +137,8 @@ final class PlatformAtlasIdApps extends Resource
 
     /**
      * `GET /v1/platform/atlas_id_apps/:id/preflight` — check one app's setup (`ok`, `user_count`,
-     * `findings` in the instance preflight's shape).
+     * `findings` in the instance preflight's shape, plus `button_rendered_origins`, `authorize_requests_7d`,
+     * `fallback_origins`, `homepage_includes_script`).
      *
      * @return array<string,mixed>
      */
@@ -179,6 +180,18 @@ final class PlatformAtlasIdApps extends Resource
     public function moveOrigin(string $id, array $body): array
     {
         return $this->http->request('POST', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/move_origin', body: $body);
+    }
+
+    /**
+     * `PUT /v1/platform/atlas_id_apps/:id/managed_by` — hand the app's grant management to an instance of the same account
+     * (`managed_via: "adopted"`), or take it back with `null`. That instance's secret key, scoped to `privacy:grants:revoke` or
+     * `atlas_id_apps:*`, then lists and revokes the app's grants, so a data-rights tool never needs the platform key.
+     *
+     * @return array<string,mixed> the app (`AtlasIdApp`) plus `changed`
+     */
+    public function setManagedBy(string $id, ?string $instanceId): array
+    {
+        return $this->http->request('PUT', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/managed_by', body: ['instance_id' => $instanceId]);
     }
 
     /**

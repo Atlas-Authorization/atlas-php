@@ -7,7 +7,7 @@ namespace Atlas;
 /**
  * Atlas-specific claims on the ID tokens and userinfo of an OIDC relying party: the organization a sign-in was made in (`org_id`,
  * `org_slug`, `org_role`, `org_permissions`), every membership (`orgs`, with the `organizations` scope) and the enterprise SSO
- * connection (`sso_connection_id`, `sso_tenant_id`, `sso_issuer`, `sso_domain`). Pass the verified claims of the token.
+ * connection (`sso_connection_id`, `sso_organization_id`, `sso_connection_type`, `sso_tenant_id`, `sso_issuer`, `sso_domain`). Pass the verified claims of the token.
  *
  *     $org = OidcClaims::organization($claims);        // ['id','slug','role','permissions'] or null
  *     $all = OidcClaims::organizations($claims);       // [['id','slug','role'], …] or null
@@ -70,11 +70,13 @@ final class OidcClaims
     }
 
     /**
-     * The enterprise SSO connection the user signed in through, or null.
+     * The enterprise SSO connection the user signed in through, or null. `organization_id` is the Atlas organization that owns
+     * the connection (null for an instance-wide one), independent of `org_id`: scope a per-organization "require SSO" rule on it,
+     * never on "signed in via SSO". `type` is `saml` or `oidc` (null when absent). Works on ID-token, userinfo and session claims.
      *
      * @param array<string,mixed> $claims
      *
-     * @return array{connection_id:string,tenant_id:string|null,issuer:string|null,domain:string|null}|null
+     * @return array{connection_id:string,organization_id:string|null,type:'saml'|'oidc'|null,tenant_id:string|null,issuer:string|null,domain:string|null}|null
      */
     public static function sso(array $claims): ?array
     {
@@ -85,6 +87,8 @@ final class OidcClaims
 
         return [
             'connection_id' => $claims['sso_connection_id'],
+            'organization_id' => $str('sso_organization_id'),
+            'type' => in_array($claims['sso_connection_type'] ?? null, ['saml', 'oidc'], true) ? $claims['sso_connection_type'] : null,
             'tenant_id' => $str('sso_tenant_id'),
             'issuer' => $str('sso_issuer'),
             'domain' => $str('sso_domain'),
