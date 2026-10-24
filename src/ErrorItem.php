@@ -10,7 +10,7 @@ namespace Atlas;
  *     { "errors": [ { "code", "message", "param?", "meta?" } ] }
  *
  * `code` is the stable, machine-readable part of the contract — integrators
- * branch on it (`LAST_ADMIN`, `NOT_FOUND`, `SCOPE_MISSING`, …) — so it is
+ * branch on it (`LAST_ADMIN`, `NOT_FOUND`, `INSUFFICIENT_SCOPE`, …) — so it is
  * surfaced first-class. `param` and `meta` (e.g. a rate limit's `retry_after`)
  * are kept for callers that need them.
  */
@@ -24,6 +24,12 @@ final class ErrorItem
         public readonly string $message,
         public readonly ?string $param = null,
         public readonly ?array $meta = null,
+        /** @var list<string>|null routes Atlas thinks you meant (`ROUTE_NOT_FOUND`) */
+        public readonly ?array $didYouMean = null,
+        /** @var list<string>|null methods the route accepts (`ROUTE_NOT_FOUND` on a wrong method) */
+        public readonly ?array $allowedMethods = null,
+        /** the page that explains the code, `https://atlasauth.net/errors/<code>` */
+        public readonly ?string $docsUrl = null,
     ) {
     }
 
@@ -41,7 +47,22 @@ final class ErrorItem
             message: isset($item['message']) ? (string) $item['message'] : '',
             param: isset($item['param']) ? (string) $item['param'] : null,
             meta: is_array($meta) ? $meta : null,
+            didYouMean: self::strings($item['did_you_mean'] ?? null),
+            allowedMethods: self::strings($item['allowed_methods'] ?? null),
+            docsUrl: isset($item['docs_url']) && is_string($item['docs_url']) ? $item['docs_url'] : null,
         );
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private static function strings(mixed $value): ?array
+    {
+        if (!is_array($value)) {
+            return null;
+        }
+
+        return array_values(array_map('strval', array_filter($value, 'is_scalar')));
     }
 
     /**
@@ -54,6 +75,9 @@ final class ErrorItem
             'message' => $this->message,
             'param' => $this->param,
             'meta' => $this->meta,
+            'did_you_mean' => $this->didYouMean,
+            'allowed_methods' => $this->allowedMethods,
+            'docs_url' => $this->docsUrl,
         ], static fn ($v) => $v !== null);
     }
 }

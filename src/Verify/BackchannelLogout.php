@@ -89,6 +89,36 @@ final class BackchannelLogout
     }
 
     /**
+     * Verify and dispatch in one call, and get the HTTP answer for Atlas: 200 after `$onLogout` ran, 400 for a token that
+     * must be refused (final: Atlas does not retry), 503 + `Retry-After` when the issuer's keys could not be fetched
+     * (Atlas retries). `$onLogout` receives the {@see LogoutTokenClaims} (end the sessions for `sub` / `sid`); an exception
+     * it throws becomes a 503 so Atlas retries.
+     *
+     *     [$status, $headers] = $logout->handle($_POST['logout_token'] ?? '', fn ($claims) => $sessions->endFor($claims->sid, $claims->sub));
+     *     http_response_code($status);
+     *     foreach ($headers as $name => $value) { header("$name: $value"); }
+     *
+     * @param callable(LogoutTokenClaims):void $onLogout
+     *
+     * @return array{0:int,1:array<string,string>} the status and response headers
+     */
+    public function handle(string $logoutToken, callable $onLogout): array
+    {
+        try {
+            $claims = $this->verify($logoutToken);
+        } catch (InvalidLogoutTokenException $e) {
+            return $e->retryable ? [503, ['Retry-After' => '30', 'Cache-Control' => 'no-store']] : [400, ['Cache-Control' => 'no-store']];
+        }
+        try {
+            $onLogout($claims);
+        } catch (\Throwable) {
+            return [503, ['Retry-After' => '30', 'Cache-Control' => 'no-store']];
+        }
+
+        return [200, ['Cache-Control' => 'no-store']];
+    }
+
+    /**
      * @throws InvalidLogoutTokenException for any token that must be refused (answer 400, or 503 when retryable)
      */
     public function verify(string $logoutToken): LogoutTokenClaims

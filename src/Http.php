@@ -39,6 +39,10 @@ final class Http
     /**
      * @param bool|null                    $strict          client-wide strict bodies: true/false send `Atlas-Strict`, null sends nothing
      * @param callable(UnknownFields):void|null $onUnknownFields called when a write reports ignored body fields
+     * @param bool                         $dryRun          send every write (POST/PUT/PATCH/DELETE) with `?dry_run=true`: Atlas validates and
+     *                                                      answers `{object: "dry_run", dry_run: true, ...}` without saving; no Idempotency-Key is sent
+     * @param string|null                  $traceparent     a W3C `traceparent` header value sent on every request, so one operation can be followed
+     *                                                      from your code through Atlas and onward to the receivers (see {@see Traceparent})
      */
     public function __construct(
         private readonly string $secretKey,
@@ -48,6 +52,8 @@ final class Http
         private readonly StreamFactoryInterface $streamFactory,
         private readonly ?bool $strict = null,
         ?callable $onUnknownFields = null,
+        private readonly bool $dryRun = false,
+        private readonly ?string $traceparent = null,
     ) {
         if ($secretKey === '') {
             throw new ConfigException('Atlas\\Client requires a non-empty secret key.');
@@ -73,6 +79,39 @@ final class Http
             $this->streamFactory,
             $strict,
             $this->onUnknownFields,
+            $this->dryRun,
+            $this->traceparent,
+        );
+    }
+
+    /** True when every write goes out with `?dry_run=true`. */
+    public function dryRun(): bool
+    {
+        return $this->dryRun;
+    }
+
+    /** The W3C `traceparent` sent on every request, or null. */
+    public function traceparent(): ?string
+    {
+        return $this->traceparent;
+    }
+
+    /**
+     * A copy of this transport with a different dry-run setting and/or traceparent. Pass the current
+     * value (`$http->dryRun()`) to keep one.
+     */
+    public function withOptions(bool $dryRun, ?string $traceparent): self
+    {
+        return new self(
+            $this->secretKey,
+            $this->baseUrl,
+            $this->client,
+            $this->requestFactory,
+            $this->streamFactory,
+            $this->strict,
+            $this->onUnknownFields,
+            $dryRun,
+            $traceparent,
         );
     }
 
@@ -108,6 +147,10 @@ final class Http
         ?array $headers = null,
     ): mixed {
         $method = strtoupper($method);
+        $dryRun = $this->dryRun && in_array($method, self::WRITE_METHODS, true);
+        if ($dryRun) {
+            $query = [...($query ?? []), 'dry_run' => true];
+        }
         $url = $this->baseUrl . ($path[0] === '/' ? $path : '/' . $path) . self::serializeQuery($query);
 
         $request = $this->requestFactory->createRequest($method, $url)
@@ -128,7 +171,11 @@ final class Http
                 ->withBody($this->streamFactory->createStream($json));
         }
 
-        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+        if ($this->traceparent !== null && $this->traceparent !== '') {
+            $request = $request->withHeader('traceparent', $this->traceparent);
+        }
+
+        if ($idempotencyKey !== null && $idempotencyKey !== '' && !$dryRun) {
             $request = $request->withHeader('Idempotency-Key', $idempotencyKey);
         }
 

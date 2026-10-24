@@ -27,6 +27,12 @@ final class Constants
     /** Where the token-signing key can live. */
     public const SIGNING_KEY_PROVIDERS = ['local', 'aws_kms', 'gcp_kms', 'azure_key_vault'];
 
+    /** `since` value for webhook replay / redelivery: from the start of the endpoint's last failure streak. */
+    public const WEBHOOK_REPLAY_SINCE_FAILING = 'failing_since';
+
+    /** OIDC relying parties: the scope that adds the `orgs` membership list to the ID token and userinfo. */
+    public const OIDC_SCOPE_ORGANIZATIONS = 'organizations';
+
     /** A session's custom data changed. */
     public const WEBHOOK_EVENT_SESSION_UPDATED = 'session.updated';
 

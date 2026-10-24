@@ -103,4 +103,26 @@ final class Sessions extends Resource
             'custom_data' => $patch === [] ? new \stdClass() : $patch,
         ]);
     }
+
+    /**
+     * `POST /v1/sessions/:id/integration_tokens/:integration` — an identity-integration token for this session: a preset such as `chatly`, or a custom integration id.
+     *
+     * @return array<string,mixed>
+     */
+    public function createIntegrationToken(string $id, string $integration): array
+    {
+        return $this->http->request('POST', '/v1/sessions/' . rawurlencode($id) . '/integration_tokens/' . rawurlencode($integration));
+    }
+
+    /**
+     * `getToken($id, 'template')` mints a JWT-template token ({@see createToken()}); `getToken($id, ['for' => 'chatly'])` mints an integration token ({@see createIntegrationToken()}).
+     *
+     * @return array<string,mixed>
+     */
+    public function getToken(string $id, string|array $what): array
+    {
+        return is_array($what)
+            ? $this->createIntegrationToken($id, (string) ($what['for'] ?? throw new \InvalidArgumentException('getToken() needs [\'for\' => $integration].')))
+            : $this->createToken($id, $what);
+    }
 }

@@ -12,7 +12,7 @@ namespace Atlas\Resources;
  * `user.created` is sent; the answer lands on the user (`referral`, `referral_code`,
  * `referral_link`). A late answer arrives as the `user.referral_resolved` webhook (and
  * `user.referral_attributed` when it attributes the user). `provider` is `webhook` (the Atlas
- * referral protocol), `referally` or another built-in adapter.
+ * referral protocol), `referalli` (the legacy id `referally` is still accepted) or another built-in adapter.
  * `signing_secret`, `api_key` and `inbound_secret` are write-only: reads return
  * `signing_secret_set` / `api_key_set` / `inbound.secret_set`.
  *
@@ -21,7 +21,7 @@ namespace Atlas\Resources;
  * `last_event` with `at`, `type`, `outcome`).
  *
  * Browser capture: `browser_sources` lists the referral programs whose script or cookie the
- * browser reads, in order (`referally`, `rewardful`, `tolt`, `promotekit`, `firstpromoter`,
+ * browser reads, in order (`referalli`, `rewardful`, `tolt`, `promotekit`, `firstpromoter`,
  * `partnerstack`, `dub`; `null` goes back to the provider's default, reported by
  * `browser_sources_default`), and `consent_provider` picks the consent manager that decides
  * (`auto`, one manager such as `onetrust`, or `app`).
@@ -174,5 +174,15 @@ final class Referrals extends Resource
     public function getForUser(string $userId): array
     {
         return $this->http->request('GET', '/v1/users/' . rawurlencode($userId) . '/referral');
+    }
+
+    /**
+     * `POST /v1/instance/referrals/:preset/install` — one-click install of a referral platform preset. Body `{return_to?}`; answers the install (a URL to finish at the provider).
+     *
+     * @return array<string,mixed>
+     */
+    public function install(string $preset, array $body = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request('POST', '/v1/instance/referrals/' . rawurlencode($preset) . '/install', body: $body, idempotencyKey: $idempotencyKey);
     }
 }

@@ -83,11 +83,16 @@ final class Instance extends Resource
      *     $report = $atlas->instance->preflight();
      *     foreach ($report['findings'] as $f) { echo "{$f['severity']}: {$f['message']} → {$f['fix']}\n"; }
      *
+     * `$params`: `min_severity` (hide findings below it), `include_suppressed` (also list `suppressed[]`). The report adds
+     * `min_severity`, `suppressed[]`, `integrations[]`; each finding has a `group`.
+     *
+     * @param array{min_severity?:string,include_suppressed?:bool} $params
+     *
      * @return PreflightReport
      */
-    public function preflight(): array
+    public function preflight(array $params = []): array
     {
-        return $this->http->request('GET', '/v1/instance/preflight');
+        return $this->http->request('GET', '/v1/instance/preflight', query: $params);
     }
 
     /**
@@ -255,5 +260,55 @@ final class Instance extends Resource
     public function setCaptchaConfig(array $captcha): array
     {
         return $this->update(['auth_config' => ['captcha' => $captcha]]);
+    }
+
+    /**
+     * `GET /v1/instance/unknown_fields_report?days=` — the unknown body fields your writes sent over the last `days` (1-90, default 30). Fix every row with an `ignored_count`, then turn strict request bodies on.
+     *
+     * @return array<string,mixed>
+     */
+    public function unknownFieldsReport(array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/instance/unknown_fields_report', query: $params);
+    }
+
+    /**
+     * `GET /v1/openapi/diff` — what changed in the API since a date (`since` YYYY-MM-DD, optional `surface`): operations added, deprecated and removed.
+     *
+     * @return array<string,mixed>
+     */
+    public function openapiDiff(string $since, ?string $surface = null): array
+    {
+        return $this->http->request('GET', '/v1/openapi/diff', query: ['since' => $since, 'surface' => $surface]);
+    }
+
+    /**
+     * `GET /v1/integration-health` — one report of everything connecting the instance to the outside (setup checks, webhooks, back-channel logout, referrals, email, consent manager, SDK versions). `$only` limits the sources; `$probe = false` skips live reachability probes.
+     *
+     * @return array<string,mixed>
+     */
+    public function integrationHealth(?array $only = null, ?bool $probe = null): array
+    {
+        return $this->http->request('GET', '/v1/integration-health', query: ['only' => $only === null ? null : implode(',', $only), 'probe' => $probe]);
+    }
+
+    /**
+     * `GET /v1/integration-health/providers` — the check sources this deployment reports.
+     *
+     * @return array<string,mixed>
+     */
+    public function integrationHealthProviders(): array
+    {
+        return $this->http->request('GET', '/v1/integration-health/providers');
+    }
+
+    /**
+     * `GET /v1/embed` — the embed manifest of an instance (public): CSP sources per surface with its hosts filled in, and the merged policy in `tenant.policy`. `shape`: `redirect`|`panel`|`button`.
+     *
+     * @return array<string,mixed>
+     */
+    public function embed(string $instance, ?string $origin = null, ?string $shape = null): array
+    {
+        return $this->http->request('GET', '/v1/embed', query: ['instance' => $instance, 'origin' => $origin, 'shape' => $shape]);
     }
 }

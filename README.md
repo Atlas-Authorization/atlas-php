@@ -287,7 +287,7 @@ null when never reported), `referral_code` and `referral_link`. `referral['statu
 ```php
 $atlas->referrals->update([
     'enabled' => true,
-    'provider' => 'webhook', // the Atlas referral protocol; or 'referally' or another built-in adapter
+    'provider' => 'webhook', // the Atlas referral protocol; or 'referalli' (the legacy id 'referally' is still accepted) or another built-in adapter
     'endpoint_url' => 'https://referrals.example.com/atlas',
     'signing_secret' => getenv('REFERRAL_SIGNING_SECRET'),
     'security' => ['on_high_risk' => 'hold'],
@@ -397,6 +397,33 @@ settings, design and branding), `roles`, `permissions`, `oauthClients`,
 `atlasIdApps`, `designAssets`; needs a platform key).
 
 Anything not wrapped can be called directly with `$atlas->http->request('GET', '/v1/…')`.
+
+## Credentials, options and helpers
+
+```php
+$who = $atlas->whoami->get();                        // which key am I, with which scopes
+$key = $atlas->secretKeys->create(['name' => 'ci', 'expires_at' => time() * 1000 + 86400000]);
+
+// Preview a write without saving it, and follow one operation across systems
+$atlas->withOptions(dryRun: true)->webhooks->endpoints->create(['url' => 'https://app.example.com/hooks']);
+$atlas->withOptions(traceparent: \Atlas\Traceparent::generate())->users->ban('user_1');
+
+// Keys in either format
+\Atlas\KeyFormat::isSecretKey('atlas_live_sk_...');  // true; 'sk_live_...' too
+
+// Webhooks: pass the endpoint URL to also check v2 signatures
+$result = \Atlas\Webhook\Webhook::verify($body, getallheaders(), $secret, url: 'https://app.example.com/hooks');
+```
+
+A CLI or CI job without a secret key uses `Atlas\Auth\OperatorLogin` (device flow, token exchange, partner-link `client_credentials`). A back-channel logout route is one call: `$logout->handle($_POST['logout_token'] ?? '', fn ($claims) => ...)` returns the status and headers to answer with.
+
+**Partner links without a pasted key.** A partner product calls `(new \Atlas\PartnerLink\PartnerLinkRequests())->create([...])`; you `listRequests()` and `approveRequest($id)` / `denyRequest($id)`; Atlas delivers the credentials to the partner's callback, which checks them with `PartnerLinkRequests::verifyDelivery($body, $headers, $requestSecret)`. `setCertificates($linkId, [...])` locks a link to client certificates (mTLS), and `requestOutbound($partner, [...])` asks a partner for a link.
+
+**Keys.** `secretKeys->create()` takes `owner`, `expires_at` (one year by default, never longer) and `allowed_origins` (a call from another browser origin is refused with `ORIGIN_NOT_ALLOWED`: `$e->isOriginNotAllowed()`).
+
+**Replay what an endpoint missed.** `webhooks->endpoints->replay($id, ['since' => 'failing_since'])` starts from the beginning of the last failure streak (endpoints report `last_failing_since`, which survives recovery).
+
+**OIDC relying parties.** `\Atlas\OidcClaims::organization($claims)`, `organizations($claims)` (scope `organizations`) and `sso($claims)` read the `org_*`, `orgs` and `sso_*` claims; `authorizeUrlWithOrganization($url, 'acme')` pins the organization. `(new \Atlas\AtlasIdTokens($frontendApi, $publishableKey))->fetch('referalli', $accessToken)` is the browser `atlas_id_tokens` route for Sign in with Atlas users.
 
 ## Policy acceptance
 

@@ -13,7 +13,10 @@ namespace Atlas\Webhook;
  * delivery more than five minutes from now, in either direction, is refused.
  * The header may carry several space-separated `v1,<base64>` entries (one per
  * secret while a secret rotates with an overlap); the delivery verifies when
- * any one matches. Verify the RAW body, before any JSON decode. Matches `verifyWebhook` in
+ * any one matches. An endpoint with `signature_versions` including `v2` also sends `v2,<base64>` over
+ * `<id>.<timestamp>.<url>.<raw body>`: pass the exact `$url` Atlas posted to (your endpoint's `url`) to check those too, and
+ * `$requireV2 = true` to accept only v2 (a delivery replayed to another URL then fails). Unknown versions are ignored.
+ * Verify the RAW body, before any JSON decode. Matches `verifyWebhook` in
  * `@atlasauth/backend`.
  *
  *     $result = Webhook::verify(file_get_contents('php://input'), getallheaders(), $secret);
@@ -33,6 +36,8 @@ final class Webhook
         string $secret,
         ?int $nowMs = null,
         int $toleranceMs = self::REPLAY_TOLERANCE_MS,
+        ?string $url = null,
+        bool $requireV2 = false,
     ): WebhookVerification {
         $id = self::header($headers, 'atlas-id');
         $tsRaw = self::header($headers, 'atlas-timestamp');
@@ -41,8 +46,10 @@ final class Webhook
             return new WebhookVerification(false, 'missing_headers');
         }
 
-        $provided = self::signatures($signature);
-        if ($provided === []) {
+        $provided = $requireV2 ? [] : self::signatures($signature);
+        // `v2,` entries also cover the URL Atlas posted to; they are checked only when the caller names that URL.
+        $providedV2 = $url !== null && $url !== '' ? self::signatures($signature, 'v2') : [];
+        if ($provided === [] && $providedV2 === []) {
             return new WebhookVerification(false, 'malformed_signature');
         }
 
@@ -64,6 +71,14 @@ final class Webhook
                 $matched = true;
             }
         }
+        if ($providedV2 !== []) {
+            $expectedV2 = base64_encode(hash_hmac('sha256', $id . '.' . $timestamp . '.' . $url . '.' . $body, $secret, true));
+            foreach ($providedV2 as $candidate) {
+                if (hash_equals($expectedV2, $candidate)) {
+                    $matched = true;
+                }
+            }
+        }
         if (!$matched) {
             return new WebhookVerification(false, 'signature_mismatch');
         }
@@ -79,12 +94,12 @@ final class Webhook
      *
      * @return list<string>
      */
-    private static function signatures(string $header): array
+    private static function signatures(string $header, string $version = 'v1'): array
     {
         $out = [];
         foreach (preg_split('/\s+/', trim($header), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $entry) {
             $parts = explode(',', $entry, 2);
-            if (count($parts) === 2 && $parts[0] === 'v1' && $parts[1] !== '') {
+            if (count($parts) === 2 && $parts[0] === $version && $parts[1] !== '') {
                 $out[] = $parts[1];
             }
         }

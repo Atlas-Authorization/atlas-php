@@ -215,4 +215,14 @@ final class Messaging extends Resource
     {
         return $this->http->request('POST', '/v1/messaging_providers/' . rawurlencode($channel) . '/test', body: $body);
     }
+
+    /**
+     * `GET /v1/messaging_providers/:channel` — one channel's provider (`email`|`sms`). `configured` is false, not a 404, when none is set.
+     *
+     * @return array<string,mixed>
+     */
+    public function getChannel(string $channel): array
+    {
+        return $this->http->request('GET', '/v1/messaging_providers/' . rawurlencode($channel));
+    }
 }

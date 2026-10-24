@@ -49,7 +49,24 @@ final class ErrorCode
     public const NOT_FOUND = 'NOT_FOUND';
     public const VALIDATION_FAILED = 'VALIDATION_FAILED';
     public const RATE_LIMITED = 'RATE_LIMITED';
+    /** The legacy spelling of {@see INSUFFICIENT_SCOPE}; older servers send it. {@see isScopeError()} accepts both. */
     public const SCOPE_MISSING = 'SCOPE_MISSING';
+    /** The key lacks a scope for this call (403; `meta.required_scope` names it). */
+    public const INSUFFICIENT_SCOPE = 'INSUFFICIENT_SCOPE';
+    /** A key locked to `allowed_origins` was used from another browser origin (403). */
+    public const ORIGIN_NOT_ALLOWED = 'ORIGIN_NOT_ALLOWED';
+    /** The call needs a recent second factor / re-authentication (`meta` says how). */
+    public const STEP_UP_REQUIRED = 'STEP_UP_REQUIRED';
+    /** No such route (404); `did_you_mean[]`, `allowed_methods[]` and `docs_url` on the error say what was meant. */
+    public const ROUTE_NOT_FOUND = 'ROUTE_NOT_FOUND';
+    /** The call only works on a live instance (not a test-mode one). */
+    public const NOT_A_LIVE_INSTANCE = 'NOT_A_LIVE_INSTANCE';
+    /** The call only works on a test-mode instance. */
+    public const TEST_MODE_ONLY = 'TEST_MODE_ONLY';
+    /** The testing helpers are not available on this deployment. */
+    public const TESTING_UNAVAILABLE = 'TESTING_UNAVAILABLE';
+    /** The partner link needed for this call is not available (e.g. not created or revoked). */
+    public const PARTNER_LINK_UNAVAILABLE = 'PARTNER_LINK_UNAVAILABLE';
     /** An idempotency key was reused with a different request (e.g. another unit or amount). */
     public const IDEMPOTENCY_CONFLICT = 'IDEMPOTENCY_CONFLICT';
     /** A usage debit would exceed one of the API key's spend caps (the `code` of a refused debit). */
@@ -60,6 +77,12 @@ final class ErrorCode
     public const SESSION_IDLE_EXPIRED = 'SESSION_IDLE_EXPIRED';
     /** The session passed its absolute expiry. */
     public const SESSION_EXPIRED = 'SESSION_EXPIRED';
+
+    /** True for the scope-refusal code in either spelling (`INSUFFICIENT_SCOPE`, or the legacy `SCOPE_MISSING`). */
+    public static function isScopeError(?string $code): bool
+    {
+        return $code === self::INSUFFICIENT_SCOPE || $code === self::SCOPE_MISSING;
+    }
 
     private function __construct()
     {

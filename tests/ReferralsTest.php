@@ -200,11 +200,11 @@ final class ReferralsTest extends TestCase
 
         $this->mock->push(200, $settings);
         $this->atlas->referrals->update([
-            'provider' => 'referally', 'tracking_token' => 'tt_public_1', 'code_lookup_url' => null,
+            'provider' => 'referalli', 'tracking_token' => 'tt_public_1', 'code_lookup_url' => null,
             'forward_lifecycle' => false, 'mirror_to_public_metadata' => true, 'include_referral_claims' => true,
         ]);
         $this->assertSame(
-            '{"provider":"referally","tracking_token":"tt_public_1","code_lookup_url":null,"forward_lifecycle":false,"mirror_to_public_metadata":true,"include_referral_claims":true}',
+            '{"provider":"referalli","tracking_token":"tt_public_1","code_lookup_url":null,"forward_lifecycle":false,"mirror_to_public_metadata":true,"include_referral_claims":true}',
             $this->rawBody(),
         );
 

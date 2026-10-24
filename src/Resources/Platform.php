@@ -42,4 +42,114 @@ final class Platform extends Resource
     {
         return $this->http->request('GET', '/v1/platform/config_changelog', query: $params);
     }
+
+    /**
+     * `GET /v1/platform/whoami` — who the platform key is (kind, scopes, owner, expiry, the account).
+     *
+     * @return array<string,mixed>
+     */
+    public function whoami(): array
+    {
+        return $this->http->request('GET', '/v1/platform/whoami');
+    }
+
+    /**
+     * `GET /v1/platform/keys` — the account's platform keys.
+     *
+     * @return array<string,mixed>
+     */
+    public function listKeys(array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/platform/keys', query: $params);
+    }
+
+    /**
+     * `POST /v1/platform/keys` — create a platform key (the secret is shown once).
+     *
+     * @return array<string,mixed>
+     */
+    public function createKey(array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request('POST', '/v1/platform/keys', body: $body, idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * `PATCH /v1/platform/keys/:id`.
+     *
+     * @return array<string,mixed>
+     */
+    public function updateKey(string $id, array $body): array
+    {
+        return $this->http->request('PATCH', '/v1/platform/keys/' . rawurlencode($id), body: $body);
+    }
+
+    /**
+     * `POST /v1/platform/keys/:id/revoke`.
+     *
+     * @return array<string,mixed>
+     */
+    public function revokeKey(string $id): array
+    {
+        return $this->http->request('POST', '/v1/platform/keys/' . rawurlencode($id) . '/revoke');
+    }
+
+    /**
+     * `GET /v1/platform/audit_logs` — the account's audit log (cursor-paginated; entries carry an `actor` object).
+     *
+     * @return array<string,mixed>
+     */
+    public function auditLogs(array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/platform/audit_logs', query: $params);
+    }
+
+    /**
+     * `GET /v1/platform/audit_streams`.
+     *
+     * @return array<string,mixed>
+     */
+    public function listAuditStreams(): array
+    {
+        return $this->http->request('GET', '/v1/platform/audit_streams');
+    }
+
+    /**
+     * `POST /v1/platform/audit_streams`.
+     *
+     * @return array<string,mixed>
+     */
+    public function createAuditStream(array $body): array
+    {
+        return $this->http->request('POST', '/v1/platform/audit_streams', body: $body);
+    }
+
+    /**
+     * `PATCH /v1/platform/audit_streams/:id`.
+     *
+     * @return array<string,mixed>
+     */
+    public function updateAuditStream(string $id, array $body): array
+    {
+        return $this->http->request('PATCH', '/v1/platform/audit_streams/' . rawurlencode($id), body: $body);
+    }
+
+    /**
+     * `DELETE /v1/platform/audit_streams/:id`.
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteAuditStream(string $id): array
+    {
+        return $this->http->request('DELETE', '/v1/platform/audit_streams/' . rawurlencode($id));
+    }
+
+    /**
+     * `POST /v1/platform/audit_streams/:id/test`.
+     *
+     * @return array<string,mixed>
+     */
+    public function testAuditStream(string $id): array
+    {
+        return $this->http->request('POST', '/v1/platform/audit_streams/' . rawurlencode($id) . '/test');
+    }
 }

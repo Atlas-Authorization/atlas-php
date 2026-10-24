@@ -86,6 +86,19 @@ use Atlas\Resources\Testing;
 use Atlas\Resources\Tickets;
 use Atlas\Resources\Usage;
 use Atlas\Resources\Platform;
+use Atlas\Resources\Whoami;
+use Atlas\Resources\SecretKeys;
+use Atlas\Resources\Keys;
+use Atlas\Resources\PartnerLinks;
+use Atlas\Resources\AtlasIdGrants;
+use Atlas\Resources\Privacy;
+use Atlas\Resources\Integrations;
+use Atlas\Resources\Entitlements;
+use Atlas\Resources\Notices;
+use Atlas\Resources\SecurityAdvisories;
+use Atlas\Resources\SubProcessors;
+use Atlas\Resources\AuditExports;
+use Atlas\Resources\Status;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -194,6 +207,19 @@ final class Client
     public readonly Testing $testing;
     public readonly Tickets $tickets;
     public readonly Usage $usage;
+    public readonly Whoami $whoami;
+    public readonly SecretKeys $secretKeys;
+    public readonly Keys $keys;
+    public readonly PartnerLinks $partnerLinks;
+    public readonly AtlasIdGrants $atlasIdGrants;
+    public readonly Privacy $privacy;
+    public readonly Integrations $integrations;
+    public readonly Entitlements $entitlements;
+    public readonly Notices $notices;
+    public readonly SecurityAdvisories $securityAdvisories;
+    public readonly SubProcessors $subProcessors;
+    public readonly AuditExports $auditExports;
+    public readonly Status $status;
     /** Platform-key surface: construct the client with a `psk_…` key to use it. */
     public readonly Platform $platform;
 
@@ -239,6 +265,25 @@ final class Client
     {
         $copy = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
         $copy->wire($this->http->withStrict($strict));
+
+        return $copy;
+    }
+
+    /**
+     * A client sharing this one's key and transport with a dry-run and/or traceparent setting.
+     *
+     * - `dryRun: true`: every write is sent with `?dry_run=true`. Atlas validates the call and answers
+     *   `{"object":"dry_run","dry_run":true,...}` without saving; the Idempotency-Key is not sent.
+     * - `traceparent`: a W3C `traceparent` header value (see {@see Traceparent::generate()}) sent on every
+     *   request; Atlas carries it onto the webhooks, back-channel logouts and privacy cases the call causes.
+     *
+     *     $atlas->withOptions(dryRun: true)->users->update('user_1', ['first_name' => 'Ada']);
+     *     $atlas->withOptions(traceparent: Traceparent::generate())->users->ban('user_1');
+     */
+    public function withOptions(?bool $dryRun = null, ?string $traceparent = null): self
+    {
+        $copy = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $copy->wire($this->http->withOptions($dryRun ?? $this->http->dryRun(), $traceparent ?? $this->http->traceparent()));
 
         return $copy;
     }
@@ -328,6 +373,19 @@ final class Client
         $this->testing = new Testing($http);
         $this->tickets = new Tickets($http);
         $this->usage = new Usage($http);
+        $this->whoami = new Whoami($http);
+        $this->secretKeys = new SecretKeys($http);
+        $this->keys = new Keys($http);
+        $this->partnerLinks = new PartnerLinks($http);
+        $this->atlasIdGrants = new AtlasIdGrants($http);
+        $this->privacy = new Privacy($http);
+        $this->integrations = new Integrations($http);
+        $this->entitlements = new Entitlements($http);
+        $this->notices = new Notices($http);
+        $this->securityAdvisories = new SecurityAdvisories($http);
+        $this->subProcessors = new SubProcessors($http);
+        $this->auditExports = new AuditExports($http);
+        $this->status = new Status($http);
         $this->platform = new Platform($http);
     }
 

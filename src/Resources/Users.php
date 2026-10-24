@@ -17,7 +17,7 @@ final class Users extends Resource
      * with AND; `created_after` / `created_before` are epoch ms; booleans are
      * sent as `true` / `false`.
      *
-     * @param array{limit?:int,starting_after?:string,offset?:int,query?:string,email_address?:string,username?:string,phone_number?:string,external_id?:string,banned?:bool,email_verified?:bool,organization_id?:string,created_after?:int,created_before?:int,order_by?:'created_at'|'-created_at'|'last_sign_in_at'|'-last_sign_in_at',include_total_count?:bool} $params
+     * @param array{limit?:int,starting_after?:string,offset?:int,query?:string,email_address?:string,username?:string,phone_number?:string,external_id?:string,banned?:bool,email_verified?:bool,organization_id?:string,created_after?:int,created_before?:int,updated_after?:int|string,updated_before?:int|string,metadata?:array<string,string>,order_by?:'created_at'|'-created_at'|'updated_at'|'-updated_at'|'last_sign_in_at'|'-last_sign_in_at',include_total_count?:bool} $params
      *
      * @return array<string,mixed> a CursorPage: `{ data, has_more, next_cursor }`
      */

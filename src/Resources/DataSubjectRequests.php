@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Atlas\Resources;
 
-/** `/v1/data_subject_requests` — the GDPR/DSAR admin surface (export/erasure). */
+/**
+ * `/v1/data_subject_requests` — the GDPR/DSAR admin surface. A request's `type` is `access`, `deletion`, `closure`,
+ * `restriction`, `rectification` (create also takes `erase` and the older spellings); entries carry `canonical_type`, `canonicalType`,
+ * `source`, `detail`, `case_id`, `external_case`, `trace_id`, `steps`, `retention`, `deletion_effective_at`. The data-rights
+ * executor routes are on {@see Privacy}.
+ */
 final class DataSubjectRequests extends Resource
 {
     /**

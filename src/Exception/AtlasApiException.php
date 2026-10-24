@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Atlas\Exception;
 
 use Atlas\AtlasException;
+use Atlas\ErrorCode;
 use Atlas\ErrorItem;
 
 /**
@@ -66,13 +67,41 @@ class AtlasApiException extends AtlasException
     /** True when any error in the envelope carries the given stable code. */
     public function hasCode(string $code): bool
     {
+        // INSUFFICIENT_SCOPE is the current spelling of SCOPE_MISSING: either matches either.
+        $wanted = ErrorCode::isScopeError($code) ? [ErrorCode::INSUFFICIENT_SCOPE, ErrorCode::SCOPE_MISSING] : [$code];
         foreach ($this->errors as $error) {
-            if ($error->code === $code) {
+            if (in_array($error->code, $wanted, true)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /** The first error's `did_you_mean` routes (`ROUTE_NOT_FOUND`), or an empty list. @return list<string> */
+    public function getDidYouMean(): array
+    {
+        return $this->errors[0]->didYouMean ?? [];
+    }
+
+    /** True when a browser-origin-locked key was used from another origin (`ORIGIN_NOT_ALLOWED`). */
+    public function isOriginNotAllowed(): bool
+    {
+        return $this->hasCode(ErrorCode::ORIGIN_NOT_ALLOWED);
+    }
+
+    /** True when the call needs a recent second factor (`STEP_UP_REQUIRED`). */
+    public function isStepUpRequired(): bool
+    {
+        return $this->hasCode(ErrorCode::STEP_UP_REQUIRED);
+    }
+
+    /** The scope the key lacks (`meta.required_scope` of an `INSUFFICIENT_SCOPE` error), or null. */
+    public function getRequiredScope(): ?string
+    {
+        $scope = $this->errors[0]->meta['required_scope'] ?? null;
+
+        return is_string($scope) ? $scope : null;
     }
 
     /**

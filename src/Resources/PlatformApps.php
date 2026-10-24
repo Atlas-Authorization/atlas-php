@@ -96,9 +96,22 @@ final class PlatformApps extends Resource
      *
      * @return array<string,mixed>
      */
-    public function bulkDelete(array $ids): array
+    public function bulkDelete(array $ids, bool $dryRun = false): array
     {
-        return $this->http->request('POST', '/v1/platform/apps/bulk_delete', body: ['ids' => $ids]);
+        return $this->http->request('POST', '/v1/platform/apps/bulk_delete', body: ['ids' => $ids], query: ['dry_run' => $dryRun ?: null]);
+    }
+
+    /**
+     * `POST /v1/platform/apps/bulk_delete` by metadata — disable every owned app whose `metadata` matches
+     * (e.g. `['pr' => '123']`), after a CI run. `$dryRun` lists them without disabling.
+     *
+     * @param array<string,string> $metadata
+     *
+     * @return array<string,mixed>
+     */
+    public function bulkDeleteByMetadata(array $metadata, bool $dryRun = false): array
+    {
+        return $this->http->request('POST', '/v1/platform/apps/bulk_delete', body: ['metadata' => $metadata], query: ['dry_run' => $dryRun ?: null]);
     }
 
     /**
@@ -245,5 +258,25 @@ final class PlatformApps extends Resource
             body: ['claim_token' => $claimToken],
             idempotencyKey: $idempotencyKey,
         );
+    }
+
+    /**
+     * `POST /v1/platform/apps/:id/clone_config` — copy an app's configuration into another (a preview or sandbox). Body: `{target_app_id?, ...}`; `external_ref` and `metadata` are accepted.
+     *
+     * @return array<string,mixed>
+     */
+    public function cloneConfig(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request('POST', '/v1/platform/apps/' . rawurlencode($id) . '/clone_config', body: $body, idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * `POST /v1/platform/apps/:id/secret_keys` — create an additional secret key for an owned app (shown once). Body: `{name?, owner?, expires_at?, metadata?, external_ref?}`.
+     *
+     * @return array<string,mixed>
+     */
+    public function createSecretKey(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request('POST', '/v1/platform/apps/' . rawurlencode($id) . '/secret_keys', body: $body, idempotencyKey: $idempotencyKey);
     }
 }
