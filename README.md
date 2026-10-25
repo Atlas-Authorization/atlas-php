@@ -218,6 +218,22 @@ $platform->atlasIdApps->update($app['id'], ['branding' => ['design' => ['logo' =
 $platform->apps->list();                             // apps (instances) your platform provisions
 ```
 
+**Test and review accounts.** Needs the platform scope `platform:atlas_id_apps:provision` (or the per-app scope `atlas_id_apps:<app id>:provision`). The password comes back once, as `password`; pass a `secretRecipient` to get `sealed_password` instead.
+
+```php
+$acct = $platform->atlasIdApps->provisionedAccounts->create($app['id'], ['email' => 'reviewer@example.com', 'label' => 'app-store reviewer']);
+$acct['password'];                                   // shown once; do not log it
+$platform->atlasIdApps->provisionedAccounts->rotatePassword($app['id'], $acct['id'], null, 'x25519:…'); // sealed_password
+$platform->atlasIdApps->provisionedAccounts->list($app['id']);
+$platform->atlasIdApps->provisionedAccounts->remove($app['id'], $acct['id']);
+
+$d = $platform->domains->claim('example.com');       // publish the TXT record in $d['verification']
+$platform->domains->check($d['id']);                 // verify; also list() and remove()
+$platform->atlasIdApps->update($app['id'], ['test_mode' => true, 'provisioned_verified_domains_only' => true]);
+```
+
+`test_mode` lets `qa+atlas_test@your-verified-domain` sign in with the fixed code 424242. Errors: `ErrorCode::TEST_ACCOUNT_RESTRICTED` (403), `PROVISIONED_ACCOUNT_LIMIT_REACHED` (409), `DOMAIN_NOT_VERIFIED` (422).
+
 ### Domain moves, logout fan-out and managed email
 
 ```php

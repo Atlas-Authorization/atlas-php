@@ -20,6 +20,7 @@ final class Platform extends Resource
     public readonly PlatformAtlasIdApps $atlasIdApps;
     public readonly PlatformDesignAssets $designAssets;
     public readonly PlatformAtlasIdPublisher $atlasIdPublisher;
+    public readonly PlatformDomains $domains;
 
     public function __construct(Http $http)
     {
@@ -28,6 +29,7 @@ final class Platform extends Resource
         $this->atlasIdApps = new PlatformAtlasIdApps($http);
         $this->designAssets = new PlatformDesignAssets($http);
         $this->atlasIdPublisher = new PlatformAtlasIdPublisher($http);
+        $this->domains = new PlatformDomains($http);
     }
 
     /**

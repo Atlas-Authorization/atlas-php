@@ -2,6 +2,15 @@
 
 Versions are published from git tags.
 
+## 0.20.0 — 2026-10-25
+
+### Added
+
+- **Test and review accounts for Sign in with Atlas apps.** `$client->platform->atlasIdApps->provisionedAccounts` (`list`, `create`, `get`, `remove`, `rotatePassword`; `/v1/platform/atlas_id_apps/{id}/provisioned_accounts`). Needs the scope `platform:atlas_id_apps:provision` or `atlas_id_apps:<id>:provision`. The password is returned once as `password`; pass `$secretRecipient` to `create` / `rotatePassword` (or set it on the client) to receive `sealed_password` instead.
+- **Verified domains.** `$client->platform->domains` (`list`, `claim`, `check`, `verify`, `remove`; `/v1/platform/domains`).
+- **App settings.** `test_mode` and `provisioned_verified_domains_only` on Sign in with Atlas apps (response and update body).
+- **Errors.** `ErrorCode::TEST_ACCOUNT_RESTRICTED` (403), `PROVISIONED_ACCOUNT_LIMIT_REACHED` (409) and `DOMAIN_NOT_VERIFIED` (422).
+
 ## 0.19.0 — 2026-10-25
 
 ### Added

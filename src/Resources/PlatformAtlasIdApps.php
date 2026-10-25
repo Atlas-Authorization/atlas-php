@@ -18,12 +18,21 @@ namespace Atlas\Resources;
  * @phpstan-import-type DesignPreview from Design
  * @phpstan-type AtlasIdAppCopy array{sign_in_title?:string|null,sign_in_subtitle?:string|null,sign_up_title?:string|null,sign_up_subtitle?:string|null,consent_message?:string|null,support_url?:string|null,support_label?:string|null}
  * @phpstan-type AtlasIdAppBrandingInput array{theme?:'auto'|'light'|'dark'|null,accent_color?:string|null,background_color?:string|null,privacy_policy_url?:string|null,terms_of_service_url?:string|null,copy?:AtlasIdAppCopy|null,design?:AtlasDesign|null}
- * @phpstan-type AtlasIdAppInput array{name?:string,redirect_uris?:list<string>,post_logout_redirect_uris?:list<string>,backchannel_logout_uri?:string|null,backchannel_logout_session_required?:bool,frontchannel_logout_uri?:string|null,frontchannel_logout_session_required?:bool,logo_url?:string|null,homepage_url?:string|null,allowed_scopes?:list<'openid'|'profile'|'email'|'offline_access'>,branding?:AtlasIdAppBrandingInput,type?:'confidential'|'public',webhook_url?:string|null}
+ * @phpstan-type AtlasIdAppInput array{name?:string,redirect_uris?:list<string>,post_logout_redirect_uris?:list<string>,backchannel_logout_uri?:string|null,backchannel_logout_session_required?:bool,frontchannel_logout_uri?:string|null,frontchannel_logout_session_required?:bool,logo_url?:string|null,homepage_url?:string|null,allowed_scopes?:list<'openid'|'profile'|'email'|'offline_access'>,branding?:AtlasIdAppBrandingInput,type?:'confidential'|'public',webhook_url?:string|null,test_mode?:bool,provisioned_verified_domains_only?:bool}
  * @phpstan-type AtlasIdAppBranding array{theme:'auto'|'light'|'dark',accent_color:string|null,background_color:string|null,privacy_policy_url:string|null,terms_of_service_url:string|null,copy:AtlasIdAppCopy,design?:AtlasDesign|null,resolved_design?:array<string,mixed>}
- * @phpstan-type AtlasIdApp array{object:'atlas_id_app',id:string,client_id:string,name:string,logo_url?:string|null,homepage_url?:string|null,branding?:AtlasIdAppBranding,redirect_uris:list<string>,post_logout_redirect_uris:list<string>,backchannel_logout_uri:string|null,backchannel_logout_session_required:bool,frontchannel_logout_uri:string|null,frontchannel_logout_session_required:bool,allowed_scopes:list<string>,type:'confidential'|'public',secret_prefix?:string|null,managed_by_instance_id?:string|null,managed_via?:'instance_toggle'|'adopted'|null,button_rendered_origins?:list<array{origin:string,last_seen_at:int,requests:int}>,sealed_client_secret?:string,sealed_webhook_secret?:string,secrets_sealed?:array{algorithm:string,recipient:string,fields:list<string>},created_at:int,updated_at:int,user_count?:int,client_secret?:string,webhook_url?:string|null,webhook_events?:list<string>,webhook_active?:bool|null,webhook_secret?:string,webhook_previous_secret_expires_at?:int|null,previous_secret_expires_at?:int|null,secret_issued_at?:int|null,overlap_seconds?:int}
+ * @phpstan-type AtlasIdApp array{object:'atlas_id_app',id:string,client_id:string,name:string,logo_url?:string|null,homepage_url?:string|null,branding?:AtlasIdAppBranding,redirect_uris:list<string>,post_logout_redirect_uris:list<string>,backchannel_logout_uri:string|null,backchannel_logout_session_required:bool,frontchannel_logout_uri:string|null,frontchannel_logout_session_required:bool,allowed_scopes:list<string>,type:'confidential'|'public',secret_prefix?:string|null,managed_by_instance_id?:string|null,managed_via?:'instance_toggle'|'adopted'|null,button_rendered_origins?:list<array{origin:string,last_seen_at:int,requests:int}>,sealed_client_secret?:string,sealed_webhook_secret?:string,secrets_sealed?:array{algorithm:string,recipient:string,fields:list<string>},created_at:int,updated_at:int,user_count?:int,client_secret?:string,webhook_url?:string|null,webhook_events?:list<string>,webhook_active?:bool|null,webhook_secret?:string,webhook_previous_secret_expires_at?:int|null,previous_secret_expires_at?:int|null,secret_issued_at?:int|null,overlap_seconds?:int,test_mode?:bool,provisioned_verified_domains_only?:bool}
+ * @phpstan-type AtlasIdProvisionedAccount array{object:'atlas_id_provisioned_account',id:string,sub:string,email:string|null,email_verified:bool,label:string,kind:'provisioned'|'test_mode'|'developer',provisioned_by:'app'|'staff',app_ids:list<string>,apps:list<array{id:string,client_id:string,name:string}>,any_app:bool,two_factor_exempt:bool,expires_at:int|null,expired:bool,developer_account_id:string|null,created_by:array{type:string,id:string},last_sign_in_at:int|null,password_rotated_at:int|null,created_at:int,updated_at:int,password?:string,sealed_password?:string,note?:string}
  */
 final class PlatformAtlasIdApps extends Resource
 {
+    public readonly PlatformProvisionedAccounts $provisionedAccounts;
+
+    public function __construct(\Atlas\Http $http)
+    {
+        parent::__construct($http);
+        $this->provisionedAccounts = new PlatformProvisionedAccounts($http);
+    }
+
     /**
      * `GET /v1/platform/atlas_id_apps` — your Sign in with Atlas apps, with the
      * issuer and discovery URL. Never a secret.
@@ -47,6 +56,8 @@ final class PlatformAtlasIdApps extends Resource
      *   `logout_token` here on sign-out; verify it with
      *   {@see \Atlas\Verify\BackchannelLogout}.
      * - `frontchannel_logout_uri` (+ `_session_required`).
+     * - `test_mode` (default false): `+atlas_test` addresses on a verified domain sign in with the fixed code 424242.
+     * - `provisioned_verified_domains_only`: test and review accounts must use an address on a verified domain.
      * - `branding`: `theme`, `accent_color`, `background_color`,
      *   `privacy_policy_url`, `terms_of_service_url`, `copy` (page text; `{app}`
      *   becomes the app name) and `design` (a full design, see {@see Design}).

@@ -42,6 +42,12 @@ final class ErrorCode
     public const REFERRAL_CODE_TAKEN = 'REFERRAL_CODE_TAKEN';
     /** Managed WAF provision or deprovision on an instance with no WAF configuration saved (422; `meta.action`). */
     public const MANAGED_WAF_NOT_CONFIGURED = 'MANAGED_WAF_NOT_CONFIGURED';
+    /** A Sign in with Atlas test or review account used somewhere it is not confined to: another app, the dashboard or account settings (403). */
+    public const TEST_ACCOUNT_RESTRICTED = 'TEST_ACCOUNT_RESTRICTED';
+    /** The account already holds the maximum number of test accounts (409; 25 by default across all apps). */
+    public const PROVISIONED_ACCOUNT_LIMIT_REACHED = 'PROVISIONED_ACCOUNT_LIMIT_REACHED';
+    /** The setting or address needs a verified domain, and there is none (422). Also returned when an expired test account signs in. */
+    public const DOMAIN_NOT_VERIFIED = 'DOMAIN_NOT_VERIFIED';
     /** A billing plan that subscriptions still use cannot be deleted. */
     public const PLAN_IN_USE = 'PLAN_IN_USE';
     /** The key is valid but for a different API surface (e.g. a platform key on an instance route). */
