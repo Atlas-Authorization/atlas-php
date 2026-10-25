@@ -62,7 +62,7 @@ final class OperatorLogin
     /**
      * `GET /v1/operator` — where the device flow and token exchange live.
      *
-     * @return array<string,mixed> `{client_id, scope, device_authorization_endpoint, token_endpoint, ...}`
+     * @return array<string,mixed> `{client_id, scope, device_authorization_endpoint, token_endpoint, ..., audiences?: list<string> (other products that accept Atlas operators), access_token_claims?: list<string>}`
      */
     public function configuration(): array
     {

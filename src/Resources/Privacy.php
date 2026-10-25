@@ -72,7 +72,7 @@ final class Privacy extends Resource
     }
 
     /**
-     * The orchestrator Atlas opens deletion cases at (secrets are write-only: `api_key_set`, `signing_secret_set`).
+     * The orchestrator Atlas opens deletion cases at (secrets are write-only: `api_key_set`, `signing_secret_set`). Also reads `partner_link_id`, `site_id` and `cancel_deletion_on_sign_in`.
      *
      * @return array<string,mixed>
      */
@@ -82,7 +82,7 @@ final class Privacy extends Resource
     }
 
     /**
-     * Set it: `{provider?, name?, enabled?, case_url?, cancel_url?, auth_header?, auth_scheme?: bearer|raw, api_key?, use_partner_link?, open_closure_cases?, sign_requests?, completion_webhook_url?}`. A new `signing_secret` / `completion_webhook_secret` is shown once.
+     * Set it: `{provider?, name?, enabled?, case_url?, cancel_url?, auth_header?, auth_scheme?: bearer|raw, api_key?, use_partner_link?, partner_link_id? (implies use_partner_link), site_id?, open_closure_cases?, cancel_deletion_on_sign_in?, sign_requests?, completion_webhook_url?}`; send `null` for `partner_link_id` / `site_id` to clear them. A new `signing_secret` / `completion_webhook_secret` is shown once.
      *
      * @return array<string,mixed>
      */

@@ -106,23 +106,49 @@ final class Sessions extends Resource
 
     /**
      * `POST /v1/sessions/:id/integration_tokens/:integration` — an identity-integration token for this session: a preset such as `chatly`, or a custom integration id.
+     * `$audience` picks a per-call audience (the integration's `per_call_audience`): `audience` (the whole audience), `cbid`, or the integration's own parameter by name; a value it does not permit is refused (403).
      *
+     * @param array<string,string> $audience
      * @return array<string,mixed>
      */
-    public function createIntegrationToken(string $id, string $integration): array
+    public function createIntegrationToken(string $id, string $integration, array $audience = []): array
     {
-        return $this->http->request('POST', '/v1/sessions/' . rawurlencode($id) . '/integration_tokens/' . rawurlencode($integration));
+        return $this->http->request('POST', '/v1/sessions/' . rawurlencode($id) . '/integration_tokens/' . rawurlencode($integration), query: $audience === [] ? null : $audience);
     }
 
     /**
-     * `getToken($id, 'template')` mints a JWT-template token ({@see createToken()}); `getToken($id, ['for' => 'chatly'])` mints an integration token ({@see createIntegrationToken()}).
+     * `getToken($id, 'template')` mints a JWT-template token ({@see createToken()}); `getToken($id, ['for' => 'chatly'])` mints an integration token ({@see createIntegrationToken()}); a per-call audience goes in the same array: `['for' => 'acme', 'audience' => 'acme:t1']`, `['for' => 'acme', 'cbid' => 's1']` or `['for' => 'acme', 'audienceParams' => ['tenant' => 't1']]`.
      *
      * @return array<string,mixed>
      */
     public function getToken(string $id, string|array $what): array
     {
         return is_array($what)
-            ? $this->createIntegrationToken($id, (string) ($what['for'] ?? throw new \InvalidArgumentException('getToken() needs [\'for\' => $integration].')))
+            ? $this->createIntegrationToken(
+                $id,
+                (string) ($what['for'] ?? throw new \InvalidArgumentException('getToken() needs [\'for\' => $integration].')),
+                self::audienceQuery($what),
+            )
             : $this->createToken($id, $what);
+    }
+
+    /**
+     * @param array<string,mixed> $what
+     *
+     * @return array<string,string>
+     */
+    private static function audienceQuery(array $what): array
+    {
+        $query = [];
+        foreach (($what['audienceParams'] ?? []) as $name => $value) {
+            $query[(string) $name] = (string) $value;
+        }
+        foreach (['cbid', 'audience'] as $key) {
+            if (isset($what[$key]) && $what[$key] !== '') {
+                $query[$key] = (string) $what[$key];
+            }
+        }
+
+        return $query;
     }
 }

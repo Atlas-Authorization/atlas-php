@@ -60,7 +60,7 @@ final class PartnerLinks extends Resource
     }
 
     /**
-     * List the outbound links.
+     * List the outbound links (`source`: `manual`, `oauth_install` or `registration`, a partner platform's stored partner token).
      *
      * @return array<string,mixed>
      */

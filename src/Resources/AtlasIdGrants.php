@@ -31,7 +31,8 @@ final class AtlasIdGrants extends Resource
     }
 
     /**
-     * The grants of the user with this email on an app.
+     * The grants of the user with this email on an app. The platform routes `GET /v1/platform/atlas_id_apps/{id}/users` and
+     * `DELETE /v1/platform/atlas_id_apps/{id}/grants/{grantId}` also accept the managing instance's secret key; this is the instance-key form of that call.
      *
      * @return array<string,mixed>
      */

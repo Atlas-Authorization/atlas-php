@@ -2,6 +2,18 @@
 
 Versions are published from git tags.
 
+## 0.19.0 — 2026-10-25
+
+### Added
+
+- **Partner platforms.** `$client->partnerPlatforms` (`list`, `get`, `set`, `remove`, `registration`, `storeToken`, `deliveries`; `/v1/partner_platforms`). The partner token is write-only: `storeToken($partner, $token, rotate: false, apiBaseUrl: null)` sends it in the request body only, and no answer carries it (`token_set` and `token_prefix` only).
+- **Per-call audiences.** `integrations->set($id, ['per_call_audience' => ['param' => ..., 'template' => ..., 'allowed' => [...], 'any_matching' => ...]])` (`null` turns it off), and `sessions->getToken($id, ['for' => $integration, 'audience' => ..., 'cbid' => ..., 'audienceParams' => [...]])` / `createIntegrationToken($id, $integration, $audience)` mint a token for one permitted audience.
+- **Data-rights orchestrator.** `privacy->setOrchestrator` accepts `partner_link_id`, `site_id` and `cancel_deletion_on_sign_in`; the read answer carries them. Outbound partner links report `source: registration` for a partner platform's stored partner token.
+- **Settings.** `auth_config.compliance.retention.cancelDeletionOnSignIn`; `OperatorLogin::configuration()` documents `audiences` and `access_token_claims`.
+- **Users.** `users->list(['include_deleted' => true])` lists soft-deleted users still in their scrub window.
+- **Errors.** `ErrorCode::MANAGED_WAF_NOT_CONFIGURED` (422, `meta.action`).
+- **Sign in with Atlas grants.** `atlasIdGrants->lookup()` / `revoke()` document that the matching platform routes also accept the managing instance's secret key.
+
 ## 0.18.0 — 2026-10-24
 
 ### Added

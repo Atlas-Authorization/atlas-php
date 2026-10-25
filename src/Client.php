@@ -35,6 +35,7 @@ use Atlas\Resources\LogStreams;
 use Atlas\Resources\LogoutNotifyEndpoints;
 use Atlas\Resources\LtiPlatforms;
 use Atlas\Resources\ManagedWaf;
+use Atlas\Resources\PartnerPlatforms;
 use Atlas\Resources\Messaging;
 use Atlas\Resources\NetworkAcls;
 use Atlas\Resources\OAuthClients;
@@ -211,6 +212,7 @@ final class Client
     public readonly SecretKeys $secretKeys;
     public readonly Keys $keys;
     public readonly PartnerLinks $partnerLinks;
+    public readonly PartnerPlatforms $partnerPlatforms;
     public readonly AtlasIdGrants $atlasIdGrants;
     public readonly Privacy $privacy;
     public readonly Integrations $integrations;
@@ -382,6 +384,7 @@ final class Client
         $this->secretKeys = new SecretKeys($http);
         $this->keys = new Keys($http);
         $this->partnerLinks = new PartnerLinks($http);
+        $this->partnerPlatforms = new PartnerPlatforms($http);
         $this->atlasIdGrants = new AtlasIdGrants($http);
         $this->privacy = new Privacy($http);
         $this->integrations = new Integrations($http);

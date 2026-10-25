@@ -32,6 +32,9 @@ final class Integrations extends Resource
 
     /**
      * Connect or replace an integration. `['dry_run' => true]` validates and saves nothing.
+     * `per_call_audience` (`{param, template, allowed[], any_matching}`) lets the integration mint for more than one
+     * audience (`template` has `{param}` once; a preset's is fixed, leave it out); `null` turns it off, omitting it keeps
+     * the current one. The read answer carries it, plus `default` (true for a preset's).
      *
      * @return array<string,mixed>
      */
