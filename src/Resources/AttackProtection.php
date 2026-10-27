@@ -24,4 +24,44 @@ final class AttackProtection extends Resource
     {
         return $this->http->request('PATCH', '/v1/attack_protection', body: $body);
     }
+
+    /**
+     * `PUT /v1/attack_protection/app_attestation_secret` - Store the Play Integrity response-decryption
+     * key (base64 AES-256) for app attestation. Write-only; the public verification key is
+     * attackProtection.appAttestation.android.verificationKey.
+     *
+     * @param array{secret?:string,kind?:'play_integrity'|'devicecheck'} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function setAppAttestationSecret(array $body = [], array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'PUT',
+            '/v1/attack_protection/app_attestation_secret',
+            body: $body,
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `DELETE /v1/attack_protection/app_attestation_secret` - Remove a stored attestation secret: the Play
+     * Integrity decryption key (default) or, with kind=devicecheck, the Apple DeviceCheck key. That
+     * platform then refuses every request.
+     *
+     * @param array{dry_run?:'true'|'false',kind?:'play_integrity'|'devicecheck'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function removeAppAttestationSecret(array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/attack_protection/app_attestation_secret',
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
 }

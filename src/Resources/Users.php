@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Atlas\Resources;
 
+use Atlas\Http;
+
 /**
  * `/v1/users` — user records, their emails, identities, OAuth tokens and grants.
  *
@@ -12,6 +14,20 @@ namespace Atlas\Resources;
  */
 final class Users extends Resource
 {
+    public readonly UsersRequiredActions $requiredActions;
+    public readonly UsersNotes $notes;
+    public readonly UsersGuardians $guardians;
+    public readonly UsersSearch $search;
+
+    public function __construct(Http $http)
+    {
+        parent::__construct($http);
+        $this->requiredActions = new UsersRequiredActions($http);
+        $this->notes = new UsersNotes($http);
+        $this->guardians = new UsersGuardians($http);
+        $this->search = new UsersSearch($http);
+    }
+
     /**
      * `GET /v1/users` — cursor-paginated (or `offset`). Every filter combines
      * with AND; `created_after` / `created_before` are epoch ms; booleans are
@@ -688,5 +704,108 @@ final class Users extends Resource
     public function state(string $id): array
     {
         return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/state');
+    }
+
+    /**
+     * `GET /v1/users/:id/history` - The user change history, newest first: every profile, metadata and
+     * status change (ban, lock, directives and their reversal) with who made it, the reason and expiry,
+     * and each changed field with its value before and after. A password change and private_metadata
+     * values are recorded as redacted (the field name only). Pages with starting_after.
+     *
+     * @param array{limit?:int,starting_after?:string,action?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function history(string $id, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/history', query: $params);
+    }
+
+    /**
+     * `GET /v1/users/:id/minor_status` - A user's parental-consent state (not_required for anyone at or
+     * above the age of digital consent) and their guardian links, newest first.
+     *
+     * @return array<string,mixed>
+     */
+    public function minorStatus(string $id): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/minor_status');
+    }
+
+    /**
+     * `POST /v1/users/:id/minor_status/assess` - Re-assess a user from their date-of-birth trait now (for
+     * users created before age gating was turned on). 400 when compliance.minors is off.
+     *
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function assessMinor(string $id, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/minor_status/assess',
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/users/:id/links` - Mint an email-verification or password-reset link (and code) for a user
+     * WITHOUT sending it, for support tools and invite flows that deliver it themselves. type
+     * "email_verification" needs an unverified address (default: the primary); the url opens GET
+     * /v1/client/email_addresses/verify and the code works wherever the address is verified by code. type
+     * "password_reset" needs a verified address and returns the url and/or code the instance's
+     * password-reset setting would have mailed, plus the reset attempt_id; redeeming it is the ordinary
+     * reset (it still asks for the second factor and sets a new password). Single-use, expires_in_seconds
+     * 60 to 86400 (default 3600). Audited as user.link_generated, never with the secret. Treat the
+     * response as a credential. → 201.
+     *
+     * @param array{type:'password_reset'|'email_verification',email_address_id?:string,expires_in_seconds?:int} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function createLink(string $id, array $body, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/links',
+            body: $body,
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/users/:id/device_keys` - List a user’s device keys (native biometric sign-in). Never
+     * returns key material.
+     *
+     * @param array{limit?:int,starting_after?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function listDeviceKeys(string $id, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/device_keys', query: $params);
+    }
+
+    /**
+     * `DELETE /v1/users/:id/device_keys/:keyId` - Revoke one of a user’s device keys so that device can no
+     * longer sign in. Scoped to the user; the account holder is notified when account-change notices are
+     * on.
+     *
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteDeviceKey(string $id, string $keyId, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/users/' . rawurlencode($id) . '/device_keys/' . rawurlencode($keyId),
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
     }
 }

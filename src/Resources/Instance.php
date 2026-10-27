@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Atlas\Resources;
 
+use Atlas\Http;
+
 /**
  * `/v1/instance` — instance configuration. The instance is the tenant's
  * environment (its publishable key, frontend API host, allowed origins and auth
@@ -30,6 +32,14 @@ namespace Atlas\Resources;
  */
 final class Instance extends Resource
 {
+    public readonly InstanceIntegrations $integrations;
+
+    public function __construct(Http $http)
+    {
+        parent::__construct($http);
+        $this->integrations = new InstanceIntegrations($http);
+    }
+
     /** Cookie settings link preset: Cookiemunch's trigger. */
     public const COOKIE_SETTINGS_LINK_PRESET_COOKIEMUNCH = 'cookiemunch';
     /** Cookie settings link preset: Cookiebot's trigger. */
