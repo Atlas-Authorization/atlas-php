@@ -109,4 +109,41 @@ final class Fga extends Resource
     {
         return new FgaStoreScope($this, $storeId);
     }
+
+    /**
+     * `POST /v1/fga/stores/:id/list-users` - List the users that have a relation on an object, filtered to
+     * one user type (or to `type#relation` usersets via `user_filters[0].relation`). Exact for wildcards
+     * (`type:*` plus `excluded_users` under `but not`), nested groups and contextual tuples; tuple
+     * conditions are evaluated against `context`. Pages with `page_size` / `continuation_token`;
+     * `consistency` / `consistency_token` behave as on check.
+     *
+     * @param array{object?:mixed,relation?:string,user_filters?:list<array<string,mixed>>,authorization_model_id?:string,contextual_tuples?:mixed,context?:array<string,mixed>,page_size?:int,continuation_token?:string,consistency?:'UNSPECIFIED'|'MINIMIZE_LATENCY'|'HIGHER_CONSISTENCY',consistency_token?:string} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function listUsers(string $id, array $body = [], array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/fga/stores/' . rawurlencode($id) . '/list-users',
+            body: $body,
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/fga/stores/:id/changes` - Read the store’s tuple changelog: every tuple write and delete in
+     * commit order, resumable with `continuation_token` (returned even on the last page — pass it later to
+     * receive only newer changes). Filter by object `type` and `start_time`.
+     *
+     * @param array{type?:string,page_size?:int,continuation_token?:string,start_time?:string,limit?:int,starting_after?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function readChanges(string $id, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/fga/stores/' . rawurlencode($id) . '/changes', query: $params);
+    }
 }

@@ -173,4 +173,40 @@ final class OpenFga extends Resource
     {
         return $this->http->request('POST', '/v1/openfga/stores/' . rawurlencode($storeId) . '/write', body: $body);
     }
+
+    /**
+     * `POST /v1/openfga/stores/:store/list-users` - List the users that have a relation on an object
+     * (OpenFGA-wire ListUsers): concrete users, usersets (`user_filters[0].relation`), and the `type:*`
+     * wildcard with `excluded_users`. Honours contextual tuples and tuple conditions; pages with
+     * `page_size` / `continuation_token`.
+     *
+     * @param array{object:array{type:string,id:string},relation:string,user_filters:list<array<string,mixed>>,authorization_model_id?:string,contextual_tuples?:array{tuple_keys:list<mixed>},context?:array<string,mixed>,consistency?:'UNSPECIFIED'|'MINIMIZE_LATENCY'|'HIGHER_CONSISTENCY',consistency_token?:string,page_size?:int,continuation_token?:string} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function listUsers(string $store, array $body, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/openfga/stores/' . rawurlencode($store) . '/list-users',
+            body: $body,
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/openfga/stores/:store/changes` - Read the tuple changelog (OpenFGA-wire ReadChanges): every
+     * tuple write and delete in order, resumable with `continuation_token` (the token is returned even on
+     * the last page — pass it later to receive only newer changes).
+     *
+     * @param array{type?:string,page_size?:int,continuation_token?:string,start_time?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function readChanges(string $store, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/openfga/stores/' . rawurlencode($store) . '/changes', query: $params);
+    }
 }

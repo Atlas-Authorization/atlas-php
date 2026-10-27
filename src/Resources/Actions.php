@@ -78,4 +78,18 @@ final class Actions extends Resource
             body: ['action_ids' => $actionIds],
         );
     }
+
+    /**
+     * `GET /v1/actions/:id/calls` - The call log of an `http` Action (an Action that calls your own
+     * endpoint), newest first, with 24 hour stats: calls, denied, failed, timeouts and p95 latency. Real
+     * calls and dry-run tests are both logged (`test`). 409 for a `node` Action.
+     *
+     * @param array{limit?:int,status?:'ok'|'denied'|'failed'|'timeout'|'error'|'invalid_response',test?:bool,starting_after?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function calls(string $id, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/actions/' . rawurlencode($id) . '/calls', query: $params);
+    }
 }

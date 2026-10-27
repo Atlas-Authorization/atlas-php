@@ -2,6 +2,20 @@
 
 Versions are published from git tags.
 
+## Unreleased
+
+### Added
+
+- **Backend API parity.** 452 operations added so the client covers every public Backend-API route.
+  - New namespaces on `Atlas\Client`: `appCatalog`, `ldapServerClients`, `journeys`, `groups` (+ `rules`), `migrations` (+ `imports`), `managedGrants`, `leastPrivilege`, `deliveryHealth`, `flags`, `mfaFactors` (+ `yubikeys`, `smartCardMappings`), `analytics` (+ `reports`, `alertRules`), `marketing`, `auditEventSchemas`, `directoryPullSources` (+ `syncRuns`), `relayAgents`, `oauthClientProfiles`, `passkeyApi`, `vc` (+ `credentialTypes`, `credentials`, `presentationRequests`), `listen`, `agentRegistration`, `agents`, `agentAccessRequests`, `workflows`, `pageTemplates`, `serviceConnectors`, `desktopMfa`, `identityVerification`, `iga` (`entitlements`, `requests`, `grants`, `delegations`, `sod`, `lifecycle`, `campaigns`), `scimProvisioningPresets`, `vault` (+ `keyProvider`), `connections` (+ `oauthClients`, `webhooks`), `ssf` (`streams`, `receivers`), `networkZones`, `accessPolicies`, `abac` (`templates`, `links`, `schema`), `resources` (`types`, `assignments`), `orgRoleGrants`, `devices`, `authzDecisions` (+ `settings`), `policyBundles`, `proxyApps`, `mcpGateways` (+ `budgets`).
+  - New sub-namespaces: `users->requiredActions`, `users->notes`, `users->guardians`, `users->search` (+ `views`), `organizations->webhookEndpoints`, `oauthClients->appSettings`, `oauthClients->workloadIdentity`, `oauthClients->trustedIssuers`, `oauthClients->loginRequests`, `oauthClients->consentRequests`, `orgLdapConnections->syncRuns`, `instance->integrations`.
+  - New methods on existing namespaces: `users`, `organizations`, `oauthClients`, `orgLdapConnections`, `actions`, `fga` and `openFga` (`listUsers`, `readChanges`), `attackProtection`, `riskBasedMfa`, `integrations`.
+  - Nothing existing changed: every earlier public method, property and constant keeps its name and signature (guarded by a compatibility test).
+  - `listen->streamSession` returns the event-stream text and `policyBundles->archive` the gzip bytes as strings.
+- **Risk-event timeline.** `$client->riskBasedMfa->listEvents` (`GET /v1/risk_events`), `eventMetrics` (`GET /v1/risk_events/metrics`) and `eventFeedback($id, $verdict)` (`POST /v1/risk_events/{id}/feedback`, verdict `legit` or `fraud`).
+- **Fraud lookup.** `$client->riskBasedMfa->fraudLookup` (`POST /v1/fraud/lookup`).
+- `riskBasedMfa->update` documents `mode`, `level_actions`, `reputation`, `fraud`, `baseline` and `mid_session`.
+
 ## 0.20.0 — 2026-10-25
 
 ### Added

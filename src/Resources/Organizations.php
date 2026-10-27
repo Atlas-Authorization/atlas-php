@@ -19,6 +19,7 @@ use Atlas\Http;
  */
 final class Organizations extends Resource
 {
+    public readonly OrganizationsWebhookEndpoints $webhookEndpoints;
     /** The organization policy keys the API knows about (camelCase, as sent). */
     public const POLICY_FIELDS = [
         'requireMfa', 'ssoRequired', 'sessionIdleOverrideMs', 'allowedSignInMethods',
@@ -38,6 +39,7 @@ final class Organizations extends Resource
     public function __construct(Http $http)
     {
         parent::__construct($http);
+        $this->webhookEndpoints = new OrganizationsWebhookEndpoints($http);
         $this->memberships = new OrganizationMemberships($http);
         $this->invitations = new OrganizationInvitations($http);
         $this->domains = new OrganizationDomains($http);
@@ -287,5 +289,59 @@ final class Organizations extends Resource
     public function updateBranding(string $id, array $body): array
     {
         return $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/branding', body: $body);
+    }
+
+    /**
+     * `GET /v1/organizations/:id/connected_apps` - List the apps (OAuth clients) that hold an active grant
+     * in this organization's context, one entry per grant.
+     *
+     * @param array{limit?:int,starting_after?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function listConnectedApps(string $id, array $params = []): array
+    {
+        return $this->http->request(
+            'GET',
+            '/v1/organizations/' . rawurlencode($id) . '/connected_apps',
+            query: $params,
+        );
+    }
+
+    /**
+     * `DELETE /v1/organizations/:id/connected_apps/:grantId` - Revoke one connected app grant of the
+     * organization: its tokens and any session minted from it stop working. Emits grant.revoked; audited
+     * as organization.connected_app_revoked.
+     *
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function revokeConnectedApp(string $id, string $grantId, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/organizations/' . rawurlencode($id) . '/connected_apps/' . rawurlencode($grantId),
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/organizations/:id/connections/:connectionId/secret` - The same read, scoped to an
+     * organization: 404 unless the connection is owned by that organization. Needs
+     * connections:secret_read; audited.
+     *
+     * @param array{version?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function getConnectionSecret(string $id, string $connectionId, array $params = []): array
+    {
+        return $this->http->request(
+            'GET',
+            '/v1/organizations/' . rawurlencode($id) . '/connections/' . rawurlencode($connectionId) . '/secret',
+            query: $params,
+        );
     }
 }

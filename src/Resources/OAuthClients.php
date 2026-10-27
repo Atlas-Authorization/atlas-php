@@ -18,11 +18,21 @@ use Atlas\Http;
  */
 final class OAuthClients extends Resource
 {
+    public readonly OAuthClientsAppSettings $appSettings;
+    public readonly OAuthClientsWorkloadIdentity $workloadIdentity;
+    public readonly OAuthClientsTrustedIssuers $trustedIssuers;
+    public readonly OAuthClientsLoginRequests $loginRequests;
+    public readonly OAuthClientsConsentRequests $consentRequests;
     public readonly OAuthClientGrants $grants;
 
     public function __construct(Http $http)
     {
         parent::__construct($http);
+        $this->appSettings = new OAuthClientsAppSettings($http);
+        $this->workloadIdentity = new OAuthClientsWorkloadIdentity($http);
+        $this->trustedIssuers = new OAuthClientsTrustedIssuers($http);
+        $this->loginRequests = new OAuthClientsLoginRequests($http);
+        $this->consentRequests = new OAuthClientsConsentRequests($http);
         $this->grants = new OAuthClientGrants($http);
     }
 
@@ -128,6 +138,99 @@ final class OAuthClients extends Resource
             'POST',
             '/v1/oauth_clients/import',
             body: ['clients' => $clients],
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `GET /v1/oauth_clients/:id/exchange_policy` - Read the token-exchange policy of an OAuth client (the
+     * defaults, with configured=false, when none is set).
+     *
+     * @return array<string,mixed>
+     */
+    public function getExchangePolicy(string $id): array
+    {
+        return $this->http->request('GET', '/v1/oauth_clients/' . rawurlencode($id) . '/exchange_policy');
+    }
+
+    /**
+     * `PUT /v1/oauth_clients/:id/exchange_policy` - Set the token-exchange policy of an OAuth client:
+     * allowed audiences and scopes, whether it may impersonate (no actor_token), whether delegation needs
+     * may_act, and the maximum act-chain depth. Audited as oauth_exchange_policy.updated.
+     *
+     * @param array{allowed_audiences?:list<string>|null,allowed_scopes?:list<string>|null,id_jag_audiences?:list<string>|null,allow_impersonation?:bool,require_may_act?:bool,max_delegation_depth?:int} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function setExchangePolicy(string $id, array $body, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'PUT',
+            '/v1/oauth_clients/' . rawurlencode($id) . '/exchange_policy',
+            body: $body,
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `DELETE /v1/oauth_clients/:id/exchange_policy` - Remove the token-exchange policy of an OAuth
+     * client, restoring the defaults.
+     *
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteExchangePolicy(string $id, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/oauth_clients/' . rawurlencode($id) . '/exchange_policy',
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `PUT /v1/oauth_clients/:id/profile` - Assign a policy profile to an OAuth client (profile null
+     * clears it). The client must already conform (auth method, redirect URIs); the profile is then
+     * enforced at /oauth2/authorize, /oauth2/par and /oauth2/token.
+     *
+     * @param array{profile:string|null} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function setProfile(string $id, array $body, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'PUT',
+            '/v1/oauth_clients/' . rawurlencode($id) . '/profile',
+            body: $body,
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `PUT /v1/oauth_clients/:id/delegated_ui` - Set (or clear, with null) the URLs of your own sign-in
+     * and consent pages for an OAuth client. /oauth2/authorize then sends the browser there with a
+     * login_challenge / consent_challenge instead of Atlas’s pages. A client URL overrides the
+     * instance-wide oauthProvider.loginUrl / consentUrl.
+     *
+     * @param array{login_url?:string|null,consent_url?:string|null} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function setDelegatedUi(string $id, array $body, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'PUT',
+            '/v1/oauth_clients/' . rawurlencode($id) . '/delegated_ui',
+            body: $body,
+            query: $params,
             idempotencyKey: $idempotencyKey,
         );
     }

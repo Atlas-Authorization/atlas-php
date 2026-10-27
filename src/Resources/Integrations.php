@@ -122,4 +122,25 @@ final class Integrations extends Resource
     {
         return $this->http->request('GET', '/v1/public/instances/' . rawurlencode($id));
     }
+
+    /**
+     * `POST /v1/integrations/:integration/card/actions/:action` - Run a card action. revoke_sessions signs
+     * the user out of every device (their sessions end, back-channel logouts go out) and is audited with
+     * the agent the integration names. Partner link with sessions:write, or the secret key.
+     *
+     * @param array{sub:string,iss?:string,agent?:array{id?:string,name?:string,email?:string}} $body
+     * @param array{dry_run?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function runCardAction(string $integration, string $action, array $body, array $params = [], ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/integrations/' . rawurlencode($integration) . '/card/actions/' . rawurlencode($action),
+            body: $body,
+            query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
 }
