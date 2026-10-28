@@ -1,22 +1,19 @@
 name: CI
 on:
   push:
-  pull_request:
-  workflow_dispatch:
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  test:
+  drupal:
+    # The Drupal module (integrations/drupal) over this SDK.
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php: ["8.1", "8.3"]
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: "8.3"
           extensions: sodium
-      - run: composer install --no-interaction --prefer-dist
+      - run: composer config repositories.drupal composer https://packages.drupal.org/8
+        working-directory: integrations/drupal
+      - run: composer install --no-interaction --prefer-dist --no-plugins
+        working-directory: integrations/drupal
       - run: vendor/bin/phpunit
+        working-directory: integrations/drupal

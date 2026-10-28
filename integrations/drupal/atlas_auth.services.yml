@@ -1,0 +1,4 @@
+services:
+  atlas_auth.user_store:
+    class: Drupal\atlas_auth\Integration\DrupalUserStore
+    arguments: ['@externalauth.externalauth', '@entity_type.manager']

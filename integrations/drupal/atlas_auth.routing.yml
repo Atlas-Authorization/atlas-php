@@ -1,0 +1,27 @@
+atlas_auth.settings:
+  path: '/admin/config/people/atlas'
+  defaults:
+    _form: '\Drupal\atlas_auth\Form\SettingsForm'
+    _title: 'Atlas authentication'
+  requirements:
+    _permission: 'administer atlas_auth'
+
+atlas_auth.start:
+  path: '/user/login/atlas'
+  defaults:
+    _controller: '\Drupal\atlas_auth\Controller\LoginController::start'
+    _title: 'Log in with Atlas'
+  requirements:
+    _user_is_logged_in: 'FALSE'
+  options:
+    no_cache: TRUE
+
+atlas_auth.callback:
+  path: '/user/login/atlas/callback'
+  defaults:
+    _controller: '\Drupal\atlas_auth\Controller\LoginController::callback'
+    _title: 'Log in with Atlas'
+  requirements:
+    _user_is_logged_in: 'FALSE'
+  options:
+    no_cache: TRUE

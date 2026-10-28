@@ -1,0 +1,10 @@
+instance_domain: ''
+client_id: ''
+client_secret: ''
+scopes:
+  - openid
+  - email
+  - profile
+allowed_roles: []
+default_role: ''
+auto_provision: false

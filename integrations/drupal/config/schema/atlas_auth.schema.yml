@@ -1,0 +1,29 @@
+atlas_auth.settings:
+  type: config_object
+  label: 'Atlas authentication settings'
+  mapping:
+    instance_domain:
+      type: string
+      label: 'Instance domain'
+    client_id:
+      type: string
+      label: 'OAuth client id'
+    client_secret:
+      type: string
+      label: 'OAuth client secret'
+    scopes:
+      type: sequence
+      label: 'Scopes'
+      sequence:
+        type: string
+    allowed_roles:
+      type: sequence
+      label: 'Roles allowed to log in with Atlas (empty: any)'
+      sequence:
+        type: string
+    default_role:
+      type: string
+      label: 'Role granted to new accounts'
+    auto_provision:
+      type: boolean
+      label: 'Create accounts on first login'
