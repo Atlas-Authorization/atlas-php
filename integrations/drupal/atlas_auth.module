@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ * Log in with Atlas.
+ */
+
+declare(strict_types=1);
+
+use Drupal\atlas_auth\Core\Options;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_form_FORM_ID_alter() for the user login form.
+ */
+function atlas_auth_form_user_login_form_alter(array &$form, FormStateInterface $form_state): void {
+  $options = Options::fromArray(\Drupal::config('atlas_auth.settings')->get() ?? []);
+  if (!$options->isConfigured()) {
+    return;
+  }
+  $form['atlas_auth'] = [
+    '#type' => 'link',
+    '#title' => t('Log in with Atlas'),
+    '#url' => Url::fromRoute('atlas_auth.start'),
+    '#attributes' => ['class' => ['button', 'button--primary']],
+    '#weight' => -100,
+  ];
+}

@@ -1,0 +1,4 @@
+administer atlas_auth:
+  title: 'Administer Atlas authentication'
+  description: 'Configure the Atlas instance, client credentials and account mapping.'
+  restrict access: true

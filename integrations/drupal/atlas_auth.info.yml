@@ -1,0 +1,9 @@
+name: Atlas Authentication
+type: module
+description: 'Log in with Atlas: OpenID Connect single sign-on with PKCE; the ID token is verified locally against your instance key set.'
+package: Authentication
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - drupal:user
+  - externalauth:externalauth
+configure: atlas_auth.settings
