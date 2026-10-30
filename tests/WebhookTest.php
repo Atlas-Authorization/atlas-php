@@ -66,4 +66,33 @@ final class WebhookTest extends TestCase
         $noV1 = ['Atlas-Signature' => 'v2,abc v0,def'] + $headers;
         self::assertSame('malformed_signature', Webhook::verify(self::BODY, $noV1, self::SECRET, self::NOW)->reason);
     }
+
+    public function testVerifyStandardWebhooks(): void
+    {
+        $key = random_bytes(24);
+        $secret = 'whsec_' . base64_encode($key);
+        $now = 1_757_937_600;
+        $sig = static fn (string $k, int $ts): string => 'v1,' . base64_encode(hash_hmac('sha256', "msg_1.{$ts}." . self::BODY, $k, true));
+        $headers = ['webhook-id' => 'msg_1', 'webhook-timestamp' => (string) $now, 'webhook-signature' => $sig($key, $now)];
+
+        $ok = Webhook::verifyStandard(self::BODY, $headers, $secret, $now);
+        self::assertTrue($ok->verified);
+        self::assertSame('msg_1', $ok->deliveryId);
+        self::assertSame($now, $ok->timestamp);
+        self::assertSame('user.updated', $ok->event['type'] ?? null);
+
+        // A rotation sends one entry per secret; any match verifies.
+        $rotated = ['webhook-signature' => $sig('old-key', $now) . ' ' . $sig($key, $now)] + $headers;
+        self::assertTrue(Webhook::verifyStandard(self::BODY, $rotated, $secret, $now)->verified);
+        // Server-style header keys.
+        $server = ['HTTP_WEBHOOK_ID' => 'msg_1', 'HTTP_WEBHOOK_TIMESTAMP' => (string) $now, 'HTTP_WEBHOOK_SIGNATURE' => $sig($key, $now)];
+        self::assertTrue(Webhook::verifyStandard(self::BODY, $server, $secret, $now)->verified);
+
+        self::assertSame('signature_mismatch', Webhook::verifyStandard(self::BODY . ' ', $headers, $secret, $now)->reason);
+        self::assertSame('signature_mismatch', Webhook::verifyStandard(self::BODY, ['webhook-signature' => $sig('other', $now)] + $headers, $secret, $now)->reason);
+        self::assertSame('stale_timestamp', Webhook::verifyStandard(self::BODY, $headers, $secret, $now + 301)->reason);
+        self::assertSame('stale_timestamp', Webhook::verifyStandard(self::BODY, ['webhook-timestamp' => 'abc'] + $headers, $secret, $now)->reason);
+        self::assertSame('missing_headers', Webhook::verifyStandard(self::BODY, [], $secret, $now)->reason);
+        self::assertSame('malformed_signature', Webhook::verifyStandard(self::BODY, ['webhook-signature' => 'v2,abc'] + $headers, $secret, $now)->reason);
+    }
 }

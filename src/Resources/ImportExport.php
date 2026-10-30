@@ -10,6 +10,7 @@ final class ImportExport extends Resource
     /**
      * Import users through the same per-row path sign-up uses. Deduped by verified email.
      * `notify: false` (the default) guarantees the imported users are sent nothing.
+     * A row takes `image_url` (https; alias `profile_image_url`) like users->create.
      *
      * @param array{users:list<array<string,mixed>>,upsert?:bool,notify?:bool} $body
      *

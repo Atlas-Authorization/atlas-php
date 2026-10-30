@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace Atlas\Resources;
 
-/** `/v1/sign_in_tokens` — one-time sign-in tokens for a user. */
 /**
- * @deprecated POST /v1/sign_in_tokens is deprecated (Sunset 2026-04-01); use
- * Sessions::create (POST /v1/sessions), which mints a real redeemable session.
+ * `/v1/sign_in_tokens` — one-time sign-in tokens for a user.
+ *
+ * @deprecated The sign-in token API is deprecated (sunset 2027-04-01). Use
+ * {@see Sessions::createBrowserTicket()}: the same one-time ticket, plus a ready URL.
  */
 final class SignInTokens extends Resource
 {
     /**
+     * @deprecated The sign-in token API is deprecated (sunset 2027-04-01). Use
+     * {@see Sessions::createBrowserTicket()}: the same one-time ticket, plus a ready URL.
+     *
      * @param array{user_id:string,expires_in_seconds?:int} $body
      *
      * @return array<string,mixed>
@@ -22,8 +26,11 @@ final class SignInTokens extends Resource
     }
 
     /**
-     * `POST /v1/sign_in_tokens/:id/revoke` — revoke an unused sign-in token (deprecated surface; prefer
-     * sessions.create).
+     * `POST /v1/sign_in_tokens/:id/revoke` — revoke an unused sign-in token before its 60-second window
+     * elapses.
+     *
+     * @deprecated The sign-in token API is deprecated (sunset 2027-04-01). Use
+     * {@see Sessions::createBrowserTicket()} (or {@see Sessions::create()} for a server-side session).
      *
      * @return array<string,mixed>
      */

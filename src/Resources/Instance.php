@@ -18,7 +18,7 @@ use Atlas\Http;
  * @phpstan-type PreflightReport array{object:string,ok:bool,checked_at:int,findings:list<PreflightFinding>,sdk_versions_seen?:list<SdkVersionSeen>}
  * @phpstan-type CookieSettingsLinkInput array{label:string,preset?:string|null,attributes?:array<string,string>}
  * @phpstan-type CookieSettingsLink array{label:string,preset:string|null,attributes:array<string,string>,rendered_attributes:array<string,string>}
- * @phpstan-type DeclaredCookie array{name:string|null,pattern:string|null,store:'cookie'|'localStorage'|'sessionStorage'|'indexedDB',domain:string,lifetime_seconds:int|null,lifetime:string,http_only:bool,category:string,purpose:string,written_when:string,set_by:string}
+ * @phpstan-type DeclaredCookie array{name:string|null,pattern:string|null,store:'cookie'|'localStorage'|'sessionStorage'|'indexedDB',domain:string,lifetime_seconds:int|null,lifetime:string,http_only:bool,category:string,purpose:string,purposes?:array<string,string>,lifetime_range?:array{setting:string,min_seconds:int,max_seconds:int,default_seconds:int},written_when:string,set_by:string}
  * @phpstan-type CookieConsent array{object:string,enabled:bool,script_url?:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLink|null,culture?:'page'|'browser',declared_cookies?:list<DeclaredCookie>}
  * @phpstan-type CookieConsentInput array{script_url:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLinkInput|null,culture?:'page'|'browser'|null}
  * @phpstan-type OriginMoveInput array{from:string,to:string,dry_run?:bool}
@@ -71,7 +71,8 @@ final class Instance extends Resource
      * `integration` is `redirect` (hosted-redirect OIDC), `embedded` (the sign-in components run on the
      * origin) or `auto` / null (clear the hint). A plain string keeps the origin's current hint.
      * `auth_config` also takes `strictRequestBodies`, `dangerouslyReportSkippedEmailsAsVerified` and
-     * `branding.audiences`.
+     * `branding.audiences`. The result carries `warnings[]` (`{code, message, field?, hint?, did_you_mean?, origin?}`;
+     * codes `origin_still_referenced` and, on a lenient write, `unknown_field`) for what was not done as sent.
      *
      * @param array{allowed_origins?:list<string|array{origin:string,integration?:'redirect'|'embedded'|'auto'|null}>,auth_config?:array<string,mixed>} $body
      *
@@ -80,6 +81,56 @@ final class Instance extends Resource
     public function update(array $body): array
     {
         return $this->http->request('PATCH', '/v1/instance', body: $body);
+    }
+
+    /**
+     * `GET /v1/instance/sign_in_with_atlas` — "Sign in with Atlas" on the instance:
+     * `{object, enabled, connection_id, managed_via ('instance_toggle'|'linked'|null), connection_status,
+     * available, issuer, candidates: [{id, client_id, managed_by_this_instance}]}`.
+     *
+     * @return array<string,mixed>
+     */
+    public function getSignInWithAtlas(): array
+    {
+        return $this->http->request('GET', '/v1/instance/sign_in_with_atlas');
+    }
+
+    /**
+     * `PATCH /v1/instance/sign_in_with_atlas` — turn it on or off. `enabled: true` links an existing
+     * connection to the Atlas issuer (or the one named by `connection_id`), else creates one.
+     *
+     * @param array{enabled:bool,connection_id?:string|null} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function updateSignInWithAtlas(array $body): array
+    {
+        return $this->http->request('PATCH', '/v1/instance/sign_in_with_atlas', body: $body);
+    }
+
+    /**
+     * `GET /v1/instance/hosted_pages` — where the hosted sign-in, sign-up and account pages send the
+     * browser: `{object: 'hosted_pages', sign_in_url, sign_up_url, user_url, hosted: {sign_in, sign_up, user}}`
+     * (a null URL serves the hosted page).
+     *
+     * @return array<string,mixed>
+     */
+    public function getHostedPages(): array
+    {
+        return $this->http->request('GET', '/v1/instance/hosted_pages');
+    }
+
+    /**
+     * `PATCH /v1/instance/hosted_pages` — send the hosted pages to your app's own pages (302). Each URL
+     * is https on one of the instance's allowed origins; null clears it.
+     *
+     * @param array{sign_in_url?:string|null,sign_up_url?:string|null,user_url?:string|null} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function updateHostedPages(array $body): array
+    {
+        return $this->http->request('PATCH', '/v1/instance/hosted_pages', body: $body);
     }
 
     /**

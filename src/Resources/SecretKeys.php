@@ -6,6 +6,7 @@ namespace Atlas\Resources;
 
 /**
  * `/v1/secret_keys` — secret keys with names, owners, expiry and IP allow-lists (`atlas_<env>_sk_…` or legacy `sk_…`).
+ * The same routes are also served under `/v1/instance/secret_keys`.
  * The secret is shown once, on create and rotate. Pass `secret_recipient` (`x25519:<base64>`, see {@see \Atlas\Auth\SealedBox::generateKeyPair()}) in the create body to get it sealed to your key instead.
  */
 final class SecretKeys extends Resource

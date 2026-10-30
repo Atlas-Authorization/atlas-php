@@ -93,6 +93,7 @@ use Atlas\Resources\Keys;
 use Atlas\Resources\PartnerLinks;
 use Atlas\Resources\AtlasIdGrants;
 use Atlas\Resources\Privacy;
+use Atlas\Resources\AppEvents;
 use Atlas\Resources\Integrations;
 use Atlas\Resources\Entitlements;
 use Atlas\Resources\Notices;
@@ -257,6 +258,8 @@ final class Client
     public readonly PartnerPlatforms $partnerPlatforms;
     public readonly AtlasIdGrants $atlasIdGrants;
     public readonly Privacy $privacy;
+    /** Application webhooks: your app's own events, delivered to your customers' (organizations') endpoints. */
+    public readonly AppEvents $appEvents;
     public readonly Integrations $integrations;
     public readonly Entitlements $entitlements;
     public readonly Notices $notices;
@@ -471,6 +474,7 @@ final class Client
         $this->partnerPlatforms = new PartnerPlatforms($http);
         $this->atlasIdGrants = new AtlasIdGrants($http);
         $this->privacy = new Privacy($http);
+        $this->appEvents = new AppEvents($http);
         $this->integrations = new Integrations($http);
         $this->entitlements = new Entitlements($http);
         $this->notices = new Notices($http);

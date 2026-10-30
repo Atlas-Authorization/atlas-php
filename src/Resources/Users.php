@@ -11,6 +11,10 @@ use Atlas\Http;
  *
  * Every method returns the decoded JSON as an associative array (a page for
  * list, a user object otherwise). `private_metadata` is never returned.
+ *
+ * A user carries `external_accounts`: every linked provider identity
+ * (`{object: 'external_account', id, provider, provider_user_id, provider_email, email_verified, first_name?,
+ * last_name?, image_url?, connected_at}` — epoch ms; tokens never included).
  */
 final class Users extends Resource
 {
@@ -53,7 +57,7 @@ final class Users extends Resource
      * `notify: false` (the default) guarantees no email, SMS or push is sent to the user as a consequence
      * of the create.
      *
-     * @param array<string,mixed> $body {email_address, password?, first_name?, ..., notify?, referral?, referral_code?}
+     * @param array<string,mixed> $body {email_address, password?, first_name?, ..., image_url? (https; alias profile_image_url?), notify?, referral?, referral_code?}
      *
      * @return array<string,mixed>
      */
@@ -63,7 +67,7 @@ final class Users extends Resource
     }
 
     /**
-     * @param array<string,mixed> $body {first_name?, last_name?, external_id?, public_metadata?, private_metadata?, referral_code?}
+     * @param array<string,mixed> $body {first_name?, last_name?, external_id?, public_metadata?, private_metadata?, referral_code?, image_url? (null clears; alias profile_image_url?)}
      *
      * @return array<string,mixed>
      */

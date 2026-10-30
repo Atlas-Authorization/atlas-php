@@ -23,8 +23,10 @@ final class ApiKeys extends Resource
      * Mint a key. The secret is returned once, here. Pass `limits` to set per-key spend caps, metered
      * with {@see recordUsage()}. The returned key carries `limits` and `usage` (each cap with its
      * current-window `used`, `remaining`, `window_start` and `resets_at`).
+     * `scopes` sets the key's scopes; `import` brings an existing key over by its hash (`secret_hash`,
+     * `hash_algorithm` `sha256` or `sha256_hex`, `prefix`), the response has no `secret`, and the original secret verifies from then on.
      *
-     * @param array{subject_type:string,subject_id:string,name?:string,claims?:array<string,mixed>,expires_at?:?int,limits?:?list<array{unit:string,amount:int,period:'request'|'day'|'month'|'total'}>} $body
+     * @param array{subject_type:string,subject_id:string,name?:string,claims?:array<string,mixed>,expires_at?:?int,scopes?:list<string>,import?:array{secret_hash:string,hash_algorithm?:'sha256'|'sha256_hex',prefix:string},limits?:?list<array{unit:string,amount:int,period:'request'|'second'|'minute'|'day'|'month'|'total'}>} $body
      *
      * @return array<string,mixed>
      */
@@ -37,7 +39,8 @@ final class ApiKeys extends Resource
      * Check a presented secret. Rate-limited — it is an online credential check.
      *
      * @return array<string,mixed> `{ valid: false }` or `{ valid: true, ... }` — a valid result carries the
-     *                             subject, `name`, `claims`, `scopes`, `constraints`, `limits` and `usage`
+     *                             subject, `name`, `claims`, `scopes`, `constraints`, `limits`, `usage`
+     *                             and `effective_scopes`
      */
     public function verify(string $secret, ?array $requiredScopes = null): array
     {
@@ -58,7 +61,7 @@ final class ApiKeys extends Resource
     /**
      * Change a key. `limits: null` removes every spend cap.
      *
-     * @param array{name?:?string,claims?:array<string,mixed>,expires_at?:?int,limits?:?list<array{unit:string,amount:int,period:'request'|'day'|'month'|'total'}>} $body
+     * @param array{name?:?string,claims?:array<string,mixed>,expires_at?:?int,limits?:?list<array{unit:string,amount:int,period:'request'|'second'|'minute'|'day'|'month'|'total'}>} $body
      *
      * @return array<string,mixed>
      */

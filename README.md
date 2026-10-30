@@ -390,6 +390,38 @@ It never extends past the absolute expiry and never revives an ended session (`C
 
 `users->create()` and `importExport->importUsers()` accept `'notify' => false` (the default), which guarantees the user is sent no email, SMS or push as a consequence of the create.
 
+### Application webhooks
+
+Send your app's own events to endpoints your customers (organizations) register. Atlas signs each
+delivery (Standard Webhooks), retries, tracks health and keeps the delivery log.
+
+```php
+$atlas->appEvents->types->create(['type' => 'call.completed', 'description' => 'A call finished.']);
+$atlas->appEvents->endpoints->create($orgId, ['url' => 'https://hooks.example.com/atlas', 'enabled_events' => ['call.completed']]);
+$atlas->appEvents->publish(['organization_id' => $orgId, 'type' => 'call.completed', 'data' => ['call_id' => $id], 'idempotency_key' => $id]);
+
+// The receiving side (any Standard Webhooks library works too):
+$result = \Atlas\Webhook\Webhook::verifyStandard(file_get_contents('php://input'), getallheaders(), 'whsec_...');
+```
+
+### Browser tickets and test sign-in URLs
+
+```php
+// A one-time ticket that signs a browser in as the user (support handoffs, E2E). Replaces signInTokens.
+$ticket = $atlas->sessions->createBrowserTicket('user_123', 'https://app.example.com/', 120);
+$ticket['url']; // open it in the browser
+
+// Development instances only: a ready sign-in URL for tests.
+$url = $atlas->testing->createSignInUrl('user_123', 'http://localhost:3000/')['url'];
+```
+
+A ticket is single-use. On development instances only, a repeat exchange of the same ticket from the
+same client within 10 seconds returns the first answer (so a double-mounted page does not fail).
+
+`$atlas->instance->getSignInWithAtlas()` / `updateSignInWithAtlas()`, `getHostedPages()` /
+`updateHostedPages()` and `$atlas->privacy->getIntegration()` / `connectIntegration()` cover the
+instance's "Sign in with Atlas", hosted-page redirects and the one-call privacy integration.
+
 ### All namespaces
 
 `users`, `sessions`, `organizations` (with `memberships`, `invitations`,
@@ -409,7 +441,7 @@ settings, design and branding), `roles`, `permissions`, `oauthClients`,
 `configChangelog`, `events`, `usage`, `legacyAuthConnection`, `mcp`,
 `mcpConnector`, `notifications` (with `categories` and `templates`),
 `orgLdapConnections`, `pca`, `redirectUrls`, `sessionExchangeApps`, `tickets`,
-`captcha`, `testing` (development-instance helpers), and `platform` (`apps`,
+`captcha`, `appEvents` (with `types` and `endpoints`), `testing` (development-instance helpers), and `platform` (`apps`,
 `atlasIdApps`, `designAssets`; needs a platform key).
 
 Anything not wrapped can be called directly with `$atlas->http->request('GET', '/v1/…')`.

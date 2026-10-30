@@ -100,4 +100,33 @@ final class Privacy extends Resource
     {
         return $this->http->request('DELETE', '/v1/instance/privacy_orchestrator');
     }
+
+    /**
+     * `GET /v1/instance/privacy_integrations` — the consent manager, orchestrator, completion webhook and
+     * executor key in one view: `{object: 'privacy_integration', preset, connected, cookie_consent,
+     * privacy_orchestrator, dsr_webhook, executor_key}`.
+     *
+     * @return array<string,mixed>
+     */
+    public function getIntegration(): array
+    {
+        return $this->http->request('GET', '/v1/instance/privacy_integrations');
+    }
+
+    /**
+     * `POST /v1/instance/privacy_integrations/connect` — wire a consent manager / orchestrator both ways in
+     * one idempotent call: `{preset (e.g. 'cookiemunch' or 'custom'), site_id?, api_key?, partner_link_id?,
+     * completion_webhook_url?, cookie_consent? (overrides, or false to leave it alone), orchestrator?,
+     * key?: {name?, scopes? (privacy:* only), expires_at?, allowed_ips?, allowed_origins?}}`. The executor
+     * key's `secret` comes back once (a re-run answers `executor_key.idempotent_replay: true`); `warnings[]`
+     * carries the consent-manager site check.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function connectIntegration(array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request('POST', '/v1/instance/privacy_integrations/connect', body: $body, idempotencyKey: $idempotencyKey);
+    }
 }

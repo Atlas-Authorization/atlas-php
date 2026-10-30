@@ -40,6 +40,9 @@ final class Referrals extends Resource
      * `max_referred_signups_per_ip_hour`). Enabling without what the provider needs is
      * 422 `REFERRALS_NOT_CONFIGURED`. Reads add `connection.last_ping` and `connection.alert`
      * (`signature_rejected` or `connection_paused` while delivery is blocked).
+     * The update result carries `warnings[]` for what was stored differently from what was sent:
+     * `{code: 'renamed', field, from, to, message}` (a retired provider name) or
+     * `{code: 'defaulted', field, to: [...], message}` (a newly picked platform's tracking cookies filled in).
      *
      * @param array<string,mixed> $body {enabled?, provider?, endpoint_url?, program_id?, connection_id?,
      *   signing_secret?, api_key?, inbound_secret?, inbound_endpoint_id?, url_params?, context_cookie?, consent_category?, consent_fallback_category?,

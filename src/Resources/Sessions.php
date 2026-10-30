@@ -18,13 +18,37 @@ final class Sessions extends Resource
      * `POST /v1/sessions` — mint a session for a user without the sign-in flow.
      * Returns the bearer jwt + refresh token in-body. Refused for a banned user.
      *
-     * @param array{user_id:string,actor?:array{sub:string}} $params
+     * `mode: 'browser_ticket'` (with `redirect_url?`, `expires_in_seconds?`) returns a browser ticket
+     * instead; {@see createBrowserTicket()} does that for you.
+     *
+     * @param array{user_id:string,actor?:array{sub:string},mode?:'browser_ticket',redirect_url?:string,expires_in_seconds?:int} $params
      *
      * @return array<string,mixed>
      */
     public function create(array $params): array
     {
         return $this->http->request('POST', '/v1/sessions', body: $params);
+    }
+
+    /**
+     * `POST /v1/sessions` with `mode: "browser_ticket"` — a one-time ticket that signs a BROWSER in as
+     * the user (support handoffs, E2E). No session is minted here; the browser gets one through the
+     * normal ticket exchange (`POST /v1/client/sign_ins {strategy: "ticket"}`), or open `url`. The
+     * successor of the deprecated {@see SignInTokens::create()}.
+     *
+     * `$redirectUrl` (one of the instance's allowed origins) is where the ready `url` lands; without it
+     * there is no `url`. `$expiresInSeconds`: 1 to 300 (default 60).
+     *
+     * @return array<string,mixed> `{object: 'browser_ticket', id, user_id, ticket, url, redirect_url, expires_in, expires_at (ISO 8601)}`
+     */
+    public function createBrowserTicket(string $userId, ?string $redirectUrl = null, ?int $expiresInSeconds = null): array
+    {
+        return $this->http->request('POST', '/v1/sessions', body: array_filter([
+            'user_id' => $userId,
+            'redirect_url' => $redirectUrl,
+            'expires_in_seconds' => $expiresInSeconds,
+            'mode' => 'browser_ticket',
+        ], static fn ($v) => $v !== null));
     }
 
     /**
