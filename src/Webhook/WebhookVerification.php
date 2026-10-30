@@ -7,7 +7,7 @@ namespace Atlas\Webhook;
 /**
  * The outcome of {@see Webhook::verify()}. Never thrown: check `$verified`.
  * `$deliveryId` (the signed `atlas-id`, the same on every retry of one event:
- * deduplicate on it) and `$timestamp` (epoch ms) are set only when verified.
+ * deduplicate on it) and `$timestamp` (epoch ms; seconds from {@see Webhook::verifyStandard()}) are set only when verified.
  * `$reason` is one of `missing_headers`, `malformed_signature`,
  * `stale_timestamp`, `signature_mismatch`.
  */

@@ -2,9 +2,23 @@
 
 Versions are published from git tags.
 
-## Unreleased
+## 0.21.0 — 2026-10-30
 
 ### Added
+
+- **Application webhooks.** `appEvents` (`publish`, `list`, `get`), `appEvents->types` (the event catalog: `list`, `create`, `get`, `update`, `delete`, by `aet_` id or type name) and `appEvents->endpoints` (one organization's endpoints: `list`, `create`, `get`, `update`, `delete`, `rotateSecret`, `revealSecret`, `test`, `deliveries`, `redeliver`, `replay`, `eventTypes`).
+- **Standard Webhooks verifier.** `Webhook::verifyStandard($body, $headers, $secret)` for application webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`, `whsec_` base64 key).
+- **Browser tickets.** `sessions->createBrowserTicket($userId, $redirectUrl, $expiresInSeconds)` (`POST /v1/sessions` with `mode: "browser_ticket"`); `sessions->create` documents `mode`, `redirect_url`, `expires_in_seconds`.
+- **Sign-in URL for tests.** `testing->createSignInUrl($userId, $redirectUrl, $expiresInSeconds)` (`POST /v1/testing/sign_in_url`, development instances only).
+- **Sign in with Atlas and hosted pages.** `instance->getSignInWithAtlas` / `updateSignInWithAtlas`, `instance->getHostedPages` / `updateHostedPages`.
+- **Privacy integration.** `privacy->getIntegration` / `connectIntegration`.
+- Documented: `instance->update` and referral settings `warnings`; API key limit periods `second` and `minute`, `scopes`, `import` and `effective_scopes`; declared cookie `purposes` and `lifetime_range`; user `image_url` (alias `profile_image_url`) and `external_accounts`; webhook endpoint `active` on create; managed email 202 with `dns.status`, `last_error`, `attempts`, `next_check_at`, `started_at`, `feedback_webhook_id` and `feedback_webhook_error`.
+
+### Deprecated
+
+- `signInTokens->create` and `revoke` (sunset 2027-04-01): use `sessions->createBrowserTicket`.
+
+### Added (full Backend API coverage)
 
 - **Backend API parity.** 452 operations added so the client covers every public Backend-API route.
   - New namespaces on `Atlas\Client`: `appCatalog`, `ldapServerClients`, `journeys`, `groups` (+ `rules`), `migrations` (+ `imports`), `managedGrants`, `leastPrivilege`, `deliveryHealth`, `flags`, `mfaFactors` (+ `yubikeys`, `smartCardMappings`), `analytics` (+ `reports`, `alertRules`), `marketing`, `auditEventSchemas`, `directoryPullSources` (+ `syncRuns`), `relayAgents`, `oauthClientProfiles`, `passkeyApi`, `vc` (+ `credentialTypes`, `credentials`, `presentationRequests`), `listen`, `agentRegistration`, `agents`, `agentAccessRequests`, `workflows`, `pageTemplates`, `serviceConnectors`, `desktopMfa`, `identityVerification`, `iga` (`entitlements`, `requests`, `grants`, `delegations`, `sod`, `lifecycle`, `campaigns`), `scimProvisioningPresets`, `vault` (+ `keyProvider`), `connections` (+ `oauthClients`, `webhooks`), `ssf` (`streams`, `receivers`), `networkZones`, `accessPolicies`, `abac` (`templates`, `links`, `schema`), `resources` (`types`, `assignments`), `orgRoleGrants`, `devices`, `authzDecisions` (+ `settings`), `policyBundles`, `proxyApps`, `mcpGateways` (+ `budgets`).

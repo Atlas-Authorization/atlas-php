@@ -19,7 +19,9 @@ final class WebhookEndpoints extends Resource
     }
 
     /**
-     * @param array{url:string,enabled_events?:list<string>,description?:string,event_naming?:string,signature_versions?:list<string>,external?:bool,alert_contacts?:list<string>,destination?:array<string,mixed>,destination_credentials?:array<string,mixed>,metadata?:array<string,mixed>,external_ref?:string} $body
+     * `active: false` creates the endpoint switched off (default true).
+     *
+     * @param array{url:string,enabled_events?:list<string>,description?:string,active?:bool,event_naming?:string,signature_versions?:list<string>,external?:bool,alert_contacts?:list<string>,destination?:array<string,mixed>,destination_credentials?:array<string,mixed>,metadata?:array<string,mixed>,external_ref?:string} $body
      *
      * @return array<string,mixed> the endpoint plus its once-only `whsec_` secret
      */

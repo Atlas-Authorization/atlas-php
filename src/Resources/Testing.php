@@ -44,4 +44,20 @@ final class Testing extends Resource
     {
         return $this->http->request('POST', '/v1/testing_tokens');
     }
+
+    /**
+     * `POST /v1/testing/sign_in_url` — a ready one-time URL that signs a browser in as `$userId` and
+     * lands on `$redirectUrl` (an allowed origin or localhost). Development instances only (403
+     * `TESTING_UNAVAILABLE` otherwise).
+     *
+     * @return array<string,mixed> `{object: 'testing_sign_in_url', id, user_id, ticket, url, redirect_url, expires_in, expires_at}`
+     */
+    public function createSignInUrl(string $userId, string $redirectUrl, ?int $expiresInSeconds = null): array
+    {
+        return $this->http->request('POST', '/v1/testing/sign_in_url', body: array_filter([
+            'user_id' => $userId,
+            'redirect_url' => $redirectUrl,
+            'expires_in_seconds' => $expiresInSeconds,
+        ], static fn ($v) => $v !== null));
+    }
 }

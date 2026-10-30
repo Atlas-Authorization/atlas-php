@@ -87,6 +87,69 @@ final class Webhook
         return new WebhookVerification(true, null, is_array($event) ? $event : null, $id, $timestamp);
     }
 
+    /** Standard Webhooks header names, as application webhooks send them. */
+    public const STANDARD_HEADER_ID = 'webhook-id';
+    public const STANDARD_HEADER_TIMESTAMP = 'webhook-timestamp';
+    public const STANDARD_HEADER_SIGNATURE = 'webhook-signature';
+
+    /**
+     * Verify an APPLICATION webhook (the events an app publishes to its customers' endpoints through
+     * Atlas, see {@see \Atlas\Resources\AppEvents}): Standard Webhooks — `webhook-id`,
+     * `webhook-timestamp` (seconds), `webhook-signature: v1,<base64>` (one entry per secret during a
+     * rotation), HMAC-SHA256 over `<id>.<timestamp>.<raw body>` keyed with the base64-decoded part of
+     * `whsec_<base64>`. Any Standard Webhooks library verifies the same deliveries. Never throws; the
+     * result's `$timestamp` is in seconds and `$deliveryId` (the `webhook-id`) is stable across
+     * retries — dedupe on it. Matches `verifyStandardWebhook` in `@atlasauth/backend`.
+     *
+     *     $result = Webhook::verifyStandard(file_get_contents('php://input'), getallheaders(), 'whsec_...');
+     *
+     * @param array<string, string|list<string>> $headers Any casing; `HTTP_WEBHOOK_ID` style keys are accepted.
+     */
+    public static function verifyStandard(
+        string $body,
+        array $headers,
+        string $secret,
+        ?int $nowSec = null,
+        int $toleranceSec = 300,
+    ): WebhookVerification {
+        $id = self::header($headers, self::STANDARD_HEADER_ID);
+        $tsRaw = self::header($headers, self::STANDARD_HEADER_TIMESTAMP);
+        $signature = self::header($headers, self::STANDARD_HEADER_SIGNATURE);
+        if ($id === null || $id === '' || $tsRaw === null || $tsRaw === '' || $signature === null || $signature === '') {
+            return new WebhookVerification(false, 'missing_headers');
+        }
+
+        $provided = self::signatures($signature);
+        if ($provided === []) {
+            return new WebhookVerification(false, 'malformed_signature');
+        }
+
+        if (preg_match('/^\d+$/', $tsRaw) !== 1) {
+            return new WebhookVerification(false, 'stale_timestamp');
+        }
+        $timestamp = (int) $tsRaw;
+        $now = $nowSec ?? time();
+        if (abs($now - $timestamp) > $toleranceSec) {
+            return new WebhookVerification(false, 'stale_timestamp');
+        }
+
+        $key = (string) base64_decode(str_starts_with($secret, 'whsec_') ? substr($secret, 6) : $secret);
+        $expected = base64_encode(hash_hmac('sha256', $id . '.' . $timestamp . '.' . $body, $key, true));
+        // Compare every entry (no early exit), each in constant time.
+        $matched = false;
+        foreach ($provided as $candidate) {
+            if (hash_equals($expected, $candidate)) {
+                $matched = true;
+            }
+        }
+        if (!$matched) {
+            return new WebhookVerification(false, 'signature_mismatch');
+        }
+
+        $event = json_decode($body, true);
+        return new WebhookVerification(true, null, is_array($event) ? $event : null, $id, $timestamp);
+    }
+
     /**
      * The `v1` signatures in an `atlas-signature` header: one `v1,<base64>` entry, or several
      * separated by spaces (while an endpoint secret rotates, Atlas signs with the old and the new

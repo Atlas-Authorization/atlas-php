@@ -117,6 +117,9 @@ final class Messaging extends Resource
      * `GET /v1/messaging_providers/email/managed` — the managed sending domain: `status`,
      * `verified`, the DNS `records` to publish and `usage` (`limits` is null: your provider
      * account's own limits apply), plus `backend` and `provider_id`. 404 when none is configured.
+     * `dns` (when Atlas writes the records) is `{provider, token_set, status (pending|verifying|verified|failed|null),
+     * last_error, attempts, next_check_at, started_at}`; `feedback_webhook_id` / `feedback_webhook_error` report the
+     * bounce / complaint webhook on your provider account.
      *
      * @return array<string,mixed> the managed_email object
      */
@@ -129,7 +132,8 @@ final class Messaging extends Resource
      * `POST /v1/messaging_providers/email/managed` — Atlas sets your sending domain up on YOUR OWN
      * Resend or Brevo account: pass `transport` with `config.api_key` (write-only), or `provider_id`
      * of your configured Resend or Brevo provider. Returns the DNS `records` to publish; with `dns`
-     * (`provider: cloudflare`, write-only `api_token`, optional `overwrite`) Atlas writes them itself.
+     * (`provider: cloudflare`, write-only `api_token`, optional `overwrite`) Atlas writes them and verifies in the
+     * background: the call answers at once (202) and `dns.status` tracks the progress.
      * On Brevo the response says whether the bounce webhook was registered (`feedback_webhook`).
      *
      * @param array{from_address:string,transport?:'resend'|'brevo',config?:array{api_key:string},provider_id?:string,region?:string,dns?:array{provider:string,api_token:string,overwrite?:bool}} $body
