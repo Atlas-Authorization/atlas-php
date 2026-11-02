@@ -46,6 +46,9 @@ final class SessionVerifier
 
     private readonly ?LegacyIssuerVerifier $legacy;
 
+    /** @var list<string> */
+    private readonly array $previousIssuers;
+
     /**
      * @param string                       $jwksUrl            the instance's JWKS URL
      * @param string                       $issuer            expected `iss`; required — an unchecked issuer accepts any Atlas instance
@@ -64,6 +67,11 @@ final class SessionVerifier
      *                                                        the Atlas id, `external_id` = the old id and `legacy` =
      *                                                        `{kind, issuer, sub}`. Atlas tokens are unaffected. The default
      *                                                        subject lookup uses `$secretKey` and `$bapiBaseUrl`.
+     * @param list<string>                 $previousIssuers   earlier issuers of THIS instance, also accepted: its old sign-in
+     *                                                        host while it moves to a new one (a custom domain or a path mount
+     *                                                        going live). Same keys, so nothing else changes. Discovery lists
+     *                                                        them in `atlas_previous_issuers` with an `accepted_until`; remove
+     *                                                        them after that.
      */
     public function __construct(
         private readonly string $jwksUrl,
@@ -77,6 +85,7 @@ final class SessionVerifier
         ?callable $now = null,
         private readonly int $leeway = self::CLOCK_SKEW_SECONDS,
         array $legacyIssuers = [],
+        array $previousIssuers = [],
     ) {
         if ($issuer === '') {
             throw new ConfigException('SessionVerifier requires a non-empty issuer; an unchecked issuer accepts any Atlas instance.');
@@ -118,6 +127,7 @@ final class SessionVerifier
             );
         }
         $this->legacy = $legacy;
+        $this->previousIssuers = array_values(array_filter($previousIssuers, static fn ($i): bool => is_string($i) && $i !== ''));
     }
 
     /** Exposed so a caller (or a test) can inspect the cache's last outcome. */
@@ -194,7 +204,8 @@ final class SessionVerifier
 
         // §7.3 issuer check. `firebase/php-jwt` does not validate `iss`, so this
         // is the guard that stops a token from a different Atlas instance passing.
-        if (($claims['iss'] ?? null) !== $this->issuer) {
+        $iss = $claims['iss'] ?? null;
+        if ($iss !== $this->issuer && !in_array($iss, $this->previousIssuers, true)) {
             return VerifyResult::fail('invalid');
         }
 

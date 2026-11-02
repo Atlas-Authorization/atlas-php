@@ -48,7 +48,11 @@ final class Referrals extends Resource
      *   signing_secret?, api_key?, inbound_secret?, inbound_endpoint_id?, url_params?, context_cookie?, consent_category?, consent_fallback_category?,
      *   auto_enroll_users?, link_template?, timeout_ms?, security?, tracking_token?, code_lookup_url?,
      *   signup_code_field?, browser_sources?, consent_provider?, forward_lifecycle?, mirror_to_public_metadata?,
-     *   include_referral_claims?}
+     *   include_referral_claims?, report_linked_atlas_id_signups?, partner_portal_url?}
+     *   `report_linked_atlas_id_signups` (bool, default false) reports the first sign-in of an Atlas ID
+     *   account to a Sign in with Atlas app this instance manages as a sign-up; `partner_portal_url`
+     *   (https, or null to remove) is linked from the hosted account page's "Refer a friend" panel.
+     *   An unknown field is 422 `UNKNOWN_FIELD`.
      *
      * @return array<string,mixed>
      */

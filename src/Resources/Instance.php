@@ -19,8 +19,8 @@ use Atlas\Http;
  * @phpstan-type CookieSettingsLinkInput array{label:string,preset?:string|null,attributes?:array<string,string>}
  * @phpstan-type CookieSettingsLink array{label:string,preset:string|null,attributes:array<string,string>,rendered_attributes:array<string,string>}
  * @phpstan-type DeclaredCookie array{name:string|null,pattern:string|null,store:'cookie'|'localStorage'|'sessionStorage'|'indexedDB',domain:string,lifetime_seconds:int|null,lifetime:string,http_only:bool,category:string,purpose:string,purposes?:array<string,string>,lifetime_range?:array{setting:string,min_seconds:int,max_seconds:int,default_seconds:int},written_when:string,set_by:string}
- * @phpstan-type CookieConsent array{object:string,enabled:bool,script_url?:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLink|null,culture?:'page'|'browser',declared_cookies?:list<DeclaredCookie>}
- * @phpstan-type CookieConsentInput array{script_url:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLinkInput|null,culture?:'page'|'browser'|null}
+ * @phpstan-type CookieConsent array{object:string,enabled:bool,host_aliases?:list<string>,script_url?:string,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLink|null,culture?:'page'|'browser',declared_cookies?:list<DeclaredCookie>}
+ * @phpstan-type CookieConsentInput array{script_url?:string,enabled?:bool,host_aliases?:list<string>,script_id?:string|null,site_id?:string|null,blocking_mode?:string|null,extra_origins?:list<string>,settings_link?:CookieSettingsLinkInput|null,culture?:'page'|'browser'|null}
  * @phpstan-type OriginMoveInput array{from:string,to:string,dry_run?:bool}
  * @phpstan-type OriginMoveChange array{object:string,id:string,field:string,before:string|list<string>|null,after:string|list<string>|null}
  * @phpstan-type OriginMove array{object:'origin_move',from:string,to:string,dry_run:bool,applied:bool,changes:list<OriginMoveChange>,problems:list<array<string,string>>,app?:array<string,mixed>}
@@ -269,6 +269,11 @@ final class Instance extends Resource
      * A link needs a preset or at least one attribute (400 otherwise). The response's `settings_link`
      * carries `label`, `preset`, `attributes` and `rendered_attributes` — the attributes the rendered
      * link carries: yours plus the preset's trigger.
+     *
+     * `host_aliases` (up to 10 bare hostnames; `[]` clears) declares hosts the hosted pages are served on
+     * that your consent manager's site is knowingly not registered for (e.g. the default `-fapi` host);
+     * the site-domain check reads as ok on them. A body of just `['host_aliases' => [...]]` (or just
+     * `['enabled' => false]`) changes only that.
      *
      *     $atlas->instance->setCookieConsent([
      *         'script_url' => 'https://cmp.example.com/loader.js',

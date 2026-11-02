@@ -55,9 +55,11 @@ final class Users extends Resource
 
     /**
      * `notify: false` (the default) guarantees no email, SMS or push is sent to the user as a consequence
-     * of the create.
+     * of the create. An existing hash goes in `password_hash` (alias `password_digest`); a hash that does
+     * not describe itself (scrypt, pbkdf2, salted md5/sha*, hmac_sha256, ...) is named with
+     * `password_hash_algorithm` plus `password_hash_params` (and `password_salt` / `password_hasher`).
      *
-     * @param array<string,mixed> $body {email_address, password?, first_name?, ..., image_url? (https; alias profile_image_url?), notify?, referral?, referral_code?}
+     * @param array<string,mixed> $body {email_address, password?, password_hash?, password_hash_algorithm?, password_hash_params?, password_salt?, password_hasher?, first_name?, ..., image_url? (https; alias profile_image_url?), notify?, referral?, referral_code?}
      *
      * @return array<string,mixed>
      */

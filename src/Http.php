@@ -238,7 +238,8 @@ final class Http
 
     /**
      * Serialize a query mapping to `?a=1&b=2`, dropping null values and
-     * spreading arrays. Booleans render as `true`/`false`.
+     * spreading lists. A keyed array becomes `name[key]=value` (the
+     * `metadata[key]=value` filters). Booleans render as `true`/`false`.
      *
      * @param array<string,mixed>|null $query
      */
@@ -254,14 +255,16 @@ final class Http
                 continue;
             }
             $values = is_array($value) ? $value : [$value];
-            foreach ($values as $item) {
+            $keyed = is_array($value) && !array_is_list($value);
+            foreach ($values as $sub => $item) {
                 if ($item === null) {
                     continue;
                 }
                 if (is_bool($item)) {
                     $item = $item ? 'true' : 'false';
                 }
-                $parts[] = rawurlencode((string) $key) . '=' . rawurlencode((string) $item);
+                $name = $keyed ? "{$key}[{$sub}]" : (string) $key;
+                $parts[] = rawurlencode($name) . '=' . rawurlencode((string) $item);
             }
         }
 

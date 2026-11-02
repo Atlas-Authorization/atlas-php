@@ -2,6 +2,25 @@
 
 Versions are published from git tags.
 
+## 0.22.0 — 2026-11-01
+
+### Added
+
+- **Tenant organizations.** `organizations->create` takes `created_by` as optional (a backend-created organization with no members yet), plus `external_id`, `public_metadata` / `private_metadata`, `owner_email` (the answer carries `owner_invitation`) and `role_mappings` (the `org_role_mapped` token claim); `update` takes `external_id` and `role_mappings`. `organizations->list` filters by `external_id` and `metadata` (sent as `metadata[key]=value`). `organizations->get` documents the `sso` block (`connections`, `scim_base_url`).
+- **Find an organization by domain.** `organizations->findByDomain($domain, $includeUnverified)` (`GET /v1/organizations/by_domain/{domain}`; an email address works too).
+- **Organization policy.** `organizations->getPolicy($id)` (`GET /v1/organizations/{id}/policy`).
+- **Domain verification methods.** `organizations->domains->verify($orgId, $domainId, ['method' => 'dns_txt'|'well_known'|'email', 'code' => ...])` (no body is still the DNS check) and `sendVerificationEmail($orgId, $domainId, $address)` (through your own email provider). Domains document `verification_methods` and `verification_method`.
+- **Trusted-JWT connections.** `jwtConnections` (`list`, `get`, `create`, `update`, `delete`) on `/v1/jwt_connections`.
+- **Setup links.** `ssoOnboarding->list($name)` filters profiles by name; profiles and tickets take `return_url`, and an issued ticket carries `effective_return_url`.
+- **Initial secret reveal.** `platform->apps->revealInitialSecret($id, $dryRun)` (`POST /v1/platform/apps/{id}/initial_secret/reveal`): a new app's secrets once more within 10 minutes.
+- **Previous issuers.** `SessionVerifier(..., previousIssuers: [...])` also accepts this instance's earlier issuers while it moves to a custom domain or a path mount.
+- **Webhook events.** `WebhookEvents::SSO_CONNECTION_ACTIVATED`, `SSO_ONBOARDING_TICKET_COMPLETED` and `SCIM_GROUP_CREATED` / `UPDATED` / `DELETED` / `MEMBER_ADDED` / `MEMBER_REMOVED`.
+- Documented: webhook endpoint `secret` on create and on `rotateSecret`, and the test result's `event_type` and `error_kind`; `password_hash_algorithm` / `password_hash_params` (and `password_salt` / `password_hasher`) on `users->create` and import rows; SCIM token `scim_base_url` and `warnings`; SSO connection `saml_acs_path` and `github_access`; LDAP `group_role_mappings`; referral settings `report_linked_atlas_id_signups` and `partner_portal_url`; path-mount domains (`method: 'path'`, `hostname`, `base_path`; verify returns `issuer`); cookie consent `host_aliases`; platform app create `initial_secret_reveal` and replay `secret_redacted`.
+
+### Changed
+
+- A keyed array in a query is sent as `name[key]=value` (lists are still repeated `name=value`).
+
 ## 0.21.0 — 2026-10-30
 
 ### Added

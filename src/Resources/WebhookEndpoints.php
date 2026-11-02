@@ -19,9 +19,11 @@ final class WebhookEndpoints extends Resource
     }
 
     /**
-     * `active: false` creates the endpoint switched off (default true).
+     * `active: false` creates the endpoint switched off (default true; `test` still
+     * works on it). `secret` sets your own signing secret instead of a generated one:
+     * `whsec_` plus 32–256 of `[A-Za-z0-9+/=_-]` (422 `param: secret` otherwise).
      *
-     * @param array{url:string,enabled_events?:list<string>,description?:string,active?:bool,event_naming?:string,signature_versions?:list<string>,external?:bool,alert_contacts?:list<string>,destination?:array<string,mixed>,destination_credentials?:array<string,mixed>,metadata?:array<string,mixed>,external_ref?:string} $body
+     * @param array{url:string,enabled_events?:list<string>,description?:string,active?:bool,secret?:string,event_naming?:string,signature_versions?:list<string>,external?:bool,alert_contacts?:list<string>,destination?:array<string,mixed>,destination_credentials?:array<string,mixed>,metadata?:array<string,mixed>,external_ref?:string} $body
      *
      * @return array<string,mixed> the endpoint plus its once-only `whsec_` secret
      */
@@ -65,8 +67,10 @@ final class WebhookEndpoints extends Resource
      * once. By default the old secret stops signing at once. With `overlap_seconds` (at most 604800) every
      * delivery is signed with both until `previous_secret_expires_at` (epoch ms), so a verifier holding
      * either passes. Choose an overlap only once every receiver accepts several signatures (0.7.0+).
+     * `secret` rotates to a secret you chose (`whsec_` + at least 32 characters, different
+     * from the current one).
      *
-     * @param array{overlap_seconds?:int}|null $body
+     * @param array{overlap_seconds?:int,secret?:string}|null $body
      *
      * @return array<string,mixed>
      */
@@ -106,7 +110,7 @@ final class WebhookEndpoints extends Resource
     }
 
     /**
-     * `POST /v1/webhook_endpoints/:id/test?wait=` — send `webhook.test` now and get the result inline (status, HTTP status, latency, response snippet, error, the signature header sent). `$wait` is at most 10 s (`'10s'`, `'5000ms'`).
+     * `POST /v1/webhook_endpoints/:id/test?wait=` — send `webhook.test` now and get the result inline (status, HTTP status, latency, response snippet, error, the signature header sent, `event_type` (`webhook.test`) and `error_kind`: `non_2xx`, `redirect`, `timeout`, `tls`, `dns`, `connection_refused`, `network`, `url_blocked`, or null on success). `$wait` is at most 10 s (`'10s'`, `'5000ms'`).
      *
      * @return array<string,mixed>
      */

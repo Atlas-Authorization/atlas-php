@@ -20,6 +20,10 @@ final class SsoConnections extends Resource
     }
 
     /**
+     * Also takes `saml_acs_path` (a custom ACS path on your own frontend API
+     * domain, kept from a previous provider; null clears) and `github_access`
+     * (`{allowed_organizations, allowed_teams}`: only members sign in; null removes).
+     *
      * @param array<string,mixed> $body write-only secrets never come back
      *
      * @return array<string,mixed>

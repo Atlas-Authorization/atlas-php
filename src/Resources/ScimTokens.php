@@ -16,7 +16,9 @@ final class ScimTokens extends Resource
     /**
      * @param array{organization_id:string,name?:string,connection_id?:string} $body
      *
-     * @return array<string,mixed> the token plus its once-only secret
+     * @return array<string,mixed> the token plus its once-only secret, `scim_base_url` (give it to
+     *                             the identity provider with the secret) and `warnings`
+     *                             (`no_sso_connection` when the organization has no SSO connection yet)
      */
     public function create(array $body, ?string $idempotencyKey = null): array
     {

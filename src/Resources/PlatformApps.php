@@ -22,7 +22,9 @@ final class PlatformApps extends Resource
     }
 
     /**
-     * `POST /v1/platform/apps` — provision a new app. Its secret key is returned once.
+     * `POST /v1/platform/apps` — provision a new app. Its secret key is returned here, and once more
+     * within 10 minutes via {@see revealInitialSecret()} (`initial_secret_reveal: {path, expires_at}`).
+     * An Idempotency-Key replay carries `secret: null` and `secret_redacted: true`.
      *
      * @param array<string,mixed> $body
      *
@@ -278,5 +280,22 @@ final class PlatformApps extends Resource
     public function createSecretKey(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
         return $this->http->request('POST', '/v1/platform/apps/' . rawurlencode($id) . '/secret_keys', body: $body, idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * `POST /v1/platform/apps/:id/initial_secret/reveal` — show a new app's secret keys once more
+     * (`secret`, and `sibling_instance.secret` for a development sibling): once, within 10 minutes of
+     * the create, for the platform that created it; 410 after that. `$dryRun` reports `available`
+     * and `expires_at` without using it up.
+     *
+     * @return array<string,mixed>
+     */
+    public function revealInitialSecret(string $id, bool $dryRun = false): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/platform/apps/' . rawurlencode($id) . '/initial_secret/reveal',
+            query: ['dry_run' => $dryRun ?: null],
+        );
     }
 }

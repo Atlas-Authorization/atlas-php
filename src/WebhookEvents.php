@@ -72,6 +72,16 @@ final class WebhookEvents
     public const SSO_CONNECTION_UPDATED = 'sso_connection.updated';
     public const SSO_CONNECTION_DELETED = 'sso_connection.deleted';
     public const USER_DATA_EXPORT_REQUESTED = 'user.data_export_requested';
+    /** An SSO connection went active. */
+    public const SSO_CONNECTION_ACTIVATED = 'sso_connection.activated';
+    /** A customer finished a hosted SSO setup ticket (payload `return_url`). */
+    public const SSO_ONBOARDING_TICKET_COMPLETED = 'sso_onboarding_ticket.completed';
+    /** An organization's SCIM directory groups and their members (payload carries `organization_id`). */
+    public const SCIM_GROUP_CREATED = 'scim_group.created';
+    public const SCIM_GROUP_UPDATED = 'scim_group.updated';
+    public const SCIM_GROUP_DELETED = 'scim_group.deleted';
+    public const SCIM_GROUP_MEMBER_ADDED = 'scim_group.member_added';
+    public const SCIM_GROUP_MEMBER_REMOVED = 'scim_group.member_removed';
 
     /**
      * Deprecated spelling => canonical name. `session.ended`, `session.removed` and `user.deletion_cancelled` are

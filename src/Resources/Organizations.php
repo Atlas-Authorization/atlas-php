@@ -72,7 +72,10 @@ final class Organizations extends Resource
     }
 
     /**
-     * @param array{limit?:int,starting_after?:string} $params
+     * `external_id` finds one organization by your own id; `metadata` filters on
+     * public_metadata equality, sent as `?metadata[key]=value` (AND).
+     *
+     * @param array{limit?:int,starting_after?:string,external_id?:string,metadata?:array<string,string>} $params
      *
      * @return array<string,mixed> a CursorPage of organizations
      */
@@ -81,14 +84,52 @@ final class Organizations extends Resource
         return $this->http->request('GET', '/v1/organizations', query: $params);
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * The organization plus its `sso` block: `{ connections: [{id,type,status}], scim_base_url }`.
+     *
+     * @return array<string,mixed>
+     */
     public function get(string $id): array
     {
         return $this->http->request('GET', '/v1/organizations/' . rawurlencode($id));
     }
 
     /**
-     * @param array{name:string,slug:string,created_by:string,max_allowed_memberships?:int} $body
+     * `GET /v1/organizations/by_domain/:domain` — the organization owning a domain
+     * (an email address works too), with the matched `domain`
+     * (`{object:'org_domain',id,domain,status,verified_at}`). Verified domains only
+     * unless `$includeUnverified`.
+     *
+     * @return array<string,mixed>
+     */
+    public function findByDomain(string $domain, bool $includeUnverified = false): array
+    {
+        return $this->http->request(
+            'GET',
+            '/v1/organizations/by_domain/' . rawurlencode($domain),
+            query: $includeUnverified ? ['include_unverified' => 'true'] : null,
+        );
+    }
+
+    /**
+     * `GET /v1/organizations/:id/policy` — `{ object: 'organization_policy', organization_id, policy }`.
+     *
+     * @return array<string,mixed>
+     */
+    public function getPolicy(string $id): array
+    {
+        return $this->http->request('GET', '/v1/organizations/' . rawurlencode($id) . '/policy');
+    }
+
+    /**
+     * `created_by` is optional: leave it out (or null) for an organization your
+     * backend creates with no members yet. `external_id` is your own id (unique,
+     * 409 on a clash); `owner_email` invites that address with the creator role
+     * (the answer carries `owner_invitation`); `role_mappings` maps role keys to
+     * your product's names (the `org_role_mapped` token claim). The answer also
+     * carries `external_id` and `role_mappings` (`created_by` is null without a creator).
+     *
+     * @param array{name:string,slug:string,created_by?:?string,external_id?:string,public_metadata?:array<string,mixed>,private_metadata?:array<string,mixed>,owner_email?:string,role_mappings?:array<string,string>,max_allowed_memberships?:int} $body
      *
      * @return array<string,mixed>
      */
@@ -98,6 +139,8 @@ final class Organizations extends Resource
     }
 
     /**
+     * Also takes `external_id` and `role_mappings` (null clears either).
+     *
      * @param array<string,mixed> $body
      *
      * @return array<string,mixed>

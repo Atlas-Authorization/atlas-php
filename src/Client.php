@@ -29,6 +29,7 @@ use Atlas\Resources\CustomOAuthProviders;
 use Atlas\Resources\Instance;
 use Atlas\Resources\InstanceSecurity;
 use Atlas\Resources\Invitations;
+use Atlas\Resources\JwtConnections;
 use Atlas\Resources\JwtTemplates;
 use Atlas\Resources\Localizations;
 use Atlas\Resources\LogStreams;
@@ -189,6 +190,7 @@ final class Client
     public readonly Webhooks $webhooks;
     public readonly SignInTokens $signInTokens;
     public readonly AuditLogs $auditLogs;
+    public readonly JwtConnections $jwtConnections;
     public readonly JwtTemplates $jwtTemplates;
     public readonly ApiKeys $apiKeys;
     public readonly OAuthProviders $oauthProviders;
@@ -407,6 +409,7 @@ final class Client
         $this->webhooks = new Webhooks($http);
         $this->signInTokens = new SignInTokens($http);
         $this->auditLogs = new AuditLogs($http);
+        $this->jwtConnections = new JwtConnections($http);
         $this->jwtTemplates = new JwtTemplates($http);
         $this->apiKeys = new ApiKeys($http);
         $this->oauthProviders = new OAuthProviders($http);

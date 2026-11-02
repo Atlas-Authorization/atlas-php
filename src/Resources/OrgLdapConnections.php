@@ -56,6 +56,9 @@ final class OrgLdapConnections extends Resource
 
     /**
      * `PATCH /v1/org_ldap_connections/:id` — update an LDAP connection.
+     * `group_role_mappings` (`[['group' => <DN>, 'role' => <role key>]]`, null clears):
+     * the first group the person is in picks their role when they are seated;
+     * `attributes.groups` names the groups attribute (default memberOf).
      *
      * @param array<string,mixed> $body
      *
