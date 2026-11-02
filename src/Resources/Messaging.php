@@ -209,11 +209,14 @@ final class Messaging extends Resource
     }
 
     /**
-     * Send a fixed, clearly-marked test message through the channel's provider.
+     * Send a fixed, clearly-marked test message through the channel's provider. On success the
+     * answer has `ok`, `accepted`, `provider` (resend, smtp, twilio, ...), `provider_message_id`
+     * and, for SMTP, `provider_response` (the server reply line). A provider refusal is a 502
+     * whose error meta says what the provider answered.
      *
      * @param array{to:string} $body
      *
-     * @return array<string,mixed>
+     * @return array{object:string,channel:string,sent_to:string,ok:true,accepted:bool,provider:string,provider_message_id:string|null,provider_response?:string}
      */
     public function test(string $channel, array $body): array
     {

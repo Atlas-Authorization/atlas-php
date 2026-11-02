@@ -18,7 +18,10 @@ final class Invitations extends Resource
     }
 
     /**
-     * @param array{email_address:string,public_metadata?:array<string,mixed>} $body
+     * `expires_at` (epoch ms or ISO 8601, at most 365 days ahead) or `expires_in_days` (1-365);
+     * send one or the other. Default 7 days. Emits `invitation.created`.
+     *
+     * @param array{email_address:string,public_metadata?:array<string,mixed>,expires_at?:int|string,expires_in_days?:int} $body
      *
      * @return array<string,mixed>
      */

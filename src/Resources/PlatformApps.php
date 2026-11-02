@@ -11,8 +11,11 @@ final class PlatformApps extends Resource
 {
     /**
      * `GET /v1/platform/apps` — the apps this platform owns (include_archived, archived, tag).
+     * Find one app with `name` (exact, ignoring case), `name_prefix` or `external_ref` (the ref
+     * given at create; at most one item). Newest first; without `limit` every match is returned,
+     * else page with `limit` (up to 500) and `starting_after` = the previous `next_cursor`.
      *
-     * @param array<string,mixed> $params query parameters
+     * @param array{tag?:string,archived?:bool,include_archived?:bool,name?:string,name_prefix?:string,external_ref?:string,limit?:int,starting_after?:string}|array<string,mixed> $params query parameters
      *
      * @return array<string,mixed>
      */

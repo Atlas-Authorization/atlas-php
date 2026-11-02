@@ -82,6 +82,12 @@ final class WebhookEvents
     public const SCIM_GROUP_DELETED = 'scim_group.deleted';
     public const SCIM_GROUP_MEMBER_ADDED = 'scim_group.member_added';
     public const SCIM_GROUP_MEMBER_REMOVED = 'scim_group.member_removed';
+    /** A session idled out (`data.reason` `idle_expired`) or reached its absolute lifetime (`expired`); once per session. */
+    public const SESSION_EXPIRED = 'session.expired';
+    /** Instance invitations (`POST /v1/invitations`); `data.user_id` is set on `invitation.accepted`. */
+    public const INVITATION_CREATED = 'invitation.created';
+    public const INVITATION_ACCEPTED = 'invitation.accepted';
+    public const INVITATION_REVOKED = 'invitation.revoked';
 
     /**
      * Deprecated spelling => canonical name. `session.ended`, `session.removed` and `user.deletion_cancelled` are

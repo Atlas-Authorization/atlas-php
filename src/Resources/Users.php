@@ -47,7 +47,12 @@ final class Users extends Resource
         return $this->http->request('GET', '/v1/users', query: $params);
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * The user carries `status`: `active`, `suspended` or `banned` (the ID token's
+     * `account_status`; also on `user.*` webhook payloads).
+     *
+     * @return array<string,mixed>
+     */
     public function get(string $id): array
     {
         return $this->http->request('GET', '/v1/users/' . rawurlencode($id));
@@ -58,6 +63,9 @@ final class Users extends Resource
      * of the create. An existing hash goes in `password_hash` (alias `password_digest`); a hash that does
      * not describe itself (scrypt, pbkdf2, salted md5/sha*, hmac_sha256, ...) is named with
      * `password_hash_algorithm` plus `password_hash_params` (and `password_salt` / `password_hasher`).
+     * A Node `scrypt$N$r$p$salt$key` string is detected; one whose salt is all digits is also valid
+     * Django, so name it `scrypt_node` or `scrypt_django` (`scrypt_node` takes
+     * `password_hash_params.salt_encoding`, default `utf8`).
      *
      * @param array<string,mixed> $body {email_address, password?, password_hash?, password_hash_algorithm?, password_hash_params?, password_salt?, password_hasher?, first_name?, ..., image_url? (https; alias profile_image_url?), notify?, referral?, referral_code?}
      *

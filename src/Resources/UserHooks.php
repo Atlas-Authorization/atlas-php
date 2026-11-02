@@ -8,12 +8,13 @@ namespace Atlas\Resources;
  * `/v1/instance/hooks` — the `before_user_create` hook. Just before Atlas creates a user from a
  * self-service sign-up, it sends your endpoint a signed `POST` (the webhook headers; verify it
  * with {@see \Atlas\Webhook\Webhook}) of type `user.before_create`, with `data` `{user, strategy, referral}`,
- * and stamps the `external_id` and metadata you answer. A slow or failing hook never blocks a
- * sign-up. `signing_secret` is write-only: reads return `signing_secret_set`.
+ * and stamps the `external_id` and metadata you answer, or refuses the sign-up when you answer
+ * `{deny: true, reason?}` (or HTTP 403: the person gets 403 `SIGN_UP_DENIED`). A slow or failing
+ * hook does not block a sign-up unless the hook is set `fail_closed`. `signing_secret` is write-only: reads return `signing_secret_set`.
  */
 final class UserHooks extends Resource
 {
-    /** @return array<string,mixed> {object: before_user_create_hook, enabled, url, signing_secret_set, timeout_ms, last_call, updated_at} */
+    /** @return array<string,mixed> {object: before_user_create_hook, enabled, url, signing_secret_set, timeout_ms, fail_closed, last_call, updated_at} */
     public function getBeforeUserCreate(): array
     {
         return $this->http->request('GET', '/v1/instance/hooks/before_user_create');
@@ -21,9 +22,10 @@ final class UserHooks extends Resource
 
     /**
      * Partial update; `null` clears `url` / `signing_secret`. Turning it on needs `url` and
-     * `signing_secret`.
+     * `signing_secret`. `fail_closed: true` refuses the sign-up when the hook times out, errors or
+     * answers badly (default false).
      *
-     * @param array{enabled?:bool,url?:?string,signing_secret?:?string,timeout_ms?:int} $body
+     * @param array{enabled?:bool,url?:?string,signing_secret?:?string,timeout_ms?:int,fail_closed?:bool} $body
      *
      * @return array<string,mixed>
      */

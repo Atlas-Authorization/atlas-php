@@ -81,6 +81,7 @@ final class WebhookEndpoints extends Resource
 
     /**
      * `POST /v1/webhook_endpoints/:id/test` — send a synthetic webhook.test event to this endpoint only.
+     * The queued delivery (201) names the `url` the worker will POST to.
      *
      * @return array<string,mixed>
      */
@@ -110,7 +111,7 @@ final class WebhookEndpoints extends Resource
     }
 
     /**
-     * `POST /v1/webhook_endpoints/:id/test?wait=` — send `webhook.test` now and get the result inline (status, HTTP status, latency, response snippet, error, the signature header sent, `event_type` (`webhook.test`) and `error_kind`: `non_2xx`, `redirect`, `timeout`, `tls`, `dns`, `connection_refused`, `network`, `url_blocked`, or null on success). `$wait` is at most 10 s (`'10s'`, `'5000ms'`).
+     * `POST /v1/webhook_endpoints/:id/test?wait=` — send `webhook.test` now and get the result inline (status, HTTP status, latency, response snippet, error, the signature header sent, the exact `url` tried, `event_type` (`webhook.test`) and `error_kind`: `non_2xx`, `redirect`, `timeout`, `tls`, `dns`, `connection_refused`, `network`, `url_blocked`, or null on success). `$wait` is at most 10 s (`'10s'`, `'5000ms'`).
      *
      * @return array<string,mixed>
      */

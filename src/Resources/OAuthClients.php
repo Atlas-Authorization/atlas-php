@@ -15,6 +15,15 @@ use Atlas\Http;
  * client_id and an exactly registered post_logout_redirect_uri ends the session
  * and redirects straight back with `state`, without the confirmation page.
  * Client arrays carry it as a bool (false by default).
+ *
+ * `refresh_touches_session` (bool, first-party only, same 422 otherwise): each refresh keeps the
+ * Atlas session it came from alive, and once that session has ended the refresh fails
+ * (`invalid_grant`). `add_redirect_origins` (bool, write-only, on create and update) also adds
+ * the redirect URIs' origins to the instance's `allowed_origins` (append only); the response
+ * lists them in `added_origins`.
+ *
+ * `require_verified_email` (bool, create / update / read, default false): no authorization code
+ * is issued for a user whose primary email is not verified.
  */
 final class OAuthClients extends Resource
 {
@@ -49,9 +58,12 @@ final class OAuthClients extends Resource
     }
 
     /**
-     * Create a client; the secret is revealed exactly once, here.
+     * Create a client; the secret is revealed here. A generated secret can be fetched once more
+     * within 10 minutes with `revealSecret()` (the response's `client_secret_reveal` = `{path,
+     * expires_at}`). Send your own `client_secret` (32-256 random printable characters) to choose
+     * it; then there is no reveal.
      *
-     * @param array{name:string,redirect_uris:list<string>,allowed_scopes?:list<string>,grant_types?:list<string>,token_endpoint_auth_method?:string,logo_url?:string,first_party?:bool,skip_logout_confirmation?:bool} $body
+     * @param array{name:string,redirect_uris:list<string>,allowed_scopes?:list<string>,grant_types?:list<string>,token_endpoint_auth_method?:string,logo_url?:string,first_party?:bool,skip_logout_confirmation?:bool,refresh_touches_session?:bool,add_redirect_origins?:bool,client_secret?:string,require_verified_email?:bool} $body
      *
      * @return array<string,mixed>
      */
@@ -77,7 +89,8 @@ final class OAuthClients extends Resource
      * Mint a new secret, revealed exactly once. The previous secret keeps working for
      * `overlap_seconds` (default 86400 = 24 hours, at most 604800 = 7 days; `0` revokes it now,
      * e.g. after a leak). The response carries `client_secret`, `overlap_seconds` and
-     * `previous_secret_expires_at` (epoch ms, or null when the old secret already stopped).
+     * `previous_secret_expires_at` (epoch ms, or null when the old secret already stopped), and
+     * `client_secret_reveal` (`{path, expires_at}`) for one more look with `revealSecret()`.
      *
      * @param array{overlap_seconds?:int}|null $body
      *
@@ -91,6 +104,18 @@ final class OAuthClients extends Resource
             body: $body,
             idempotencyKey: $idempotencyKey,
         );
+    }
+
+    /**
+     * `POST /v1/oauth_clients/:id/secret/reveal` — the secret the latest create or rotate
+     * generated, once more: within 10 minutes, a single time, while it is still current. 410
+     * afterwards (rotate instead).
+     *
+     * @return array{object:'oauth_client_secret',id:string,client_id:string,client_secret:string,secret_prefix:string|null,client_secret_expires_at:int|null,note:string}
+     */
+    public function revealSecret(string $id): array
+    {
+        return $this->http->request('POST', '/v1/oauth_clients/' . rawurlencode($id) . '/secret/reveal');
     }
 
     /** @return array<string,mixed> */
@@ -111,6 +136,25 @@ final class OAuthClients extends Resource
     public function listBackchannelDeliveries(string $id, array $params = []): array
     {
         return $this->http->request('GET', '/v1/oauth_clients/' . rawurlencode($id) . '/backchannel_deliveries', query: $params);
+    }
+
+    /**
+     * `POST /v1/oauth_clients/:id/logout` — sign a user out of this app AND of Atlas in one call:
+     * revokes this client's grants under `$sid` (the id_token's `sid`) and the Atlas session
+     * itself; every other app gets a back-channel logout. `$id` is the client id or its public
+     * client_id. Needs `oauth_clients:write` and `sessions:write`; no browser redirect to
+     * `/oauth2/logout` is needed afterwards.
+     *
+     * @return array{object:string,client_id:string,sid:string,session:string,grants_revoked:int,backchannel_logouts:int}
+     */
+    public function logout(string $id, string $sid, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/oauth_clients/' . rawurlencode($id) . '/logout',
+            body: ['sid' => $sid],
+            idempotencyKey: $idempotencyKey,
+        );
     }
 
     /**

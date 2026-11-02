@@ -2,6 +2,19 @@
 
 Versions are published from git tags.
 
+## 0.23.0 — 2026-11-02
+
+### Added
+
+- **Back-channel sign-out from your backend.** `oauthClients->logout($id, $sid, $idempotencyKey)` (`POST /v1/oauth_clients/{id}/logout`) signs the user out of your app and of Atlas in one call; the answer has `session` (`revoked` / `already_ended`), `grants_revoked` and `backchannel_logouts`.
+- OAuth clients: `refresh_touches_session` (first-party; a refresh keeps the Atlas session alive and fails once it has ended) on create, update and read; write-only `add_redirect_origins` on create and update, with the response's `added_origins`.
+- `instanceSecurity->setCaptchaSecret($secret, $provider, $siteKey)`: with a site key, storing the secret and switching `auth_config.captcha` to that provider happen in one atomic write; the answer has `switched` and `captcha`.
+- **Preflight acknowledgements.** `instance->listPreflightAcks()`, `setPreflightAck($code, ['reason' => ..., 'expires_at' => ...])` and `deletePreflightAck($code)` (`/v1/instance/preflight/acks`); findings carry `acknowledged` (`reason`, `by`, `at`, `expires_at`).
+- **OAuth client secret reveal.** `oauthClients->revealSecret($id)` (`POST /v1/oauth_clients/{id}/secret/reveal`, once within 10 minutes); `create` takes your own `client_secret`; create and rotate answers carry `client_secret_reveal` (`path`, `expires_at`). `require_verified_email` on create, update and read.
+- Webhook event names `WebhookEvents::SESSION_EXPIRED` (`data.reason` `idle_expired` / `expired`) and `INVITATION_CREATED` / `INVITATION_ACCEPTED` / `INVITATION_REVOKED`. Users and `user.*` payloads carry `status` (`active` / `suspended` / `banned`).
+- `invitations->create` takes `expires_at` or `expires_in_days`; `platform->apps->list` documents `name`, `name_prefix`, `external_ref`, `limit` and `starting_after`; `userHooks->updateBeforeUserCreate` takes `fail_closed` (a denying hook answers `{deny: true, reason}`).
+- Webhook endpoint test results name the `url` tried; `messaging->test` documents `accepted`, `provider`, `provider_message_id` and `provider_response`. Password import documents `scrypt_node` / `scrypt_django` and `salt_encoding`.
+
 ## 0.22.0 — 2026-11-01
 
 ### Added

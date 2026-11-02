@@ -12,7 +12,9 @@ use Atlas\Http;
  * config). The signing private key is never returned. JWT templates live under
  * their own {@see JwtTemplates} resource, not here.
  *
- * @phpstan-type PreflightFinding array{severity:'error'|'warning'|'info',code:string,message:string,fix:string,subject?:array<string,string>}
+ * @phpstan-type PreflightAckSummary array{reason:string,by:string|null,at:int,expires_at:int|null}
+ * @phpstan-type PreflightFinding array{severity:'error'|'warning'|'info',code:string,message:string,fix:string,subject?:array<string,string>,acknowledged?:PreflightAckSummary}
+ * @phpstan-type PreflightAck array{object:'preflight_ack',code:string,reason:string,by:string|null,at:int,expires_at:int|null,active:bool}
  * @phpstan-type SdkAdvisory array{object:string,package:string,affected:string,fixed_in:string,reason:string,severity:'critical'|'high'|'medium'|'low',summary:string,published_at:string}
  * @phpstan-type SdkVersionSeen array{package:string,version:string,last_seen_at:int,advisories:list<SdkAdvisory>}
  * @phpstan-type PreflightReport array{object:string,ok:bool,checked_at:int,findings:list<PreflightFinding>,sdk_versions_seen?:list<SdkVersionSeen>}
@@ -154,6 +156,47 @@ final class Instance extends Resource
     public function preflight(array $params = []): array
     {
         return $this->http->request('GET', '/v1/instance/preflight', query: $params);
+    }
+
+    /**
+     * `GET /v1/instance/preflight/acks` — every preflight acknowledgement, lapsed ones included
+     * (`active: false`).
+     *
+     * @return array{object:'list',data:list<PreflightAck>,has_more:bool}
+     */
+    public function listPreflightAcks(): array
+    {
+        return $this->http->request('GET', '/v1/instance/preflight/acks');
+    }
+
+    /**
+     * `PUT /v1/instance/preflight/acks/:code` — acknowledge a known, accepted warning or info
+     * finding. `preflight()` still lists every finding with this code, marked `acknowledged`
+     * (`reason`, `by`, `at`, `expires_at`); do not count it. Replaces an earlier
+     * acknowledgement of the code. A code that can be an error is refused (422); errors are
+     * fixed, never acknowledged. `expires_at`: epoch ms or ISO 8601 in the future; omit or null
+     * for no expiry.
+     *
+     *     $atlas->instance->setPreflightAck('webhook_endpoint_off_origin', ['reason' => 'Our relay host']);
+     *
+     * @param array{reason:string,expires_at?:int|string|null} $body
+     *
+     * @return PreflightAck
+     */
+    public function setPreflightAck(string $code, array $body): array
+    {
+        return $this->http->request('PUT', '/v1/instance/preflight/acks/' . rawurlencode($code), body: $body);
+    }
+
+    /**
+     * `DELETE /v1/instance/preflight/acks/:code` — remove an acknowledgement: the findings with
+     * this code count again. 404 when the code has none.
+     *
+     * @return array{object:'preflight_ack',code:string,deleted:true}
+     */
+    public function deletePreflightAck(string $code): array
+    {
+        return $this->http->request('DELETE', '/v1/instance/preflight/acks/' . rawurlencode($code));
     }
 
     /**

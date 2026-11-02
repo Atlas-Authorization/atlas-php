@@ -124,6 +124,16 @@ if (!$report['ok']) {
 }
 ```
 
+A warning or info finding you know about and accept can be acknowledged with a reason (and an
+optional `expires_at`). It is still listed, with `acknowledged`; skip those when counting. Errors
+are never acknowledged (422):
+
+```php
+$atlas->instance->setPreflightAck('webhook_endpoint_off_origin', ['reason' => 'Our relay host']);
+$atlas->instance->listPreflightAcks();
+$atlas->instance->deletePreflightAck('webhook_endpoint_off_origin');
+```
+
 ### Sign-in page design
 
 ```php
@@ -185,6 +195,30 @@ For a first-party client, `skip_logout_confirmation` makes RP-initiated logout
 (`/oauth2/logout` with this client's `client_id` and an exactly registered
 `post_logout_redirect_uri`) end the session and redirect straight back with
 `state`, without the confirmation page. A third-party client is refused (422).
+
+Sign a user out of your app and of Atlas from your backend with the id_token's `sid`. This
+revokes the client's grants under that sid, ends the Atlas session and queues a back-channel
+logout to every other app signed in through it; no browser redirect to `/oauth2/logout` is
+needed (needs `oauth_clients:write` and `sessions:write`):
+
+```php
+$out = $atlas->oauthClients->logout($clientId, $claims['sid']);
+$out['session']; // "revoked" or "already_ended"
+```
+
+`refresh_touches_session` (first-party) keeps the Atlas session alive on every refresh and makes
+the refresh fail (`invalid_grant`) once that session has ended. `add_redirect_origins: true` on
+create / update also adds the redirect URIs' origins to `allowed_origins`; the response lists
+them in `added_origins`.
+
+A generated secret can be fetched once more within 10 minutes (`client_secret_reveal` on the
+create / rotate answer says where and until when); send `client_secret` on create to choose your
+own instead. `require_verified_email: true` issues no authorization code to a user whose primary
+email is not verified:
+
+```php
+$secret = $atlas->oauthClients->revealSecret($client['id'])['client_secret'];
+```
 
 Rotating a secret keeps the previous one working for `overlap_seconds` (default 24 hours, at
 most 7 days), so you can deploy the new secret without downtime. Pass `0` to revoke the old one

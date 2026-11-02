@@ -12,7 +12,8 @@ final class ImportExport extends Resource
      * `notify: false` (the default) guarantees the imported users are sent nothing.
      * A row takes `image_url` (https; alias `profile_image_url`) like users->create, and a hash
      * that does not describe itself is named per row with `password_hash_algorithm` and
-     * `password_hash_params`.
+     * `password_hash_params`. A Node `scrypt$N$r$p$salt$key` string with an all-digit salt must be
+     * named `scrypt_node` or `scrypt_django` (`salt_encoding` in `password_hash_params`).
      *
      * @param array{users:list<array<string,mixed>>,upsert?:bool,notify?:bool} $body
      *

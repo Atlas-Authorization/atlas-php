@@ -55,15 +55,21 @@ final class InstanceSecurity extends Resource
     /**
      * Store a captcha provider secret. `$provider` (default: the configured one) lets you
      * store it BEFORE turning captcha on — captcha is bring-your-own-keys, and enabling it
-     * without a site key and secret is refused with 422 `CAPTCHA_KEYS_REQUIRED`.
+     * without a site key and secret is refused with 422 `CAPTCHA_KEYS_REQUIRED`. With `$siteKey`
+     * (the provider's public site key) the same atomic write also switches `auth_config.captcha`
+     * to `$provider` (e.g. from the built-in `atlas` captcha to Turnstile); the answer then has
+     * `switched: true` and the resulting `captcha` config.
      *
      * @return array<string,mixed>
      */
-    public function setCaptchaSecret(string $secret, ?string $provider = null): array
+    public function setCaptchaSecret(string $secret, ?string $provider = null, ?string $siteKey = null): array
     {
         $body = ['secret' => $secret];
         if ($provider !== null) {
             $body['provider'] = $provider;
+        }
+        if ($siteKey !== null) {
+            $body['site_key'] = $siteKey;
         }
         return $this->http->request('PUT', '/v1/instance/captcha_secret', body: $body);
     }
