@@ -420,4 +420,37 @@ final class Instance extends Resource
     {
         return $this->http->request('GET', '/v1/embed', query: ['instance' => $instance, 'origin' => $origin, 'shape' => $shape]);
     }
+
+    /**
+     * `GET /v1/instance/storage_declaration` — every cookie and browser-storage key of the hosted pages,
+     * as a declaration a consent manager can import.
+     *
+     * @return array<string,mixed>
+     */
+    public function storageDeclaration(): array
+    {
+        return $this->http->request('GET', '/v1/instance/storage_declaration');
+    }
+
+    /** {@see storageDeclaration()} as CSV text, for a generic importer. */
+    public function storageDeclarationCsv(): string
+    {
+        return $this->http->request('GET', '/v1/instance/storage_declaration', query: ['format' => 'csv'], raw: true);
+    }
+
+    /**
+     * `GET /v1/storage_declaration` — the same declaration read by publishable key. Nothing in it is secret.
+     *
+     * @return array<string,mixed>
+     */
+    public function publicStorageDeclaration(string $publishableKey): array
+    {
+        return $this->http->request('GET', '/v1/storage_declaration', query: ['publishable_key' => $publishableKey]);
+    }
+
+    /** {@see publicStorageDeclaration()} as CSV text. */
+    public function publicStorageDeclarationCsv(string $publishableKey): string
+    {
+        return $this->http->request('GET', '/v1/storage_declaration', query: ['publishable_key' => $publishableKey, 'format' => 'csv'], raw: true);
+    }
 }

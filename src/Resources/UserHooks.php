@@ -55,4 +55,15 @@ final class UserHooks extends Resource
     {
         return $this->http->request('GET', '/v1/instance/hooks/before_user_create/calls', query: $params === [] ? null : $params);
     }
+
+    /**
+     * `DELETE /v1/instance/hooks/before_user_create` — turn the hook off and clear its url and
+     * signing secret. Idempotent; `timeout_ms` and `fail_closed` are kept.
+     *
+     * @return array<string,mixed>
+     */
+    public function clearBeforeUserCreate(): array
+    {
+        return $this->http->request('DELETE', '/v1/instance/hooks/before_user_create');
+    }
 }

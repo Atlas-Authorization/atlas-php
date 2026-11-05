@@ -387,4 +387,18 @@ final class Organizations extends Resource
             query: $params,
         );
     }
+
+    /**
+     * `PUT /v1/organizations/by_external_id/:external_id` — create or update the organization keyed by
+     * your own id: 201 when created, else 200 with only the fields sent changed. `name` is required when
+     * it creates.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function upsertByExternalId(string $externalId, array $body): array
+    {
+        return $this->http->request('PUT', '/v1/organizations/by_external_id/' . rawurlencode($externalId), body: $body);
+    }
 }

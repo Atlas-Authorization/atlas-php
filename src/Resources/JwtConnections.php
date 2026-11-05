@@ -50,4 +50,16 @@ final class JwtConnections extends Resource
     {
         return $this->http->request('DELETE', '/v1/jwt_connections/' . rawurlencode($id));
     }
+
+    /**
+     * Where to send the person's browser to sign in with a trusted JWT
+     * (`GET /v1/sso/jwt/:connectionId`). `$loginUrl` is the connection's `login_url`. A URL, not an
+     * API call: the token works once, and the 302 carries a one-time ticket that has to reach the browser.
+     */
+    public static function signInUrl(string $loginUrl, string $token, string $redirectUrl): string
+    {
+        $query = http_build_query(['token' => $token, 'redirect_url' => $redirectUrl], '', '&', PHP_QUERY_RFC3986);
+
+        return $loginUrl . (str_contains($loginUrl, '?') ? '&' : '?') . $query;
+    }
 }

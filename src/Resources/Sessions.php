@@ -175,4 +175,15 @@ final class Sessions extends Resource
 
         return $query;
     }
+
+    /**
+     * `GET /v1/sessions/:id/status` — cheap freshness check: `id`, `status` (active, expired, revoked or
+     * ended), `user_id`, `expires_at`, `last_active_at`. Takes a session id or an ID token `sid`.
+     *
+     * @return array<string,mixed>
+     */
+    public function status(string $id): array
+    {
+        return $this->http->request('GET', '/v1/sessions/' . rawurlencode($id) . '/status');
+    }
 }

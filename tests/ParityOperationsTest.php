@@ -502,6 +502,29 @@ final class ParityOperationsTest extends TestCase
             ['POST /v1/organizations/{}/app_webhook_endpoints/{}/deliveries/{}/redeliver', 'POST', '/v1/organizations/org_1/app_webhook_endpoints/we_1/deliveries/del_1/redeliver', null, false, static fn (Client $c) => $c->appEvents->endpoints->redeliver('org_1', 'we_1', 'del_1')],
             ['POST /v1/organizations/{}/app_webhook_endpoints/{}/replay', 'POST', '/v1/organizations/org_1/app_webhook_endpoints/we_1/replay', ['since' => 'failing_since', 'event_type' => 'call.completed'], false, static fn (Client $c) => $c->appEvents->endpoints->replay('org_1', 'we_1', ['since' => 'failing_since', 'event_type' => 'call.completed'])],
             ['GET /v1/organizations/{}/app_event_types', 'GET', '/v1/organizations/org_1/app_event_types', null, false, static fn (Client $c) => $c->appEvents->endpoints->eventTypes('org_1')],
+            ['GET /v1/machines/{}/grants', 'GET', '/v1/machines/mch_1/grants', null, false, static fn (Client $c) => $c->machines->listGrants('mch_1')],
+            ['POST /v1/machines/{}/grants', 'POST', '/v1/machines/mch_1/grants', ['resource_server_id' => 'rs_1'], false, static fn (Client $c) => $c->machines->createGrant('mch_1', ['resource_server_id' => 'rs_1'])],
+            ['DELETE /v1/machines/{}/grants/{}', 'DELETE', '/v1/machines/mch_1/grants/mg_1', null, false, static fn (Client $c) => $c->machines->deleteGrant('mch_1', 'mg_1')],
+            ['GET /v1/organizations/{}/machine_memberships', 'GET', '/v1/organizations/org_1/machine_memberships?limit=5', null, false, static fn (Client $c) => $c->machines->listOrganizationMembers('org_1', ['limit' => 5])],
+            ['POST /v1/organizations/{}/machine_memberships', 'POST', '/v1/organizations/org_1/machine_memberships', ['machine_id' => 'mch_1'], true, static fn (Client $c) => $c->machines->addToOrganization('org_1', ['machine_id' => 'mch_1'], idempotencyKey: 'idem-1')],
+            ['PATCH /v1/organizations/{}/machine_memberships/{}', 'PATCH', '/v1/organizations/org_1/machine_memberships/mch_1', ['role' => 'org:admin'], false, static fn (Client $c) => $c->machines->updateOrganizationRole('org_1', 'mch_1', 'org:admin')],
+            ['DELETE /v1/organizations/{}/machine_memberships/{}', 'DELETE', '/v1/organizations/org_1/machine_memberships/mch_1', null, false, static fn (Client $c) => $c->machines->removeFromOrganization('org_1', 'mch_1')],
+            ['POST /v1/instance/integrations/{}/deliveries/redeliver', 'POST', '/v1/instance/integrations/product_1/deliveries/redeliver', ['since' => 'failing_since'], true, static fn (Client $c) => $c->instance->integrations->redeliverEvents('product_1', ['since' => 'failing_since'], idempotencyKey: 'idem-1')],
+            ['POST /v1/users/{}/account_claim', 'POST', '/v1/users/user_1/account_claim', ['password_policy' => 'until_email_verified'], true, static fn (Client $c) => $c->users->protectAccountClaim('user_1', 'idem-1')],
+            ['DELETE /v1/instance/hooks/before_user_create', 'DELETE', '/v1/instance/hooks/before_user_create', null, false, static fn (Client $c) => $c->userHooks->clearBeforeUserCreate()],
+            ['DELETE /v1/instance/signing_keys/next', 'DELETE', '/v1/instance/signing_keys/next', null, false, static fn (Client $c) => $c->instanceSecurity->cancelStagedSigningKey()],
+            ['GET /v1/instance/signing_key_policy', 'GET', '/v1/instance/signing_key_policy', null, false, static fn (Client $c) => $c->instanceSecurity->getSigningKeyPolicy()],
+            ['PATCH /v1/instance/signing_key_policy', 'PATCH', '/v1/instance/signing_key_policy', ['prepublish_days' => 7], false, static fn (Client $c) => $c->instanceSecurity->setSigningKeyPolicy(7)],
+            ['POST /v1/partner_executor_keys/{}/{}', 'POST', '/v1/partner_executor_keys/id_1/i1', ['x' => 1], false, static fn (Client $c) => $c->partnerPlatforms->mintExecutorKey('id_1', 'i1', '{"x":1}', 'x-signature', 't=1')],
+            ['DELETE /v1/partner_executor_keys/{}/{}', 'DELETE', '/v1/partner_executor_keys/id_1/i1', ['x' => 1], false, static fn (Client $c) => $c->partnerPlatforms->revokeExecutorKey('id_1', 'i1', '{"x":1}', 'x-signature', 't=1')],
+            ['DELETE /v1/users/{}/password', 'DELETE', '/v1/users/id_1/password?sign_out_of_other_sessions=false', null, false, static fn (Client $c) => $c->users->removePassword('id_1', ['sign_out_of_other_sessions' => 'false'])],
+            ['GET /v1/instance/storage_declaration', 'GET', '/v1/instance/storage_declaration', null, false, static fn (Client $c) => $c->instance->storageDeclaration()],
+            ['GET /v1/storage_declaration', 'GET', '/v1/storage_declaration?publishable_key=pk_1', null, false, static fn (Client $c) => $c->instance->publicStorageDeclaration('pk_1')],
+            ['GET /v1/sessions/{}/status', 'GET', '/v1/sessions/id_1/status', null, false, static fn (Client $c) => $c->sessions->status('id_1')],
+            ['PATCH /v1/sso_onboarding_profiles/{}', 'PATCH', '/v1/sso_onboarding_profiles/id_1', ['x' => 1], false, static fn (Client $c) => $c->ssoOnboarding->update('id_1', ['x' => 1])],
+            ['POST /v1/instance/referrals/accounts/resync', 'POST', '/v1/instance/referrals/accounts/resync', ['starting_after' => 'org_1'], false, static fn (Client $c) => $c->referrals->resyncAccounts(['starting_after' => 'org_1'])],
+            ['PUT /v1/organizations/by_external_id/{}', 'PUT', '/v1/organizations/by_external_id/id_1', ['x' => 1], false, static fn (Client $c) => $c->organizations->upsertByExternalId('id_1', ['x' => 1])],
+            ['PUT /v1/sso_onboarding_profiles/by_name/{}', 'PUT', '/v1/sso_onboarding_profiles/by_name/id_1', ['x' => 1], false, static fn (Client $c) => $c->ssoOnboarding->upsertByName('id_1', ['x' => 1])],
         ];
     }
 
@@ -512,6 +535,38 @@ final class ParityOperationsTest extends TestCase
 
         $this->assertSame($listed, $rows);
         $this->assertCount(count(array_unique($rows)), $rows, 'an operation has two rows');
+    }
+
+    public function testPartnerExecutorKeySendsTheSignedBytesAndTheSignature(): void
+    {
+        $raw = '{ "nonce":"n",  "iat":1 }';
+        $mock = new MockClient();
+        $mock->push(201, ['secret' => 's']);
+        (new Client('sk_test_123', 'https://api.atlas.test', $mock))->partnerPlatforms->mintExecutorKey('p', 'i', $raw, 'x-signature', 't=1');
+
+        $request = $mock->lastRequest();
+        $this->assertSame($raw, (string) $request->getBody());
+        $this->assertSame('t=1', $request->getHeaderLine('x-signature'));
+        $this->assertSame('application/json', $request->getHeaderLine('Content-Type'));
+    }
+
+    public function testStorageDeclarationCsvAsksForCsvAndReturnsTheText(): void
+    {
+        $mock = new MockClient();
+        $mock->push(200, "name,provider\r\n");
+        $out = (new Client('sk_test_123', 'https://api.atlas.test', $mock))->instance->storageDeclarationCsv();
+
+        $this->assertSame("name,provider\r\n", $out);
+        $this->assertSame('https://api.atlas.test/v1/instance/storage_declaration?format=csv', (string) $mock->lastRequest()->getUri());
+    }
+
+    public function testJwtSignInUrlEncodesBothValues(): void
+    {
+        $this->assertSame(
+            'https://a.test/j?token=t%20k&redirect_url=https%3A%2F%2Fb.test%2F%3Fx%3D1',
+            \Atlas\Resources\JwtConnections::signInUrl('https://a.test/j', 't k', 'https://b.test/?x=1'),
+        );
+        $this->assertSame('https://a.test/j?z=1&token=t&redirect_url=u', \Atlas\Resources\JwtConnections::signInUrl('https://a.test/j?z=1', 't', 'u'));
     }
 
     public function testEveryOperationHitsItsRoute(): void

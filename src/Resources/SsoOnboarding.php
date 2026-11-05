@@ -67,4 +67,29 @@ final class SsoOnboarding extends Resource
     {
         return $this->http->request('POST', '/v1/sso_onboarding_tickets/' . rawurlencode($ticketId) . '/revoke');
     }
+
+    /**
+     * `PATCH /v1/sso_onboarding_profiles/:id` — only the fields sent change.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function update(string $id, array $body): array
+    {
+        return $this->http->request('PATCH', '/v1/sso_onboarding_profiles/' . rawurlencode($id), body: $body);
+    }
+
+    /**
+     * `PUT /v1/sso_onboarding_profiles/by_name/:name` — create or update the profile with this exact
+     * name: 201 when created, else 200. 409 `IDENTIFIER_EXISTS` when two profiles already share the name.
+     *
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    public function upsertByName(string $name, array $body): array
+    {
+        return $this->http->request('PUT', '/v1/sso_onboarding_profiles/by_name/' . rawurlencode($name), body: $body);
+    }
 }

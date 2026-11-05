@@ -144,6 +144,23 @@ final class Users extends Resource
         return $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/lock', body: $body);
     }
 
+    /**
+     * `POST /v1/users/:id/account_claim` — protect one existing unverified user, so a proof of its address
+     * reaches it instead of making a second account. A 409 ACCOUNT_NOT_CLAIMABLE names what else on the
+     * user signs in.
+     *
+     * @return array<string,mixed>
+     */
+    public function protectAccountClaim(string $id, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/users/' . rawurlencode($id) . '/account_claim',
+            body: ['password_policy' => 'until_email_verified'],
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
     /** @return array<string,mixed> */
     public function unlock(string $id): array
     {
@@ -821,5 +838,18 @@ final class Users extends Resource
             query: $params,
             idempotencyKey: $idempotencyKey,
         );
+    }
+
+    /**
+     * `DELETE /v1/users/:id/password` — remove the password, even when it is the only sign-in method.
+     * Idempotent. Signs the user out unless `sign_out_of_other_sessions` is `'false'`.
+     *
+     * @param array{sign_out_of_other_sessions?:'true'|'false'} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function removePassword(string $id, array $params = []): array
+    {
+        return $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/password', query: $params);
     }
 }

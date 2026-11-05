@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Atlas\Resources;
 
 /**
- * `/v1/instance/integrations/:id/events_secret/rotate` - 1 operation.
+ * `/v1/instance/integrations/:id/events_secret/rotate` and `.../deliveries/redeliver` - 2 operations.
  */
 final class InstanceIntegrations extends Resource
 {
@@ -31,6 +31,25 @@ final class InstanceIntegrations extends Resource
             '/v1/instance/integrations/' . rawurlencode($product) . '/events_secret/rotate',
             body: $body,
             query: $params,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `POST /v1/instance/integrations/:product/deliveries/redeliver` - Re-send the events the integration's
+     * receiver never got, and switch a disabled receiver back on. Delivered events are not sent again.
+     * While `has_more` is true, call again with `since` set to `next_since`.
+     *
+     * @param array{since:string|int} $body ISO 8601, epoch milliseconds or `failing_since`.
+     *
+     * @return array<string,mixed>
+     */
+    public function redeliverEvents(string $product, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/instance/integrations/' . rawurlencode($product) . '/deliveries/redeliver',
+            body: $body,
             idempotencyKey: $idempotencyKey,
         );
     }

@@ -192,4 +192,18 @@ final class Referrals extends Resource
     {
         return $this->http->request('POST', '/v1/instance/referrals/' . rawurlencode($preset) . '/install', body: $body, idempotencyKey: $idempotencyKey);
     }
+
+    /**
+     * `POST /v1/instance/referrals/accounts/resync` — send every organization's owner to the referral
+     * platform once, up to 10,000 per call. When `truncated`, continue with `starting_after` =
+     * `next_starting_after`.
+     *
+     * @param array{starting_after?:string} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function resyncAccounts(array $body = []): array
+    {
+        return $this->http->request('POST', '/v1/instance/referrals/accounts/resync', body: $body);
+    }
 }

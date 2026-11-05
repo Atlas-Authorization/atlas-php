@@ -177,12 +177,101 @@ final class Machines extends Resource
     }
 
     /**
-     * `POST /v1/m2m_tokens/verify` — verify a presented machine secret: { valid, machine_id }.
+     * `POST /v1/m2m_tokens/verify` — verify a presented machine secret or machine JWT: { valid, machine_id, ... }.
      *
      * @return array<string,mixed>
      */
     public function verifyToken(string $token): array
     {
         return $this->http->request('POST', '/v1/m2m_tokens/verify', body: ['token' => $token]);
+    }
+
+    /**
+     * `GET /v1/machines/:id/grants` — the resource servers this machine may obtain tokens for.
+     *
+     * @return array<string,mixed>
+     */
+    public function listGrants(string $id): array
+    {
+        return $this->http->request('GET', '/v1/machines/' . rawurlencode($id) . '/grants');
+    }
+
+    /**
+     * `POST /v1/machines/:id/grants` — authorize the machine for a resource server. `scope_presets` names
+     * the server's presets, unioned with `scopes`. A second grant on the same server is a 409.
+     *
+     * @param array{resource_server_id:string,scopes?:list<string>,scope_presets?:list<string>} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function createGrant(string $id, array $body): array
+    {
+        return $this->http->request('POST', '/v1/machines/' . rawurlencode($id) . '/grants', body: $body);
+    }
+
+    /**
+     * `DELETE /v1/machines/:id/grants/:grantId` — revoke a grant. A token already issued lasts until it expires.
+     *
+     * @return array<string,mixed>
+     */
+    public function deleteGrant(string $id, string $grantId): array
+    {
+        return $this->http->request('DELETE', '/v1/machines/' . rawurlencode($id) . '/grants/' . rawurlencode($grantId));
+    }
+
+    /**
+     * `GET /v1/organizations/:id/machine_memberships` — the machines that are members of an organization.
+     *
+     * @param array{limit?:int,starting_after?:string} $params
+     *
+     * @return array<string,mixed>
+     */
+    public function listOrganizationMembers(string $organizationId, array $params = []): array
+    {
+        return $this->http->request('GET', '/v1/organizations/' . rawurlencode($organizationId) . '/machine_memberships', query: $params);
+    }
+
+    /**
+     * `POST /v1/organizations/:id/machine_memberships` — make a machine a member. `role` defaults to `org:member`.
+     *
+     * @param array{machine_id:string,role?:string} $body
+     *
+     * @return array<string,mixed>
+     */
+    public function addToOrganization(string $organizationId, array $body, ?string $idempotencyKey = null): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/organizations/' . rawurlencode($organizationId) . '/machine_memberships',
+            body: $body,
+            idempotencyKey: $idempotencyKey,
+        );
+    }
+
+    /**
+     * `PATCH /v1/organizations/:id/machine_memberships/:machineId` — change a machine's role. New tokens carry it.
+     *
+     * @return array<string,mixed>
+     */
+    public function updateOrganizationRole(string $organizationId, string $machineId, string $role): array
+    {
+        return $this->http->request(
+            'PATCH',
+            '/v1/organizations/' . rawurlencode($organizationId) . '/machine_memberships/' . rawurlencode($machineId),
+            body: ['role' => $role],
+        );
+    }
+
+    /**
+     * `DELETE /v1/organizations/:id/machine_memberships/:machineId` — remove a machine from an organization.
+     *
+     * @return array<string,mixed>
+     */
+    public function removeFromOrganization(string $organizationId, string $machineId): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/organizations/' . rawurlencode($organizationId) . '/machine_memberships/' . rawurlencode($machineId),
+        );
     }
 }

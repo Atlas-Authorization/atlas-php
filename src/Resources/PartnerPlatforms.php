@@ -100,4 +100,39 @@ final class PartnerPlatforms extends Resource
     {
         return '/v1/partner_platforms/' . rawurlencode($partner) . $rest;
     }
+
+    /**
+     * `POST /v1/partner_executor_keys/:partner/:instanceId` — for the partner: mint its data-rights key for
+     * one instance. `$rawBody` is sent byte for byte because `$signature` (in `$signatureHeader`) signs
+     * those bytes. Answers `secret` and `executorUrl`; a second mint for the same site rotates.
+     *
+     * @return array<string,mixed>
+     */
+    public function mintExecutorKey(string $partner, string $instanceId, string $rawBody, string $signatureHeader, string $signature): array
+    {
+        return $this->http->request(
+            'POST',
+            '/v1/partner_executor_keys/' . rawurlencode($partner) . '/' . rawurlencode($instanceId),
+            rawBody: $rawBody,
+            contentType: 'application/json',
+            headers: [$signatureHeader => $signature],
+        );
+    }
+
+    /**
+     * `DELETE /v1/partner_executor_keys/:partner/:instanceId` — for the partner: the link is gone, revoke
+     * the keys minted for that site. Signed like {@see mintExecutorKey()}. Answers `revoked`.
+     *
+     * @return array<string,mixed>
+     */
+    public function revokeExecutorKey(string $partner, string $instanceId, string $rawBody, string $signatureHeader, string $signature): array
+    {
+        return $this->http->request(
+            'DELETE',
+            '/v1/partner_executor_keys/' . rawurlencode($partner) . '/' . rawurlencode($instanceId),
+            rawBody: $rawBody,
+            contentType: 'application/json',
+            headers: [$signatureHeader => $signature],
+        );
+    }
 }

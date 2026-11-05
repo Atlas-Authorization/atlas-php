@@ -221,4 +221,36 @@ final class InstanceSecurity extends Resource
     {
         return $this->http->request('PUT', '/v1/instance/wallet_rpc_secret', body: ['chain_id' => $chainId, 'url' => $url]);
     }
+
+    /**
+     * `DELETE /v1/instance/signing_keys/next` — cancel a staged rotation: the staged key leaves
+     * the JWKS and never signs. 404 when none is staged.
+     *
+     * @return array<string,mixed>
+     */
+    public function cancelStagedSigningKey(): array
+    {
+        return $this->http->request('DELETE', '/v1/instance/signing_keys/next');
+    }
+
+    /**
+     * `GET /v1/instance/signing_key_policy` — `prepublish_days` (null = off).
+     *
+     * @return array<string,mixed>
+     */
+    public function getSigningKeyPolicy(): array
+    {
+        return $this->http->request('GET', '/v1/instance/signing_key_policy');
+    }
+
+    /**
+     * `PATCH /v1/instance/signing_key_policy` — stage every ordinary rotation this many days
+     * ahead (1..90); null or 0 is off.
+     *
+     * @return array<string,mixed>
+     */
+    public function setSigningKeyPolicy(?int $prepublishDays): array
+    {
+        return $this->http->request('PATCH', '/v1/instance/signing_key_policy', body: ['prepublish_days' => $prepublishDays]);
+    }
 }
