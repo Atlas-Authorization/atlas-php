@@ -20,6 +20,21 @@ jobs:
           extensions: sodium
       - run: composer install --no-interaction --prefer-dist
       - run: vendor/bin/phpunit
+  generated:
+    # The long-tail client (src/Generated) is generated from the OpenAPI snapshot: it must be in step with it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -I scripts/gen_catalog.py
+      - run: git diff --exit-code -- src/Generated tests/Generated scripts/catalog_pins.json
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+      - run: find src tests config bin -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
   drupal:
     # The Drupal module (integrations/drupal) over this SDK.
     runs-on: ubuntu-latest

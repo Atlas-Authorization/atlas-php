@@ -45,6 +45,13 @@ final class AtlasServiceProvider extends ServiceProvider
             );
         });
 
+        // Bound lazily: only an app that configures `atlas.rp` and uses the sign-in routes ever builds it.
+        $this->app->singleton(\Atlas\Rp\RelyingParty::class, static fn (Application $app): \Atlas\Rp\RelyingParty => AtlasRelyingPartyController::relyingParty((array) $app['config']->get('atlas.rp', [])));
+        $this->app->singleton(\Atlas\Rp\HttpFoundation\RelyingPartyRoutes::class, static fn (Application $app): \Atlas\Rp\HttpFoundation\RelyingPartyRoutes => new \Atlas\Rp\HttpFoundation\RelyingPartyRoutes(
+            $app->make(\Atlas\Rp\RelyingParty::class),
+            $app->make(\Atlas\Rp\HttpFoundation\RpSessionHandler::class),
+        ));
+
         $this->app->singleton(SessionBridge::class, static function (Application $app): SessionBridge {
             /** @var array<string,mixed> $config */
             $config = $app['config']->get('atlas', []);

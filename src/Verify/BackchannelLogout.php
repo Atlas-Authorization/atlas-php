@@ -140,12 +140,6 @@ final class BackchannelLogout
             }
         }
 
-        try {
-            $keySet = SigningKeys::parse($keys);
-        } catch (\Throwable) {
-            throw new InvalidLogoutTokenException('no_keys');
-        }
-
         $now = $this->currentTime();
         $previousLeeway = JWT::$leeway;
         $previousTimestamp = JWT::$timestamp;
@@ -153,8 +147,8 @@ final class BackchannelLogout
         JWT::$timestamp = $now;
         $header = new \stdClass();
         try {
-            // SigningKeys pins every key to RS256 or ES256, so any other `alg` fails here.
-            $payload = JWT::decode($logoutToken, $keySet, $header);
+            // SigningKeys accepts RS256, ES256, ES384, PS256 and EdDSA only (key type checked against alg); any other `alg` fails here.
+            $payload = SigningKeys::decode($logoutToken, $keys, $header);
         } catch (ExpiredException) {
             throw new InvalidLogoutTokenException('expired');
         } catch (BeforeValidException) {
