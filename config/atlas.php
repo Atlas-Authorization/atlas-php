@@ -42,4 +42,17 @@ return [
         // false only for plain-http local development.
         'secure' => env('ATLAS_BETTER_AUTH_SECURE', true),
     ],
+
+    // Hosted-redirect sign-in (Atlas\Laravel\AtlasRelyingPartyController::routes()). `issuer` is https:// + your
+    // Frontend API host (Sign in with Atlas: https://atlasauth.net); `secret` (32+ characters) seals the sign-in cookie.
+    'rp' => [
+        'issuer' => env('ATLAS_RP_ISSUER'),
+        'client_id' => env('ATLAS_RP_CLIENT_ID'),
+        'client_secret' => env('ATLAS_RP_CLIENT_SECRET'),
+        'redirect_uri' => env('ATLAS_RP_REDIRECT_URI'),
+        'post_logout_redirect_uri' => env('ATLAS_RP_POST_LOGOUT_REDIRECT_URI'),
+        'secret' => env('ATLAS_RP_SECRET'),
+        'secret_key' => env('ATLAS_SECRET_KEY'),
+        'forward_params' => [],
+    ],
 ];

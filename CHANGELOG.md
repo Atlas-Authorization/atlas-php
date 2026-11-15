@@ -2,6 +2,18 @@
 
 Versions are published from git tags.
 
+## 0.24.0 — 2026-11-14
+
+### Added
+
+- **Every Backend API and Platform API operation, generated.** `$atlas->catalog` has one property per resource group with a typed method per operation the hand-written namespaces did not already cover (738 operations): path parameters as `string` arguments, `array $body`, `array $query`, `?string $idempotencyKey`, phpdoc array shapes for every request, query and response field, and a `listAll` generator on cursor lists. Published signatures are pinned, and CI regenerates from the checked-in OpenAPI snapshot and fails on a diff (`scripts/gen_catalog.py`). `Atlas\Generated\Shapes` carries importable shape aliases for the hand-written operations.
+- Generation now pairs each operation's verb with its path, so an operation whose path is shared with a hand-written one of another verb is generated too (3 more operations: profile-mapping previews for custom OAuth providers and design asset upload). An explicit `null` in a request body is sent as JSON `null`, to clear a field.
+- Session tokens, ID tokens, logout tokens, access tokens and transaction tokens verify with RS256, ES256, ES384, PS256 and EdDSA (`SigningKeys::decode`); the key type is checked against `alg` (an RSA key is RS256 unless its JWKS entry declares PS256), and `none` and HMAC never verify. PS256 is checked with OpenSSL's raw RSA operation, EdDSA with sodium.
+- **Hosted-redirect relying party.** `Atlas\Rp\RelyingParty` (start, callback, ID token verification, `touchIfDue`, `endAppSession`, sign-out URL, back-channel logout with a sid store), sealed cookies, a PSR-15 middleware (`AtlasRelyingPartyMiddleware`), Laravel routes (`AtlasRelyingPartyController`, `atlas.rp` config) and a Symfony controller.
+- **Local verification primitives.** `KeyMirror` (end-user API keys), `SidRevocationList`, `ResourceRoleMirror`, `MachineClient` (enrolment, challenge-signed tokens, DPoP), `WebBotAuth`, `WebhookDedupe`, `TransactionToken`.
+- **Helpers.** `RecentAuth` (`authenticatedWithin`, `usedMultiFactor`, `mfaSatisfied`, `mfaOrgSatisfied`), `DeviceFlow` for any issuer, and JWT template `settings` (`jwtTemplates->update($name, $claims, $settings)`).
+- **Resilience, telemetry and diagnostics.** Opt-in `Resilience` (`Retry-After`, backoff on 429/503, fail fast during a reported outage, only for requests safe to repeat); opt-in OpenTelemetry spans and a request-duration histogram when `open-telemetry/api` is installed; `$atlas->doctor()` and `vendor/bin/atlas-doctor`.
+
 ## 0.23.0 — 2026-11-02
 
 ### Added

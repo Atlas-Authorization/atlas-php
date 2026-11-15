@@ -478,7 +478,32 @@ settings, design and branding), `roles`, `permissions`, `oauthClients`,
 `captcha`, `appEvents` (with `types` and `endpoints`), `testing` (development-instance helpers), and `platform` (`apps`,
 `atlasIdApps`, `designAssets`; needs a platform key).
 
+Every other Backend API and Platform API operation is on `$atlas->catalog`, generated from the OpenAPI document: one property per
+resource group (`$atlas->catalog->administrativeUnits->listMembers($id)`), path parameters as `string` arguments, then `array $body`,
+`array $query` and `?string $idempotencyKey`. Request, query and response shapes are phpdoc array shapes, so an IDE or static analyser
+knows every field. Cursor lists also have a generator over every page (`listAll`):
+
+```php
+foreach ($atlas->catalog->allowlistIdentifiers->listAll(['limit' => 100]) as $entry) { /* … */ }
+```
+
 Anything not wrapped can be called directly with `$atlas->http->request('GET', '/v1/…')`.
+
+### Retries, outages and telemetry
+
+Opt in to status-aware retries. A `429` or `503` is retried with `Retry-After` honoured (or exponential backoff with jitter), only for
+requests that are safe to repeat: reads, PUT, DELETE, and writes sent with an idempotency key. While the service status reports an
+outage the client fails fast instead of piling retries on top:
+
+```php
+$atlas = new \Atlas\Client('sk_live_…', resilience: new \Atlas\Resilience(maxRetries: 3));
+```
+
+With `open-telemetry/api` installed, `telemetry: true` emits a client span per request and an `http.client.request.duration`
+histogram (labelled with a low-cardinality route) to your globally registered providers; with it not installed the option does nothing.
+
+`$atlas->doctor($jwksUrl)` checks the key, the clock skew against Atlas, API and JWKS reachability and the service status and
+returns a report (`$report->ok`, `echo $report`). The same from a shell: `ATLAS_SECRET_KEY=sk_live_… vendor/bin/atlas-doctor [jwks-url]`.
 
 ## Credentials, options and helpers
 
@@ -608,6 +633,56 @@ Keys are cached in-process. A token carrying an unknown `kid` triggers at most
 one JWKS refetch per minute, so a flood of random `kid` values cannot be turned
 into a flood of outbound requests. Key rotation is picked up automatically with
 no deploy.
+
+## Sign in with Atlas for your server (hosted redirect)
+
+`Atlas\Rp\RelyingParty` is an OpenID Connect relying party: send the user to Atlas's hosted sign-in page, verify who came back and
+keep your own session. State, nonce and the PKCE (S256) verifier travel in one sealed, short-lived, httpOnly cookie; the ID token's
+algorithm is pinned and `iss`, `aud` / `azp`, `exp` / `iat`, `nonce` and `at_hash` are checked.
+
+```php
+$rp = new \Atlas\Rp\RelyingParty(
+    issuer: 'https://atlasauth.net',               // or https:// + your Frontend API host
+    clientId: $clientId,
+    clientSecret: $clientSecret,
+    redirectUri: 'https://app.example.com/auth/callback',
+    secret: $sessionSecret,                        // 32+ characters, seals the sign-in cookie
+);
+
+$start = $rp->start($_GET);                        // ['url', 'set_cookie', ...]: redirect to url, send set_cookie
+$done  = $rp->callback($_GET, $_COOKIE[\Atlas\Rp\RelyingParty::STATE_COOKIE] ?? null);   // ['claims', 'tokens', 'return_to']
+$rp->touchIfDue($done['claims']['sid'], $lastTouchedAt);   // 'skipped' | 'touched' | 'ended'
+header('Location: ' . $rp->signOutUrl($done['tokens']['id_token']));
+```
+
+- **PSR-15** (Slim, Mezzio, Laminas): `Atlas\Psr15\AtlasRelyingPartyMiddleware` answers `/auth/sign-in`, `/auth/callback`,
+  `/auth/sign-out` and `/auth/backchannel-logout`; `onSignedIn` returns the `Set-Cookie` value(s) that start your session.
+- **Laravel**: set the `atlas.rp` config, bind an `Atlas\Rp\HttpFoundation\RpSessionHandler` (starts and ends your session) and call
+  `AtlasRelyingPartyController::routes($router)`. Exclude the back-channel route from CSRF checks.
+- **Symfony**: register `Atlas\Symfony\AtlasRelyingPartyController` with a `RelyingParty` and your `RpSessionHandler` and route to its
+  four actions.
+- `Atlas\Rp\SealedCookie` seals your own session cookie too. Bind sessions to their Atlas `sid` (`bindSession`) and
+  `backchannelLogout()` hands you the sessions to end when Atlas ends one.
+
+## Local verification primitives
+
+Check requests without a call to Atlas per request.
+
+- `Atlas\Mirror\KeyMirror`: a local mirror of end-user API keys. `verify()` checks the sha256 hash, scopes, expiry, allowed IPs and
+  revocation in-process; `sync()` consumes the revocation feed and `applyWebhook()` the `api_key.*` events; `maxStalenessMs` makes it
+  answer `stale` rather than guess. Back it with your own `KeyMirrorStore`.
+- `Atlas\Mirror\SidRevocationList`: polls the revoked-sessions feed so a token whose session was revoked is refused before it expires;
+  `onStale: 'reject'` fails closed when the list cannot be refreshed.
+- `Atlas\Mirror\ResourceRoleMirror`: the resource tree, role definitions and assignments, so `can($subject, 'doc:edit', $resource)` is
+  answered in-process, with inherited roles.
+- `Atlas\Machine\MachineClient`: enrol a daemon or agent once, then mint short-lived audience-bound tokens by proving possession of its
+  Ed25519 key, optionally DPoP-bound. Needs `ext-sodium`.
+- `Atlas\Verify\WebBotAuth`: verify a signed bot request (RFC 9421, `web-bot-auth`) against the bot's published key directory. Needs
+  `ext-sodium`.
+- `Atlas\Webhook\WebhookDedupe`: verify a webhook and drop a retried delivery (`MemoryWebhookDedupeStore`, `PdoWebhookDedupeStore`).
+- `Atlas\Verify\TransactionToken`: verify a transaction token for your trust domain.
+- `Atlas\Verify\RecentAuth`: `authenticatedWithin`, `usedMultiFactor`, `mfaSatisfied`, `mfaOrgSatisfied` on verified claims.
+- `Atlas\Auth\DeviceFlow`: an RFC 8628 device authorization flow (`start`, `poll`) for your own CLI or TV app.
 
 ## Back-channel logout
 

@@ -314,6 +314,9 @@ final class Client
     /** Platform-key surface: construct the client with a `psk_…` key to use it. */
     public readonly Platform $platform;
 
+    /** The long tail of the Backend API, generated from the OpenAPI document: `$atlas->catalog->waitlist->...`. */
+    public readonly \Atlas\Generated\Catalog $catalog;
+
     /** The shared, config-bound transport — exposed for advanced callers. */
     public readonly Http $http;
 
@@ -330,6 +333,11 @@ final class Client
      * @param callable(UnknownFields):void|null $onUnknownFields called when a successful write reports body fields the
      *                                                       endpoint ignored (the `Atlas-Unknown-Fields` response header)
      *
+     * @param Resilience|null               $resilience     opt-in status-aware retries: honours `Retry-After`, backs off on 429/503 and
+     *                                                       fails fast while the service status reports an outage (see {@see Resilience})
+     * @param bool                          $telemetry      emit OpenTelemetry spans and a duration histogram per request when
+     *                                                       `open-telemetry/api` is installed (see {@see Telemetry\OpenTelemetry})
+     *
      * @throws ConfigException on an empty key, or when nothing is injected and Guzzle is absent
      */
     public function __construct(
@@ -341,10 +349,12 @@ final class Client
         ?bool $strict = null,
         ?callable $onUnknownFields = null,
         ?string $secretRecipient = null,
+        ?Resilience $resilience = null,
+        bool $telemetry = false,
     ) {
         [$client, $reqFactory, $strFactory] = self::discover($httpClient, $requestFactory, $streamFactory);
 
-        $this->wire(new Http($secretKey, $baseUrl, $client, $reqFactory, $strFactory, $strict, $onUnknownFields, false, null, $secretRecipient));
+        $this->wire(new Http($secretKey, $baseUrl, $client, $reqFactory, $strFactory, $strict, $onUnknownFields, false, null, $secretRecipient, $resilience, $telemetry));
     }
 
     /**
@@ -384,10 +394,17 @@ final class Client
         return $copy;
     }
 
+    /** Check keys, clock skew, API and JWKS reachability and the service status: `$atlas->doctor($jwksUrl)->ok`. */
+    public function doctor(?string $jwksUrl = null): DoctorReport
+    {
+        return Doctor::run($this->http, $jwksUrl);
+    }
+
     private function wire(Http $http): void
     {
         $this->http = $http;
 
+        $this->catalog = new \Atlas\Generated\Catalog($http);
         $this->users = new Users($http);
         $this->sessions = new Sessions($http);
         $this->organizations = new Organizations($http);

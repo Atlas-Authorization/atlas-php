@@ -26,7 +26,10 @@
         "symfony/security-http": "^6.4 || ^7.0",
         "symfony/yaml": "^6.4 || ^7.0"
     },
+    "bin": ["bin/atlas-doctor"],
     "suggest": {
+        "ext-sodium": "Required by Atlas\\Machine\\MachineClient and Atlas\\Verify\\WebBotAuth (Ed25519).",
+        "open-telemetry/api": "Spans and a request-duration histogram for every Backend API call (`new Client(..., telemetry: true)`).",
         "illuminate/support": "To use the Laravel integration (Atlas\\Laravel): the AtlasServiceProvider, config/atlas.php, and the atlas.auth / atlas.permission route middleware.",
         "illuminate/http": "Required by the Laravel route middleware (Atlas\\Laravel\\AtlasAuthenticate, RequirePermission).",
         "symfony/security-http": "To use the Symfony integration (Atlas\\Symfony): the AtlasAuthenticator security authenticator and AtlasUser.",

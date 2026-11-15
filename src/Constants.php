@@ -7,6 +7,9 @@ namespace Atlas;
 /** Names the Atlas API accepts in configuration and sends in webhooks. */
 final class Constants
 {
+    /** This SDK's version (also the OpenTelemetry instrumentation scope version). */
+    public const SDK_VERSION = '0.24.0';
+
     /**
      * Captcha providers (`auth_config.captcha.provider`). Captcha is bring-your-own-keys:
      * store the secret first. `vercel_botid` is secret-only: set `attestationUrl` instead

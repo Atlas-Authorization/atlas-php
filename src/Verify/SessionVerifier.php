@@ -172,12 +172,6 @@ final class SessionVerifier
             return VerifyResult::fail('no_keys');
         }
 
-        try {
-            $keySet = SigningKeys::parse($keys);
-        } catch (\Throwable) {
-            return VerifyResult::fail('no_keys');
-        }
-
         $previousLeeway = JWT::$leeway;
         $previousTimestamp = JWT::$timestamp;
         JWT::$leeway = $this->leeway;
@@ -186,10 +180,10 @@ final class SessionVerifier
         }
 
         try {
-            // `SigningKeys::parse` pins each key to the one algorithm its type
-            // allows (RS256 or ES256), so a token whose header says `alg: none`
+            // `SigningKeys::decode` pins each key to the one algorithm its type
+            // allows (RS256, ES256, ES384, PS256 or EdDSA), so a token whose header says `alg: none`
             // — or any algorithm coerced onto the key material — fails to decode. Signature + exp/nbf (with leeway) are enforced here.
-            $payload = JWT::decode($token, $keySet);
+            $payload = SigningKeys::decode($token, $keys);
             /** @var array<string,mixed> $claims */
             $claims = json_decode(json_encode($payload, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
         } catch (\Throwable) {

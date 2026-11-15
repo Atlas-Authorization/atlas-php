@@ -57,12 +57,20 @@ final class Http
         private readonly bool $dryRun = false,
         private readonly ?string $traceparent = null,
         private readonly ?string $secretRecipient = null,
+        private readonly ?Resilience $resilience = null,
+        private readonly bool $telemetry = false,
     ) {
         if ($secretKey === '') {
             throw new ConfigException('Atlas\\Client requires a non-empty secret key.');
         }
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->onUnknownFields = $onUnknownFields === null ? null : \Closure::fromCallable($onUnknownFields);
+    }
+
+    /** The API origin requests go to. */
+    public function baseUrl(): string
+    {
+        return $this->baseUrl;
     }
 
     /** The client-wide strict-body setting (null = no header sent). */
@@ -85,6 +93,8 @@ final class Http
             $this->dryRun,
             $this->traceparent,
             $this->secretRecipient,
+            $this->resilience,
+            $this->telemetry,
         );
     }
 
@@ -123,6 +133,8 @@ final class Http
             $dryRun,
             $traceparent,
             $secretRecipient ?? $this->secretRecipient,
+            $this->resilience,
+            $this->telemetry,
         );
     }
 
@@ -156,6 +168,106 @@ final class Http
         ?string $contentType = null,
         ?bool $strict = null,
         ?array $headers = null,
+    ): mixed {
+        $span = $this->telemetry ? Telemetry\OpenTelemetry::start(strtoupper($method), $path, Constants::SDK_VERSION) : null;
+        $retries = 0;
+        $status = null;
+        try {
+            while (true) {
+                try {
+                    $out = $this->send($method, $path, $query, $body, $idempotencyKey, $raw, $rawBody, $contentType, $strict, $headers);
+                    $status = 200;
+                    Telemetry\OpenTelemetry::finish($span, $status, $retries);
+
+                    return $out;
+                } catch (AtlasApiException | TransportException $e) {
+                    $status = $e instanceof AtlasApiException ? $e->getStatus() : null;
+                    $delay = $this->retryDelay($e, $status, $method, $idempotencyKey, $retries + 1);
+                    if ($delay === null) {
+                        throw $e;
+                    }
+                    $retries++;
+                    ($this->resilience->sleep)($delay);
+                }
+            }
+        } catch (\Throwable $e) {
+            Telemetry\OpenTelemetry::finish($span, $status, $retries, $e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * One GET that never throws on a non-2xx answer, for diagnostics ({@see Doctor}): the status, the `Date` header, the timing and the
+     * decoded body. `$authenticated = false` leaves the secret key off (for a public URL such as a JWKS); `$path` may be an absolute URL.
+     *
+     * @return array{status:int,date:?string,ms:int,body:?array<string,mixed>,error:?string}
+     */
+    public function probe(string $path, bool $authenticated = true): array
+    {
+        $url = str_starts_with($path, 'http') ? $path : $this->baseUrl . $path;
+        $request = $this->requestFactory->createRequest('GET', $url)->withHeader('Accept', 'application/json');
+        if ($authenticated) {
+            $request = $request->withHeader('Authorization', 'Bearer ' . $this->secretKey);
+        }
+        $start = microtime(true);
+        try {
+            $response = $this->client->sendRequest($request);
+        } catch (ClientExceptionInterface $e) {
+            return ['status' => 0, 'date' => null, 'ms' => (int) ((microtime(true) - $start) * 1000), 'body' => null, 'error' => $e->getMessage()];
+        }
+        $decoded = json_decode((string) $response->getBody(), true);
+
+        return ['status' => $response->getStatusCode(), 'date' => $response->getHeaderLine('Date') ?: null, 'ms' => (int) ((microtime(true) - $start) * 1000), 'body' => is_array($decoded) ? $decoded : null, 'error' => null];
+    }
+
+    /** Milliseconds to wait before the next attempt, or null to give up. */
+    private function retryDelay(\Throwable $e, ?int $status, string $method, ?string $idempotencyKey, int $attempt): ?int
+    {
+        $r = $this->resilience;
+        if ($r === null || $attempt > $r->maxRetries || !Resilience::replayable($method, $idempotencyKey)) {
+            return null;
+        }
+        if ($status !== null && !in_array($status, $r->retryStatuses, true)) {
+            return null;
+        }
+        if ($status === 503 && $r->consultStatus && $this->serviceDown($r)) {
+            return null;
+        }
+        $retryAfter = $this->lastRetryAfter;
+        $this->lastRetryAfter = null;
+
+        return $r->delayMs($attempt, $status === null ? null : $retryAfter);
+    }
+
+    private ?int $statusCheckedAt = null;
+    private bool $statusDown = false;
+    private ?int $lastRetryAfter = null;
+
+    /** Read the service status (cached) and say whether Atlas reports an outage. */
+    private function serviceDown(Resilience $r): bool
+    {
+        if ($this->statusCheckedAt === null || time() - $this->statusCheckedAt >= $r->statusTtlSeconds) {
+            $probe = $this->probe('/v1/status', false);
+            $this->statusCheckedAt = time();
+            $this->statusDown = $probe['status'] === 200 && $probe['body'] !== null && Resilience::reportsOutage($probe['body']);
+        }
+
+        return $this->statusDown;
+    }
+
+    /** One request attempt. @return mixed */
+    private function send(
+        string $method,
+        string $path,
+        ?array $query,
+        mixed $body,
+        ?string $idempotencyKey,
+        bool $raw,
+        ?string $rawBody,
+        ?string $contentType,
+        ?bool $strict,
+        ?array $headers,
     ): mixed {
         $method = strtoupper($method);
         $dryRun = $this->dryRun && in_array($method, self::WRITE_METHODS, true);
@@ -220,6 +332,8 @@ final class Http
         $text = (string) $response->getBody();
 
         if ($status < 200 || $status >= 300) {
+            $this->lastRetryAfter = Resilience::parseRetryAfter($response->getHeaderLine('Retry-After'));
+
             throw self::toApiError($status, $text);
         }
 

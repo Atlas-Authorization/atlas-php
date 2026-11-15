@@ -191,7 +191,7 @@ final class AccessTokenVerifier
                 JWT::$timestamp = (int) ($this->now)();
             }
             try {
-                $payload = JWT::decode($token, SigningKeys::parse($keys));
+                $payload = SigningKeys::decode($token, $keys);
                 /** @var array<string,mixed> $claims */
                 $claims = json_decode(json_encode($payload, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
             } catch (\Throwable) {

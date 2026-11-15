@@ -154,7 +154,7 @@ final class BxSurfaceTest extends TestCase
         // ES256 under the RSA key's kid, and HS256, never verify.
         $this->assertFalse($v->verify($this->es256($this->session(), 'rs-1'))->ok);
         $this->assertFalse($v->verify(JWT::encode($this->session(), str_repeat('k', 64), 'HS256', 'ec-1'))->ok);
-        $this->assertSame(['RS256', 'ES256'], SigningKeys::ALGS);
+        $this->assertSame(['RS256', 'ES256', 'ES384', 'PS256', 'EdDSA'], SigningKeys::ALGS);
     }
 
     private function accessVerifier(): AccessTokenVerifier

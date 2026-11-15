@@ -1,0 +1,21 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Usage: ATLAS_SECRET_KEY=sk_live_... vendor/bin/atlas-doctor [jwks-url] [api-url]
+foreach ([__DIR__ . '/../../../autoload.php', __DIR__ . '/../vendor/autoload.php'] as $autoload) {
+    if (is_file($autoload)) {
+        require $autoload;
+        break;
+    }
+}
+
+$key = getenv('ATLAS_SECRET_KEY') ?: '';
+if ($key === '') {
+    fwrite(STDERR, "Set ATLAS_SECRET_KEY to your secret key.\n");
+    exit(2);
+}
+$report = (new Atlas\Client($key, $argv[2] ?? Atlas\Http::DEFAULT_API_URL))->doctor($argv[1] ?? null);
+echo $report;
+exit($report->ok ? 0 : 1);
