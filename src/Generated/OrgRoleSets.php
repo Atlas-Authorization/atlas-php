@@ -79,11 +79,12 @@ final class OrgRoleSets
      *
      * @param string $id the `id` path segment
      * @param array{key?:string, name?:string, description?:string|null, role_keys?:list<string>, default_role_key?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, key:string, name:string, description:string|null, role_keys:list<string>, default_role_key:string|null, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/org_role_sets/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/org_role_sets/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -94,11 +95,12 @@ final class OrgRoleSets
      * `DELETE /v1/org_role_sets/{id}` (scope `organizations:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/org_role_sets/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/org_role_sets/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

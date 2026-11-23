@@ -79,11 +79,12 @@ final class ErasureConnectors
      *
      * @param string $id the `id` path segment
      * @param array{key?:string, catalog_id?:string|null, name?:string, mode?:'ack'|'manual'|'api', vendor?:string|null, config?:array<string,string>|null, credential?:string, ack_source?:string|null, enabled?:bool, notes?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, key:string, catalog_id?:string|null, name:string, mode:'ack'|'manual'|'api', ack_source?:string|null, enabled:bool, notes?:string|null, vendor?:string|null, config?:array<string,string>, has_credential?:bool, created_at?:int, updated_at?:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/erasure_connectors/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/erasure_connectors/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -94,10 +95,11 @@ final class ErasureConnectors
      * `DELETE /v1/erasure_connectors/{id}` (scope `data_subject_requests:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function delete(string $id): void
+    public function delete(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/erasure_connectors/' . rawurlencode($id));
+        $this->http->request('DELETE', '/v1/erasure_connectors/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
     }
 
     /**

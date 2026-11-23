@@ -21,10 +21,11 @@ final class MessagingProviders
      * `PUT /v1/messaging_providers/push` (scope `messaging:write`)
      *
      * @param array{transport:mixed, config?:array{apns_auth_key?:string, apns_key_id?:string, apns_team_id?:string, apns_topic?:string, apns_host?:string, fcm_service_account?:string, fcm_project_id?:string}}|array{transport:mixed, config?:array{access_token?:string}} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function setPush(mixed $body = null): void
+    public function setPush(mixed $body = null, ?string $idempotencyKey = null): void
     {
-        $this->http->request('PUT', '/v1/messaging_providers/push', body: $body);
+        $this->http->request('PUT', '/v1/messaging_providers/push', body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -79,11 +80,12 @@ final class MessagingProviders
      *
      * @param string $channel the `channel` path segment
      * @param array{ids:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, data:list<array{object:mixed, id:string, channel:'email'|'sms'|'push', position:int, transport:string, from_address?:string|null, status:'active'|'disabled', config:array<string,string>, secrets_set:array<string,bool>, updated_at:int}>, has_more:bool, next_cursor?:string|null, failover_order?:list<string>}
      */
-    public function setFallbacksOrder(string $channel, array $body): array
+    public function setFallbacksOrder(string $channel, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/messaging_providers/' . rawurlencode($channel) . '/fallbacks/order', body: $body);
+        $r = $this->http->request('PUT', '/v1/messaging_providers/' . rawurlencode($channel) . '/fallbacks/order', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -96,11 +98,12 @@ final class MessagingProviders
      * @param string $channel the `channel` path segment
      * @param string $id the `id` path segment
      * @param array{transport?:string, from_address?:string|null, config?:array<string,mixed>, position?:int, status?:'active'|'disabled'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, channel:'email'|'sms'|'push', position:int, transport:string, from_address?:string|null, status:'active'|'disabled', config:array<string,string>, secrets_set:array<string,bool>, updated_at:int}
      */
-    public function upsertFallback(string $channel, string $id, array $body = []): array
+    public function upsertFallback(string $channel, string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/messaging_providers/' . rawurlencode($channel) . '/fallbacks/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PUT', '/v1/messaging_providers/' . rawurlencode($channel) . '/fallbacks/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -112,11 +115,12 @@ final class MessagingProviders
      *
      * @param string $channel the `channel` path segment
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteFallback(string $channel, string $id): array
+    public function deleteFallback(string $channel, string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/messaging_providers/' . rawurlencode($channel) . '/fallbacks/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/messaging_providers/' . rawurlencode($channel) . '/fallbacks/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

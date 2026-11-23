@@ -68,11 +68,12 @@ final class MachineTrustPolicies
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, kind?:'github_actions'|'kubernetes'|'aws'|'gcp'|'oidc', issuer?:string|null, jwks_uri?:string|null, jwks?:array<string,mixed>|null, audience?:string, subject_pattern?:string, claim_conditions?:list<array{claim:string, op:'equals'|'in'|'glob'|'exists', value?:string}>, max_ttl_seconds?:int, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, machine_id:string, name:string, kind:'github_actions'|'kubernetes'|'aws'|'gcp'|'oidc', issuer:string|null, jwks_uri:string|null, jwks:array<string,mixed>|null, audience:string, subject_pattern:string, claim_conditions:list<array{claim:string, op:'equals'|'in'|'glob'|'exists', value?:string}>, max_ttl_seconds:int, enabled:bool, last_used_at:int|null, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/machine_trust_policies/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/machine_trust_policies/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -83,11 +84,12 @@ final class MachineTrustPolicies
      * `DELETE /v1/machine_trust_policies/{id}` (scope `machines:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/machine_trust_policies/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/machine_trust_policies/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

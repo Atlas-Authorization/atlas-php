@@ -22,9 +22,10 @@ final class OrgRoleGrants
      *
      * @param string $id the `id` path segment
      * @param string $delegationid the `delegationId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteDelegation(string $id, string $delegationid): void
+    public function deleteDelegation(string $id, string $delegationid, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/org_role_grants/' . rawurlencode($id) . '/delegations/' . rawurlencode($delegationid));
+        $this->http->request('DELETE', '/v1/org_role_grants/' . rawurlencode($id) . '/delegations/' . rawurlencode($delegationid), idempotencyKey: $idempotencyKey);
     }
 }

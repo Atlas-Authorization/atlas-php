@@ -79,11 +79,12 @@ final class MfaCampaigns
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, required_factors?:list<'totp'|'sms'|'passkey'|'push'>, grace_until?:int|null, nag_interval_days?:int, enforce?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, name?:string, target_type?:'all'|'group'|'org'|'role', target_value?:string|null, required_factors?:list<'totp'|'sms'|'passkey'|'push'>, starts_at?:int, grace_until?:int|null, nag_interval_days?:int, enforce?:bool, status?:'active'|'ended', ended_at?:int|null, created_at?:int, updated_at?:int, metrics?:array{targeted?:int, enrolled?:int, nagged?:int, exempt?:int}}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/mfa_campaigns/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/mfa_campaigns/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -94,11 +95,12 @@ final class MfaCampaigns
      * `DELETE /v1/mfa_campaigns/{id}` (scope `mfa_campaigns:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, name?:string, target_type?:'all'|'group'|'org'|'role', target_value?:string|null, required_factors?:list<'totp'|'sms'|'passkey'|'push'>, starts_at?:int, grace_until?:int|null, nag_interval_days?:int, enforce?:bool, status?:'active'|'ended', ended_at?:int|null, created_at?:int, updated_at?:int, metrics?:array{targeted?:int, enrolled?:int, nagged?:int, exempt?:int}}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/mfa_campaigns/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/mfa_campaigns/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -155,11 +157,12 @@ final class MfaCampaigns
      * @param string $id the `id` path segment
      * @param string $userId the `user_id` path segment
      * @param array{required_factors?:list<'totp'|'sms'|'passkey'|'push'>|null, exempt_until?:int|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, campaign_id?:string, user_id?:string, required_factors?:list<'totp'|'sms'|'passkey'|'push'>|null, exempt_until?:int|null, nag_count?:int, last_nagged_at?:int|null, dismissed_at?:int|null, enrolled_at?:int|null, targeted?:bool, effective?:array{phase?:'exempt'|'satisfied'|'nag'|'enforcing', required_factors?:list<string>, satisfied?:bool, days_left?:int|null}}
      */
-    public function upsertUser(string $id, string $userId, array $body = []): array
+    public function upsertUser(string $id, string $userId, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/mfa_campaigns/' . rawurlencode($id) . '/users/' . rawurlencode($userId), body: $body);
+        $r = $this->http->request('PUT', '/v1/mfa_campaigns/' . rawurlencode($id) . '/users/' . rawurlencode($userId), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

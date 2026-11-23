@@ -47,11 +47,12 @@ final class Messaging
      * `PUT /v1/messaging/country_routes` (scope `messaging:write`)
      *
      * @param array{country:string, provider_id:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, channel:string, country:string, provider_id:string, updated_at:int}
      */
-    public function setCountryRoutes(array $body): array
+    public function setCountryRoutes(array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/messaging/country_routes', body: $body);
+        $r = $this->http->request('PUT', '/v1/messaging/country_routes', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -62,11 +63,12 @@ final class Messaging
      * `DELETE /v1/messaging/country_routes/{country}` (scope `messaging:write`)
      *
      * @param string $country the `country` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, country:string, deleted:mixed}
      */
-    public function deleteCountryRoute(string $country): array
+    public function deleteCountryRoute(string $country, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/messaging/country_routes/' . rawurlencode($country));
+        $r = $this->http->request('DELETE', '/v1/messaging/country_routes/' . rawurlencode($country), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -91,11 +93,12 @@ final class Messaging
      * `PUT /v1/messaging/settings` (scope `messaging:write`)
      *
      * @param array{auto_suppress?:bool, failover_enabled?:bool, ledger_retention_days?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, auto_suppress:bool, failover_enabled:bool, ledger_retention_days:int, updated_at:int|null}
      */
-    public function setSettings(array $body = []): array
+    public function setSettings(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/messaging/settings', body: $body);
+        $r = $this->http->request('PUT', '/v1/messaging/settings', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -148,11 +151,12 @@ final class Messaging
      * `DELETE /v1/messaging/suppressions/{email}` (scope `email_suppressions:write`)
      *
      * @param string $email the `email` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, email:string, deleted:bool}
      */
-    public function deleteSuppression(string $email): array
+    public function deleteSuppression(string $email, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/messaging/suppressions/' . rawurlencode($email));
+        $r = $this->http->request('DELETE', '/v1/messaging/suppressions/' . rawurlencode($email), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -16,6 +16,32 @@ final class Machines
     }
 
     /**
+     * The machine deny feed: machines revoked and machine grants ended since a cursor (since=<iso|cursor>), oldest first, so a service that verifies machine tokens offline can deny a revoked machine within one poll. A `machine` entry denies every token with that `sub` issued before `revoked_at`; a `machine_grant` entry denies tokens with that `sub` and `aud` (the `audience`) issued before it. Readable with an sk_ bearer or a publishable key; a publishable key sees ids, audiences and times only. The revocation stream carries the same events as pushes.
+     *
+     * `GET /v1/machines/revoked` (scope `machines:read`)
+     *
+     * @param array{starting_after?:string, since?:string, limit?:string} $query
+     * @return array{object?:mixed, data?:list<array{object:'machine'|'machine_grant', id:string, machine_id?:string, audience?:string, revoked_at:int, revoked_reason?:string|null, revoked_by?:array{type?:string, id?:string|null}|null, owner_user_id?:string|null, organization_id?:string|null}>, has_more?:bool, next_cursor?:string|null}
+     */
+    public function listRevoked(array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/machines/revoked', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Every item of `listRevoked` across all pages (cursor pagination), one at a time.
+     *
+     * @param array{starting_after?:string, since?:string, limit?:string} $query
+     * @return \Generator<int,mixed>
+     */
+    public function listRevokedAll(array $query = []): \Generator
+    {
+        return \Atlas\Pagination::iterate(fn (array $q): array => $this->listRevoked($q), $query);
+    }
+
+    /**
      * Change a machine's grant in place: scopes, constraints or expiry. 409 once the grant has expired.
      *
      * `PATCH /v1/machines/{id}/grants/{grantId}` (scope `machines:write`)
@@ -25,24 +51,26 @@ final class Machines
      * @param string $id the `id` path segment
      * @param string $grantid the `grantId` path segment
      * @param array{scopes?:list<string>, scope_presets?:list<string>, constraints?:array<string,mixed>|null, expires_in_seconds?:int, expires_at?:int|string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function updateGrant(string $id, string $grantid, array $body = []): void
+    public function updateGrant(string $id, string $grantid, array $body = [], ?string $idempotencyKey = null): void
     {
-        $this->http->request('PATCH', '/v1/machines/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid), body: $body);
+        $this->http->request('PATCH', '/v1/machines/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid), body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
-     * Revoke a machine's grant. No new tokens for that resource server; a token already issued lasts until it expires.
+     * Revoke a machine's grant. No new tokens for that resource server; a token already issued lasts until it expires, or until a verifier that subscribes to the revocation stream or the machine deny feed denies it. The grant stays as a record for 90 days (`revoked_at`, `revoked_reason`, `revoked_by`) and `machine_grant.revoked` fires.
      *
      * `DELETE /v1/machines/{id}/grants/{grantId}` (scope `machines:write`)
      *
      * @param string $id the `id` path segment
      * @param string $grantid the `grantId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteGrant(string $id, string $grantid): array
+    public function deleteGrant(string $id, string $grantid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/machines/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid));
+        $r = $this->http->request('DELETE', '/v1/machines/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

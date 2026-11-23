@@ -83,11 +83,12 @@ final class Abac
      * `PUT /v1/abac/token_mapping` (scope `abac:write`)
      *
      * @param array{principal_type?:string, id_claim?:string, parents?:list<array<string,mixed>>, attribute_claims?:list<string>, trusted_issuers?:list<array<string,mixed>>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function setTokenMapping(array $body = []): array
+    public function setTokenMapping(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/abac/token_mapping', body: $body);
+        $r = $this->http->request('PUT', '/v1/abac/token_mapping', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

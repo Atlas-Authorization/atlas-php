@@ -22,7 +22,7 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param array{limit?:int, starting_after?:string} $query
-     * @return array{object?:mixed, data?:list<array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}>, has_more?:bool, next_cursor?:string|null}
+     * @return array{object?:mixed, data?:list<array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, include_private_membership?:bool, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}>, has_more?:bool, next_cursor?:string|null}
      */
     public function listAppWebhookEndpoints(string $id, array $query = []): array
     {
@@ -51,7 +51,7 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param array{url?:string, enabled_events?:list<string>, description?:string|null, active?:bool} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int, secret:string}
+     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, include_private_membership?:bool, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int, secret:string}
      */
     public function createAppWebhookEndpoint(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
@@ -67,7 +67,7 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
-     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
+     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, include_private_membership?:bool, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
      */
     public function getAppWebhookEndpoint(string $id, string $endpointid): array
     {
@@ -84,11 +84,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
      * @param array{url?:string, enabled_events?:list<string>, description?:string|null, active?:bool} $body
-     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, include_private_membership?:bool, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
      */
-    public function updateAppWebhookEndpoint(string $id, string $endpointid, array $body = []): array
+    public function updateAppWebhookEndpoint(string $id, string $endpointid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/app_webhook_endpoints/' . rawurlencode($endpointid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/app_webhook_endpoints/' . rawurlencode($endpointid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -100,11 +101,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteAppWebhookEndpoint(string $id, string $endpointid): array
+    public function deleteAppWebhookEndpoint(string $id, string $endpointid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/app_webhook_endpoints/' . rawurlencode($endpointid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/app_webhook_endpoints/' . rawurlencode($endpointid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -249,11 +251,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $clientid the `clientId` path segment
      * @param array{roles?:list<string>, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, organization_id:string, client_id:string, application_id?:string, application_name?:string|null, roles:list<string>, enabled:bool, created_at?:int, updated_at?:int}
      */
-    public function upsertApplication(string $id, string $clientid, array $body = []): array
+    public function upsertApplication(string $id, string $clientid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/applications/' . rawurlencode($clientid), body: $body);
+        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/applications/' . rawurlencode($clientid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -265,11 +268,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $clientid the `clientId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, organization_id?:string, client_id?:string, deleted:mixed}
      */
-    public function deleteApplication(string $id, string $clientid): array
+    public function deleteApplication(string $id, string $clientid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/applications/' . rawurlencode($clientid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/applications/' . rawurlencode($clientid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -309,11 +313,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $streamid the `streamId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteAuditStream(string $id, string $streamid): array
+    public function deleteAuditStream(string $id, string $streamid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/audit_streams/' . rawurlencode($streamid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/audit_streams/' . rawurlencode($streamid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -325,11 +330,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $grantid the `grantId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteConnectedApp(string $id, string $grantid): array
+    public function deleteConnectedApp(string $id, string $grantid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/connected_apps/' . rawurlencode($grantid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/connected_apps/' . rawurlencode($grantid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -386,11 +392,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $domainid the `domainId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteDomain(string $id, string $domainid): array
+    public function deleteDomain(string $id, string $domainid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/domains/' . rawurlencode($domainid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/domains/' . rawurlencode($domainid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -451,11 +458,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $machineid the `machineId` path segment
      * @param array{role?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, organization_id:string, machine_id:string, role:string, role_id:string, created_at:int, updated_at:int}
      */
-    public function updateMachineMembership(string $id, string $machineid, array $body = []): array
+    public function updateMachineMembership(string $id, string $machineid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/machine_memberships/' . rawurlencode($machineid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/machine_memberships/' . rawurlencode($machineid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -467,11 +475,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $machineid the `machineId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteMachineMembership(string $id, string $machineid): array
+    public function deleteMachineMembership(string $id, string $machineid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/machine_memberships/' . rawurlencode($machineid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/machine_memberships/' . rawurlencode($machineid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -517,11 +526,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $userid the `userId` path segment
      * @param array{role:string, role_source?:string, public_metadata?:array<string,mixed>, private_metadata?:array<string,mixed>, permissions?:list<string>, allowed_sign_in_methods?:list<string>|null, expires_at?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, organization_id:string, user_id:string, role:string, role_source:string|null, scope?:array<string,mixed>|null, expires_at?:int|null, created_at:int, unchanged?:bool}
      */
-    public function upsertMembership(string $id, string $userid, array $body): array
+    public function upsertMembership(string $id, string $userid, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/memberships/' . rawurlencode($userid), body: $body);
+        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/memberships/' . rawurlencode($userid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -534,11 +544,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $userid the `userId` path segment
      * @param array{role?:string, role_source?:string, scope?:array{groups?:list<string>, teams?:list<string>, units?:list<string>}, public_metadata?:array<string,mixed>, private_metadata?:array<string,mixed>, permissions?:list<string>, allowed_sign_in_methods?:list<string>|null, expires_at?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, public_metadata?:array<string,mixed>, private_metadata?:array<string,mixed>, permissions?:list<string>, allowed_sign_in_methods?:list<string>|null, role?:string, role_source?:string|null, scope?:array<string,mixed>|null, updated:mixed}
      */
-    public function updateMembership(string $id, string $userid, array $body = []): array
+    public function updateMembership(string $id, string $userid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/memberships/' . rawurlencode($userid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/memberships/' . rawurlencode($userid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -551,11 +562,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $userid the `userId` path segment
      * @param array{transfer_to?:string} $query
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, deleted:mixed}
      */
-    public function deleteMembership(string $id, string $userid, array $query = []): array
+    public function deleteMembership(string $id, string $userid, array $query = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/memberships/' . rawurlencode($userid), query: $query);
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/memberships/' . rawurlencode($userid), query: $query, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -598,11 +610,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param array{role_set?:string|null, default_role?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, organization_id:string, role_set:array{id?:string, key?:string}|null, allowed_roles:list<string>|null, default_role:string, default_role_source:'organization'|'role_set'|'system'}
      */
-    public function setRolePolicy(string $id, array $body = []): array
+    public function setRolePolicy(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/role_policy', body: $body);
+        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/role_policy', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -660,11 +673,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $roleid the `roleId` path segment
      * @param array{name?:string, description?:string|null, permissions?:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, key?:string, name?:string, description?:string|null, is_system?:bool, organization_id?:string|null, permissions?:list<string>, member_count?:int, created_at?:int, updated_at?:int}
      */
-    public function updateRole(string $id, string $roleid, array $body = []): array
+    public function updateRole(string $id, string $roleid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/roles/' . rawurlencode($roleid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/roles/' . rawurlencode($roleid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -677,11 +691,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $roleid the `roleId` path segment
      * @param array{reassign_to?:string} $query
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, key?:string, deleted?:mixed, members_reassigned?:int}
      */
-    public function deleteRole(string $id, string $roleid, array $query = []): array
+    public function deleteRole(string $id, string $roleid, array $query = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/roles/' . rawurlencode($roleid), query: $query);
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/roles/' . rawurlencode($roleid), query: $query, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -736,11 +751,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param array{limit?:int|null, warn_percent?:int|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, organization_id:string, limit:int|null, used:int, pending_invitations:int, available:int|null, percent_used:int|null, warn_percent:int|null, state:'ok'|'low'|'full'}
      */
-    public function setSeats(string $id, array $body = []): array
+    public function setSeats(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/seats', body: $body);
+        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/seats', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -814,11 +830,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $teamid the `teamId` path segment
      * @param array{name?:string, description?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, organization_id?:string, name?:string, description?:string|null, members_count?:int, created_at?:int, updated_at?:int}
      */
-    public function updateTeam(string $id, string $teamid, array $body = []): array
+    public function updateTeam(string $id, string $teamid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/teams/' . rawurlencode($teamid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/teams/' . rawurlencode($teamid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -830,11 +847,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $teamid the `teamId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteTeam(string $id, string $teamid): array
+    public function deleteTeam(string $id, string $teamid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/teams/' . rawurlencode($teamid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/teams/' . rawurlencode($teamid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -895,11 +913,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $teamid the `teamId` path segment
      * @param string $userid the `userId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, team_id?:string, user_id?:string, user?:array{id?:string, first_name?:string|null, last_name?:string|null, image_url?:string|null}|null, deleted?:bool}
      */
-    public function deleteTeamsMember(string $id, string $teamid, string $userid): array
+    public function deleteTeamsMember(string $id, string $teamid, string $userid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/teams/' . rawurlencode($teamid) . '/members/' . rawurlencode($userid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/teams/' . rawurlencode($teamid) . '/members/' . rawurlencode($userid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -911,7 +930,7 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
-     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
+     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, include_private_membership?:bool, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
      */
     public function getWebhookEndpoint(string $id, string $endpointid): array
     {
@@ -928,11 +947,12 @@ final class Organizations
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
      * @param array{url?:string, enabled_events?:list<string>, description?:string|null, active?:bool} $body
-     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, url:string, description?:string|null, enabled_events:list<string>, event_naming?:'canonical'|'legacy', active:bool, external?:bool, managed_by?:string|null, signature_versions?:list<'v1'|'v2'>, filters?:array<string,mixed>|null, header_names?:list<string>, oauth?:array<string,mixed>|null, max_rps?:int|null, include_private_membership?:bool, destination?:array{type?:string, credentials_set?:bool}, health?:'healthy'|'failing'|'disabled', failing_since:int|null, last_failing_since?:int|null, disabled_at:int|null, last_success_at?:int|null, last_failure?:array{at?:int, status?:int|null, error?:string|null}|null, consecutive_failures?:int, success_rate_24h?:int|float|null, attempts_24h?:array{succeeded?:int, failed?:int}, alert_contacts?:list<string>|null, alerts_sent?:array{first_sent_at?:int|null, second_sent_at?:int|null, disabled_sent_at?:int|null}, auto_disable?:array{after_failing_ms?:int, after_consecutive_failures?:int, consecutive_failures_min_failing_ms?:int, description?:string}, previous_secret_expires_at?:int|null, replay?:array{since?:int, method?:string, path?:string, note?:string}|null, created?:bool, created_at:int, updated_at?:int}
      */
-    public function updateWebhookEndpoint(string $id, string $endpointid, array $body = []): array
+    public function updateWebhookEndpoint(string $id, string $endpointid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -944,11 +964,12 @@ final class Organizations
      *
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteWebhookEndpoint(string $id, string $endpointid): array
+    public function deleteWebhookEndpoint(string $id, string $endpointid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -1030,11 +1051,12 @@ final class Organizations
      * @param string $orgid the `orgId` path segment
      * @param string $userid the `userId` path segment
      * @param array{status:'active'|'pending'|'blocked'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, organization_id?:string, user_id?:string, status?:'active'|'pending'|'blocked', source?:string, public_metadata?:array<string,mixed>, approved_at?:int|null, created_at?:int, updated_at?:int}
      */
-    public function updateEndUser(string $orgid, string $userid, array $body): array
+    public function updateEndUser(string $orgid, string $userid, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($orgid) . '/end_users/' . rawurlencode($userid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/organizations/' . rawurlencode($orgid) . '/end_users/' . rawurlencode($userid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -1046,11 +1068,12 @@ final class Organizations
      *
      * @param string $orgid the `orgId` path segment
      * @param string $userid the `userId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteEndUser(string $orgid, string $userid): array
+    public function deleteEndUser(string $orgid, string $userid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($orgid) . '/end_users/' . rawurlencode($userid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($orgid) . '/end_users/' . rawurlencode($userid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -1063,11 +1086,12 @@ final class Organizations
      * @param string $orgid the `orgId` path segment
      * @param string $groupid the `groupId` path segment
      * @param string $roleid the `roleId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, organization_id:string, group_id:string, role_id:string, granted:mixed}
      */
-    public function upsertGroupsRole(string $orgid, string $groupid, string $roleid): array
+    public function upsertGroupsRole(string $orgid, string $groupid, string $roleid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($orgid) . '/groups/' . rawurlencode($groupid) . '/roles/' . rawurlencode($roleid));
+        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($orgid) . '/groups/' . rawurlencode($groupid) . '/roles/' . rawurlencode($roleid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -1080,11 +1104,12 @@ final class Organizations
      * @param string $orgid the `orgId` path segment
      * @param string $groupid the `groupId` path segment
      * @param string $roleid the `roleId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, organization_id:string, group_id:string, role_id:string, deleted:bool}
      */
-    public function deleteGroupsRole(string $orgid, string $groupid, string $roleid): array
+    public function deleteGroupsRole(string $orgid, string $groupid, string $roleid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($orgid) . '/groups/' . rawurlencode($groupid) . '/roles/' . rawurlencode($roleid));
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($orgid) . '/groups/' . rawurlencode($groupid) . '/roles/' . rawurlencode($roleid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

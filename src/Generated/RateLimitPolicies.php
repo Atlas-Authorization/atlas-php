@@ -83,11 +83,12 @@ final class RateLimitPolicies
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, subject?:'key'|'user'|'org'|'machine'|'ip', limit?:int, window_seconds?:int, burst?:int|null, plan_overrides?:array<string,array{limit:int, window_seconds?:int, burst?:int|null}>, is_default?:bool, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, name:string, subject:'key'|'user'|'org'|'machine'|'ip', limit:int, window_seconds:int, burst:int|null, plan_overrides:array<string,array{limit:int, window_seconds?:int, burst?:int|null}>, is_default:bool, enabled:bool, version:int, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/rate_limit_policies/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/rate_limit_policies/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -98,11 +99,12 @@ final class RateLimitPolicies
      * `DELETE /v1/rate_limit_policies/{id}` (scope `rate_limit:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/rate_limit_policies/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/rate_limit_policies/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

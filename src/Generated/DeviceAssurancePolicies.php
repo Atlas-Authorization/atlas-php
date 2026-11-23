@@ -94,11 +94,12 @@ final class DeviceAssurancePolicies
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, platform?:'any'|'macos'|'windows'|'linux'|'ios'|'android'|'chromeos', enabled?:bool, min_os_version?:string|null, os_latest_minus?:int|null, require_disk_encryption?:bool, require_screen_lock?:bool, require_secure_hardware?:bool, block_jailbroken?:bool, require_firewall?:bool, require_edr?:bool, grace_hours?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, name:string, platform:'any'|'macos'|'windows'|'linux'|'ios'|'android'|'chromeos', enabled:bool, min_os_version:string|null, os_latest_minus:int|null, require_disk_encryption:bool, require_screen_lock:bool, require_secure_hardware:bool, block_jailbroken:bool, require_firewall:bool, require_edr:bool, grace_hours:int, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/device_assurance_policies/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/device_assurance_policies/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -109,11 +110,12 @@ final class DeviceAssurancePolicies
      * `DELETE /v1/device_assurance_policies/{id}` (scope `device_assurance:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/device_assurance_policies/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/device_assurance_policies/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

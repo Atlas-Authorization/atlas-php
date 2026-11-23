@@ -39,11 +39,12 @@ final class Actions
      *
      * @param string $id the `id` path segment
      * @param array{percent:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, name:string, trigger:string, code:string, runtime?:'node'|'http', http_target?:array{url?:string, timeout_ms?:int, failure_mode?:'open'|'closed'}|null, enabled:bool, signing_secret?:string, secret_names?:list<string>, current_version?:int, egress_allowlist?:list<string>, rollout?:array{version?:int, percent?:int}|null, created_at:int, updated_at:int}
      */
-    public function updateRollout(string $id, array $body): array
+    public function updateRollout(string $id, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/actions/' . rawurlencode($id) . '/rollout', body: $body);
+        $r = $this->http->request('PATCH', '/v1/actions/' . rawurlencode($id) . '/rollout', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

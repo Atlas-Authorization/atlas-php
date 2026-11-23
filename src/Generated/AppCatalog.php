@@ -49,10 +49,11 @@ final class AppCatalog
      * `DELETE /v1/app_catalog/custom_presets/{id}` (scope `app_catalog:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteCustomPreset(string $id): void
+    public function deleteCustomPreset(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/app_catalog/custom_presets/' . rawurlencode($id));
+        $this->http->request('DELETE', '/v1/app_catalog/custom_presets/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -90,10 +91,11 @@ final class AppCatalog
      *
      * @param string $id the `id` path segment
      * @param array{status?:'open'|'building'|'available'|'declined', note?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function updateRequest(string $id, array $body = []): void
+    public function updateRequest(string $id, array $body = [], ?string $idempotencyKey = null): void
     {
-        $this->http->request('PATCH', '/v1/app_catalog/requests/' . rawurlencode($id), body: $body);
+        $this->http->request('PATCH', '/v1/app_catalog/requests/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -102,10 +104,11 @@ final class AppCatalog
      * `DELETE /v1/app_catalog/requests/{id}` (scope `app_catalog:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteRequest(string $id): void
+    public function deleteRequest(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/app_catalog/requests/' . rawurlencode($id));
+        $this->http->request('DELETE', '/v1/app_catalog/requests/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
     }
 
     /**

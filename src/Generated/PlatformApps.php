@@ -88,11 +88,31 @@ final class PlatformApps
      * @param string $id the `id` path segment
      * @param string $instanceid the `instanceId` path segment
      * @param string $cloneid the `cloneId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, kind:'clone'|'preview', name:string, ref?:string|null, status:'pending'|'copying'|'completed'|'failed'|'deleted', progress?:array<string,mixed>, source_instance_id:string, instance_id?:string|null, environment:mixed, publishable_key?:string|null, frontend_api_host?:string|null, allowed_origins?:list<string>, include:list<string>, mask_emails:bool, counts?:array<string,mixed>, errors?:list<array<string,mixed>>, expires_at?:int|null, created_by?:string|null, created_at:int, completed_at?:int|null, deleted_at?:int|null}
      */
-    public function deleteInstancesClone(string $id, string $instanceid, string $cloneid): array
+    public function deleteInstancesClone(string $id, string $instanceid, string $cloneid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/platform/apps/' . rawurlencode($id) . '/instances/' . rawurlencode($instanceid) . '/clones/' . rawurlencode($cloneid));
+        $r = $this->http->request('DELETE', '/v1/platform/apps/' . rawurlencode($id) . '/instances/' . rawurlencode($instanceid) . '/clones/' . rawurlencode($cloneid), idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Bring a completed clone or preview up to date in place (same instance, keys and host); same body and rules as POST /v1/instance/staging_copies/{id}/refresh. Needs platform:apps:write.
+     *
+     * `POST /v1/platform/apps/{id}/instances/{instanceId}/clones/{cloneId}/refresh` (scope `platform:apps:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param string $instanceid the `instanceId` path segment
+     * @param string $cloneid the `cloneId` path segment
+     * @param array{include?:list<'config'|'roles'|'organizations'|'users'|'memberships'>, synthetic_users?:array{count:int, seed:string}, ttl_hours?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, kind:'clone'|'preview', name:string, ref?:string|null, status:'pending'|'copying'|'completed'|'failed'|'deleted', progress?:array<string,mixed>, source_instance_id:string, instance_id?:string|null, environment:mixed, publishable_key?:string|null, frontend_api_host?:string|null, allowed_origins?:list<string>, include:list<string>, mask_emails:bool, counts?:array<string,mixed>, errors?:list<array<string,mixed>>, expires_at?:int|null, created_by?:string|null, created_at:int, completed_at?:int|null, deleted_at?:int|null}
+     */
+    public function refreshInstancesClones(string $id, string $instanceid, string $cloneid, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/platform/apps/' . rawurlencode($id) . '/instances/' . rawurlencode($instanceid) . '/clones/' . rawurlencode($cloneid) . '/refresh', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -112,6 +132,25 @@ final class PlatformApps
     public function createNarrowSecretKey(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
         $r = $this->http->request('POST', '/v1/platform/apps/' . rawurlencode($id) . '/narrow_secret_keys', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Extend the `provisioning` key of an app created with `secret_key_profile: "web_app"` by another 24 hours.
+     *
+     * `POST /v1/platform/apps/{id}/provisioning_key/renew` (scope `platform:secrets:write`)
+     *
+     * The full-scope key of a `web_app` app is named `provisioning` and expires 24 hours after creation unless renewed here; each call sets its expiry to 24 hours from now. A key that already expired or was revoked stays dead: mint a new full-scope key. Applies to the primary instance, or to `instance_id` (an instance of the app). The runtime key is not touched.
+     *
+     * @param string $id the `id` path segment
+     * @param array{instance_id?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object?:mixed, app_id?:string, instance_id?:string, renewed?:list<array{key_id?:string, prefix?:string}>, expires_at?:int}
+     */
+    public function renewProvisioningKey(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/platform/apps/' . rawurlencode($id) . '/provisioning_key/renew', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

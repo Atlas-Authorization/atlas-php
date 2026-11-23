@@ -62,11 +62,12 @@ final class CookieConsents
      * `DELETE /v1/cookie_consents/subjects/{subject}` (scope `data_subject_requests:write`)
      *
      * @param string $subject the `subject` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, removed?:int}
      */
-    public function deleteSubject(string $subject): array
+    public function deleteSubject(string $subject, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/cookie_consents/subjects/' . rawurlencode($subject));
+        $r = $this->http->request('DELETE', '/v1/cookie_consents/subjects/' . rawurlencode($subject), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

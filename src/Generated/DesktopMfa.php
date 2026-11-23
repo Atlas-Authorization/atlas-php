@@ -50,11 +50,12 @@ final class DesktopMfa
      *
      * @param string $id the `id` path segment
      * @param string $passkeyid the `passkeyId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteDevicesPasskey(string $id, string $passkeyid): array
+    public function deleteDevicesPasskey(string $id, string $passkeyid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/desktop_mfa/devices/' . rawurlencode($id) . '/passkeys/' . rawurlencode($passkeyid));
+        $r = $this->http->request('DELETE', '/v1/desktop_mfa/devices/' . rawurlencode($id) . '/passkeys/' . rawurlencode($passkeyid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

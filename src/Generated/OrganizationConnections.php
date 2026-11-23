@@ -52,11 +52,12 @@ final class OrganizationConnections
      * `DELETE /v1/organization_connections/{id}` (scope `organizations:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, supplier_organization_id?:string, partner_organization_id?:string, application_id?:string, roles?:list<string>, status:'pending'|'active'|'revoked'|'expired', expires_at?:int, accepted_by?:string|null, created_at?:int}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/organization_connections/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/organization_connections/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -35,11 +35,12 @@ final class ReferralRewardRules
      * `PUT /v1/referral_reward_rules` (scope `billing:write`)
      *
      * @param array{enabled?:bool, trigger?:'signup'|'first_payment', referrer_amount?:int, referee_amount?:int, currency?:string, hold_days?:int, max_rewards_per_referrer?:int|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, enabled:bool, trigger:'signup'|'first_payment', referrer_amount:int, referee_amount:int, currency:string, hold_days:int, max_rewards_per_referrer?:int|null, updated_at?:int|null}
      */
-    public function set(array $body = []): array
+    public function set(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/referral_reward_rules', body: $body);
+        $r = $this->http->request('PUT', '/v1/referral_reward_rules', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

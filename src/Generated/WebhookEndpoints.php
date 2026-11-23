@@ -21,7 +21,7 @@ final class WebhookEndpoints
      * `GET /v1/webhook_endpoints/{id}/dlq` (scope `webhooks:read`)
      *
      * @param string $id the `id` path segment
-     * @param array{limit?:int, starting_after?:string} $query
+     * @param array{limit?:int, starting_after?:string, event_type?:string} $query
      * @return array{object:mixed, data:list<array{object:mixed, id:string, event_id:string, event_type:string|null, latency_ms?:int|null, trace_id?:string|null, attempt_number:int, max_attempts:int, payload:array{id:string, type:string, timestamp:int, instance_id:string, actor?:array{type:'api_key'|'user'|'scim'|'sso'|'system', id:string|null}, idempotency_key?:string|null, data:array<string,mixed>}|null, status:'pending'|'success'|'failed', http_status:int|null, error?:string|null, location?:string|null, response_snippet:string|null, next_retry_at:int|null, delivered_at:int|null, created_at:int}>, has_more:bool, next_cursor?:string|null, depth:int, max_attempts?:int, retention?:array<string,mixed>}
      */
     public function listDlq(string $id, array $query = []): array
@@ -35,7 +35,7 @@ final class WebhookEndpoints
      * Every item of `listDlq` across all pages (cursor pagination), one at a time.
      *
      * @param string $id the `id` path segment
-     * @param array{limit?:int, starting_after?:string} $query
+     * @param array{limit?:int, starting_after?:string, event_type?:string} $query
      * @return \Generator<int,mixed>
      */
     public function listDlqAll(string $id, array $query = []): \Generator

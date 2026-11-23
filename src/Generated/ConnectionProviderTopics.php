@@ -30,16 +30,17 @@ final class ConnectionProviderTopics
     }
 
     /**
-     * Replace the instance's business topics: { topics: { shopify: [...], ebay: [...] } }, up to 50 per provider, spelled as the provider spells them (Shopify orders/create; eBay Trading events such as ItemSold, or Commerce Notification topic ids in UPPER_SNAKE_CASE). Connections made afterwards subscribe automatically; call POST /v1/connections/{id}/provider_subscriptions/sync for existing ones. A topic not listed here is acknowledged and ignored on delivery.
+     * Replace the instance's business topics: { topics: { shopify: [...], ebay: [...], bigcommerce: [...], square: [...], etsy: [...], tiktok_shop: [...] } }, up to 50 per provider (or ["*"] to pass every topic the provider sends through as connection.provider_event with the raw payload), spelled as the provider spells them (Shopify orders/create; eBay Trading events such as ItemSold, or Commerce Notification topic ids in UPPER_SNAKE_CASE). Connections made afterwards subscribe automatically; call POST /v1/connections/{id}/provider_subscriptions/sync for existing ones. A topic not listed here is acknowledged and ignored on delivery.
      *
      * `PUT /v1/connection_provider_topics` (scope `organizations:write`)
      *
      * @param array{topics:array<string,list<string>>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, topics:array<string,list<string>>}
      */
-    public function set(array $body): array
+    public function set(array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/connection_provider_topics', body: $body);
+        $r = $this->http->request('PUT', '/v1/connection_provider_topics', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

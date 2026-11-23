@@ -16,6 +16,32 @@ final class ConnectionProviders
     }
 
     /**
+     * List every provider that has a stored instance policy, in the shape of the single-provider read (unique_external_id, whether a webhook secret or dev id is stored, events_url). Secrets are never returned.
+     *
+     * `GET /v1/connection_providers/policies` (scope `organizations:read`)
+     *
+     * @param array{limit?:int, starting_after?:string} $query
+     * @return array{object?:mixed, data?:list<array{object:mixed, provider:string, unique_external_id:bool, has_webhook_secret:bool, has_dev_id?:bool, events_url:string|null, updated_at?:int|null}>, has_more?:bool, next_cursor?:string|null}
+     */
+    public function listPolicies(array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/connection_providers/policies', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Every item of `listPolicies` across all pages (cursor pagination), one at a time.
+     *
+     * @param array{limit?:int, starting_after?:string} $query
+     * @return \Generator<int,mixed>
+     */
+    public function listPoliciesAll(array $query = []): \Generator
+    {
+        return \Atlas\Pagination::iterate(fn (array $q): array => $this->listPolicies($q), $query);
+    }
+
+    /**
      * Read the instance policy for one provider's connections: unique_external_id, whether a webhook secret is stored, and the one ingress URL (events_url) for that provider's uninstall and revocation notices (shopify, bigcommerce, wix, square, ebay).
      *
      * `GET /v1/connection_providers/{provider}/policy` (scope `organizations:read`)
@@ -37,11 +63,12 @@ final class ConnectionProviders
      *
      * @param string $provider the `provider` path segment
      * @param array{unique_external_id?:bool, webhook_secret?:string|null, dev_id?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, provider:string, unique_external_id:bool, has_webhook_secret:bool, has_dev_id?:bool, events_url:string|null, updated_at?:int|null}
      */
-    public function setPolicy(string $provider, array $body = []): array
+    public function setPolicy(string $provider, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/connection_providers/' . rawurlencode($provider) . '/policy', body: $body);
+        $r = $this->http->request('PUT', '/v1/connection_providers/' . rawurlencode($provider) . '/policy', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -52,9 +79,10 @@ final class ConnectionProviders
      * `DELETE /v1/connection_providers/{provider}/policy` (scope `organizations:write`)
      *
      * @param string $provider the `provider` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deletePolicy(string $provider): void
+    public function deletePolicy(string $provider, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/connection_providers/' . rawurlencode($provider) . '/policy');
+        $this->http->request('DELETE', '/v1/connection_providers/' . rawurlencode($provider) . '/policy', idempotencyKey: $idempotencyKey);
     }
 }

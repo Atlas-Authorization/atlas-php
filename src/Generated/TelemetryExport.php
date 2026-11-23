@@ -35,11 +35,12 @@ final class TelemetryExport
      * `PUT /v1/telemetry_export` (scope `instance:write`)
      *
      * @param array{enabled?:bool, endpoint?:string, headers?:array<string,string>|null, service_name?:string, traces?:bool, metrics?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, enabled:bool, endpoint?:string|null, has_headers?:bool, service_name?:string, traces?:bool, metrics?:bool}
      */
-    public function set(array $body = []): array
+    public function set(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/telemetry_export', body: $body);
+        $r = $this->http->request('PUT', '/v1/telemetry_export', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -51,11 +51,12 @@ final class Fraud
      * `PUT /v1/fraud/email_risk/settings` (scope `email_suppressions:write`)
      *
      * @param array{mode?:'off'|'mx'|'provider', provider?:'zerobounce'|'kickbox'|null, credentials?:array<string,mixed>|null, block_disposable?:bool, block_suppressed?:bool, block_undeliverable?:bool, block_role?:bool, gate_sign_up?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, mode:'off'|'mx'|'provider', provider:string|null, has_credentials:bool, block_disposable:bool, block_suppressed:bool, block_undeliverable:bool, block_role:bool, gate_sign_up:bool, updated_at:int|null}
      */
-    public function setEmailRiskSettings(array $body = []): array
+    public function setEmailRiskSettings(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/fraud/email_risk/settings', body: $body);
+        $r = $this->http->request('PUT', '/v1/fraud/email_risk/settings', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

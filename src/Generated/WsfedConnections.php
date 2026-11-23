@@ -68,11 +68,12 @@ final class WsfedConnections
      *
      * @param string $id the `id` path segment
      * @param array{organization_id?:string|null, status?:'draft'|'active'|'disabled', metadata_url?:string, metadata_xml?:string, issuer?:string, passive_endpoint?:string, signing_certificates?:string, realm?:string, allowed_domains?:list<string>, attribute_mapping?:array<string,string>|null, freshness_minutes?:int|null, auth_method?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, organization_id?:string|null, status?:'draft'|'active'|'disabled', issuer?:string|null, passive_endpoint?:string|null, realm?:string|null, signing_certificate_count?:int, allowed_domains?:list<string>, attribute_mapping?:array<string,string>, freshness_minutes?:int|null, auth_method?:string|null, acs_url?:string, logout_start_url?:string, created_at?:int, updated_at?:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/wsfed_connections/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/wsfed_connections/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -83,9 +84,10 @@ final class WsfedConnections
      * `DELETE /v1/wsfed_connections/{id}` (scope `sso_connections:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function delete(string $id): void
+    public function delete(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/wsfed_connections/' . rawurlencode($id));
+        $this->http->request('DELETE', '/v1/wsfed_connections/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
     }
 }

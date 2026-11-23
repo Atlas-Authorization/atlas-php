@@ -52,11 +52,12 @@ final class McpRegistry
      * `DELETE /v1/mcp_registry/{id}` (scope `machines:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/mcp_registry/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/mcp_registry/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -37,11 +37,12 @@ final class Policies
      *
      * @param string $id the `id` path segment
      * @param array{audience:'everyone'|'orgs', organization_ids?:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, policy?:string, policy_id?:string, audience?:'everyone'|'orgs', organization_ids?:list<string>}
      */
-    public function setAudience(string $id, array $body): array
+    public function setAudience(string $id, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/policies/' . rawurlencode($id) . '/audience', body: $body);
+        $r = $this->http->request('PUT', '/v1/policies/' . rawurlencode($id) . '/audience', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -70,11 +71,12 @@ final class Policies
      * @param string $id the `id` path segment
      * @param string $versionid the `versionId` path segment
      * @param array{version?:string, content_markdown?:string, content_html?:string, content_url?:string|null, summary_of_changes?:string|null, locale?:string|null, publish?:bool, effective_at?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, policy_id:string, policy:string, version:string, status:'draft'|'published'|'retired', content_markdown?:string|null, content_html:string, content_url?:string|null, content_sha256:string, summary_of_changes?:string|null, locale?:string|null, published_at?:int|null, effective_at?:int|null, retired_at?:int|null, created_at?:int, updated_at?:int, acceptance_count?:int}
      */
-    public function updateVersion(string $id, string $versionid, array $body = []): array
+    public function updateVersion(string $id, string $versionid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -86,11 +88,12 @@ final class Policies
      *
      * @param string $id the `id` path segment
      * @param string $versionid the `versionId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteVersion(string $id, string $versionid): array
+    public function deleteVersion(string $id, string $versionid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid));
+        $r = $this->http->request('DELETE', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -169,11 +172,12 @@ final class Policies
      * @param string $versionid the `versionId` path segment
      * @param string $locale the `locale` path segment
      * @param array{title?:string|null, content_markdown?:string, content_html?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, policy?:string, version_id?:string, version?:string, locale?:string, title?:string|null, content_markdown?:string|null, content_html?:string, content_sha256?:string, created_at?:int, updated_at?:int}
      */
-    public function upsertVersionsTranslation(string $id, string $versionid, string $locale, array $body = []): array
+    public function upsertVersionsTranslation(string $id, string $versionid, string $locale, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid) . '/translations/' . rawurlencode($locale), body: $body);
+        $r = $this->http->request('PUT', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid) . '/translations/' . rawurlencode($locale), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -186,11 +190,12 @@ final class Policies
      * @param string $id the `id` path segment
      * @param string $versionid the `versionId` path segment
      * @param string $locale the `locale` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, version_id?:string, locale?:string, deleted?:bool}
      */
-    public function deleteVersionsTranslation(string $id, string $versionid, string $locale): array
+    public function deleteVersionsTranslation(string $id, string $versionid, string $locale, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid) . '/translations/' . rawurlencode($locale));
+        $r = $this->http->request('DELETE', '/v1/policies/' . rawurlencode($id) . '/versions/' . rawurlencode($versionid) . '/translations/' . rawurlencode($locale), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

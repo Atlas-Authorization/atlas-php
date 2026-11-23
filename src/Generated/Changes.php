@@ -67,11 +67,12 @@ final class Changes
      *
      * @param string $name the `name` path segment
      * @param array{seq:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:'change_consumer', name?:string, seq?:int|null, updated_at?:int|null, head_seq?:int, lag?:int}
      */
-    public function setConsumersAck(string $name, array $body): array
+    public function setConsumersAck(string $name, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/changes/consumers/' . rawurlencode($name) . '/ack', body: $body);
+        $r = $this->http->request('PUT', '/v1/changes/consumers/' . rawurlencode($name) . '/ack', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -40,11 +40,12 @@ final class AtlasIdApps
      *
      * @param string $id the `id` path segment
      * @param string $grantid the `grantId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, sub?:string, revoked?:mixed, tokens_revoked?:int, backchannel_logouts?:int}
      */
-    public function deleteGrant(string $id, string $grantid): array
+    public function deleteGrant(string $id, string $grantid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/atlas_id_apps/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid));
+        $r = $this->http->request('DELETE', '/v1/atlas_id_apps/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

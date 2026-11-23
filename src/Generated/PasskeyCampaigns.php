@@ -78,11 +78,12 @@ final class PasskeyCampaigns
      * `DELETE /v1/passkey_campaigns/{id}` (scope `passkey_campaigns:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, name?:string, segment?:array{created_before?:int, created_after?:int, last_sign_in_after?:int, has_password?:bool, email_domain?:string, org_ids?:list<string>}, frequency_cap_days?:int, starts_at?:int, ends_at?:int|null, status?:'active'|'ended', created_at?:int, metrics?:array{eligible?:int, prompted?:int, enrolled?:int}}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/passkey_campaigns/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/passkey_campaigns/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

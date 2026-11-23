@@ -89,6 +89,49 @@ final class Users
     }
 
     /**
+     * Create-or-update the user keyed by your own id (external_id, the path segment, URL-encoded): 201 with the new user when none holds it (the body is that of POST /v1/users, email_address required, external_id from the path), else 200 with the existing user updated (only first_name, last_name, image_url, public_metadata, private_metadata, unsafe_metadata, password and referral_code apply; email fields and the other create-only fields are ignored). Two calls racing for a new external_id create exactly one user. When nobody holds the id but a user already has the address, the answer is 409 IDENTIFIER_EXISTS with meta.user_id; send link_by_verified_email: true to adopt that user instead (200), which works only when the address is verified in Atlas and the user has no external_id yet (a different id is never overwritten). Emits user.created or user.updated.
+     *
+     * `PUT /v1/users/by_external_id/{external_id}` (scope `users:write`)
+     *
+     * @param string $externalId the `external_id` path segment
+     * @param array{email_address?:string, sandbox?:bool, password_policy?:'active'|'until_email_verified', link_by_verified_email?:bool, password?:string, password_hash?:string|null, first_name?:string, last_name?:string, image_url?:string|null, email_verified?:bool, public_metadata?:array<string,mixed>, private_metadata?:array<string,mixed>, unsafe_metadata?:array<string,mixed>, referral_code?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, username?:string|null, sign_in?:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, email_addresses:list<array{id:string, object:mixed, email_address:string, verification:array{status:'verified'|'unverified', strategy?:string|null}, verified:bool, primary:bool}>, primary_email_address_id:string|null, primary_email:string|null, external_id:string|null, password_enabled:bool, public_metadata:array<string,mixed>, mfa_enabled:bool, has_passkey?:bool, required_factors?:list<string>, is_anonymous:bool, sandbox?:bool, banned:bool, ban_reason?:string|null, ban_note?:string|null, locked:bool, status?:'active'|'suspended'|'banned', deleted_at?:int|null, last_sign_in_at?:int|null, sessions_revoked_at?:int|null, created_at:int, updated_at:int, version:int, referral?:array{status:'pending'|'attributed'|'none'|'failed'|'held'|'flagged', partner_id:string|null, partner_external_ref:string|null, referrer_external_id:string|null, referrer_user_id:string|null, matched_via:string|null, referral_status:string|null, notes:list<string>, risk_level?:string|null, flagged?:bool}|null, referral_code?:string|null, warnings?:list<string>, referral_link?:string|null, phone_numbers?:list<array{object?:mixed, id?:string, phone_number?:string, verified?:bool, primary?:bool}>, primary_phone_number?:string|null, phone_number_verified?:bool, external_accounts?:list<array{object:mixed, id:string, provider:string, provider_user_id:string, provider_email:string|null, email_verified:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, connected_at:int}>}
+     */
+    public function upsertByExternalId(string $externalId, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PUT', '/v1/users/by_external_id/' . rawurlencode($externalId), body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Reconcile missed `user.deleted` webhooks: every user deleted at or after `since`, oldest first, as `id`, `external_id` and `deleted_at`. Nothing else about the person is returned. Page with `starting_after` = the previous `next_cursor`. Rows exist until the personal-data scrub (`compliance.retention.deletedUserGraceDays`, default 30 days), so reconcile at least that often; failed deliveries themselves are listed by `GET /v1/webhook_dlq?event_type=user.deleted`.
+     *
+     * `GET /v1/users/deleted` (scope `users:read`)
+     *
+     * @param array{since?:string, limit?:int, starting_after?:string} $query
+     * @return array{object:mixed, data:list<array{object:mixed, id:string, external_id:string|null, deleted_at:int}>, has_more:bool, next_cursor:string|null}
+     */
+    public function listDeleted(array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/users/deleted', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Every item of `listDeleted` across all pages (cursor pagination), one at a time.
+     *
+     * @param array{since?:string, limit?:int, starting_after?:string} $query
+     * @return \Generator<int,mixed>
+     */
+    public function listDeletedAll(array $query = []): \Generator
+    {
+        return \Atlas\Pagination::iterate(fn (array $q): array => $this->listDeleted($q), $query);
+    }
+
+    /**
      * Remember email addresses and E.164 phone numbers of accounts that were deleted before this instance recorded deletions, so deletedUserReturn "block" refuses them. Same keyed, unreadable hash a delete writes. Up to 5000 per call, safe to repeat. The answer counts new, already remembered and invalid entries (with the first invalid positions). Honours Idempotency-Key.
      *
      * `POST /v1/users/deleted_addresses` (scope `users:delete`)
@@ -229,11 +272,12 @@ final class Users
      *
      * @param string $id the `id` path segment
      * @param string $roleid the `roleId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, user_id?:string, roles?:list<array{object?:mixed, id?:string, key?:string, name?:string, description?:string|null, permissions?:list<string>, users_count?:int, created_at?:int, updated_at?:int}>, role_keys?:list<string>, permissions?:list<string>}
      */
-    public function deleteAppRole(string $id, string $roleid): array
+    public function deleteAppRole(string $id, string $roleid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/app_roles/' . rawurlencode($roleid));
+        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/app_roles/' . rawurlencode($roleid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -290,11 +334,12 @@ final class Users
      *
      * @param string $id the `id` path segment
      * @param string $deviceid the `deviceId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:'approval_trusted_device', id?:string, kind?:string, ref?:string, revoked?:bool, revoked_at?:int}
      */
-    public function deleteApprovalDevice(string $id, string $deviceid): array
+    public function deleteApprovalDevice(string $id, string $deviceid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/approval_devices/' . rawurlencode($deviceid));
+        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/approval_devices/' . rawurlencode($deviceid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -306,7 +351,7 @@ final class Users
      *
      * @param string $id the `id` path segment
      * @param string $approvalid the `approvalId` path segment
-     * @return array{object?:'approval_request', id?:string, status?:'pending'|'approved'|'denied'|'expired'|'cancelled', description?:string, context?:array<string,string>, approved_by_device_id?:string|null, created_at?:int, expires_at?:int, resolved_at?:int|null, user_id?:string, ttl_seconds?:int|null, reference?:string|null, binding?:string|null, require_signature?:bool, require_trusted_device?:bool, approvers?:array{mode?:'subject'|'users'|'role', user_ids?:list<string>, organization_id?:string|null, role?:string|null, required?:int}, digest?:string|null, canonical?:string|null, receipt?:string|null, consumed_at?:int|null, approvals_received?:int, decisions?:list<array{approver_user_id?:string, decision?:'approve'|'deny', method?:'device_key'|'passkey'|'number_match', key_id?:string|null, trusted_device_id?:string|null, decided_at?:int}>}
+     * @return array{object?:'approval_request', id?:string, status?:'pending'|'approved'|'denied'|'expired'|'cancelled', description?:string, context?:array<string,string>, approved_by_device_id?:string|null, created_at?:int, expires_at?:int, resolved_at?:int|null, user_id?:string, ttl_seconds?:int|null, reference?:string|null, binding?:string|null, require_signature?:bool, require_trusted_device?:bool, exclude_requester?:bool, step_up_policy?:string|null, approvers?:array{mode?:'subject'|'users'|'role'|'group', user_ids?:list<string>, organization_id?:string|null, role?:string|null, roles?:list<string>, group_id?:string, required?:int}, digest?:string|null, canonical?:string|null, receipt?:string|null, consumed_at?:int|null, approvals_received?:int, decisions?:list<array{approver_user_id?:string, decision?:'approve'|'deny', method?:'device_key'|'passkey'|'step_up'|'number_match', note?:string|null, key_id?:string|null, trusted_device_id?:string|null, decided_at?:int}>}
      */
     public function getApprovalRequest(string $id, string $approvalid): array
     {
@@ -323,7 +368,7 @@ final class Users
      * @param string $id the `id` path segment
      * @param string $approvalid the `approvalId` path segment
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object?:'approval_request', id?:string, status?:'pending'|'approved'|'denied'|'expired'|'cancelled', description?:string, context?:array<string,string>, approved_by_device_id?:string|null, created_at?:int, expires_at?:int, resolved_at?:int|null, user_id?:string, ttl_seconds?:int|null, reference?:string|null, binding?:string|null, require_signature?:bool, require_trusted_device?:bool, approvers?:array{mode?:'subject'|'users'|'role', user_ids?:list<string>, organization_id?:string|null, role?:string|null, required?:int}, digest?:string|null, canonical?:string|null, receipt?:string|null, consumed_at?:int|null, approvals_received?:int, decisions?:list<array{approver_user_id?:string, decision?:'approve'|'deny', method?:'device_key'|'passkey'|'number_match', key_id?:string|null, trusted_device_id?:string|null, decided_at?:int}>}
+     * @return array{object?:'approval_request', id?:string, status?:'pending'|'approved'|'denied'|'expired'|'cancelled', description?:string, context?:array<string,string>, approved_by_device_id?:string|null, created_at?:int, expires_at?:int, resolved_at?:int|null, user_id?:string, ttl_seconds?:int|null, reference?:string|null, binding?:string|null, require_signature?:bool, require_trusted_device?:bool, exclude_requester?:bool, step_up_policy?:string|null, approvers?:array{mode?:'subject'|'users'|'role'|'group', user_ids?:list<string>, organization_id?:string|null, role?:string|null, roles?:list<string>, group_id?:string, required?:int}, digest?:string|null, canonical?:string|null, receipt?:string|null, consumed_at?:int|null, approvals_received?:int, decisions?:list<array{approver_user_id?:string, decision?:'approve'|'deny', method?:'device_key'|'passkey'|'step_up'|'number_match', note?:string|null, key_id?:string|null, trusted_device_id?:string|null, decided_at?:int}>}
      */
     public function cancelApprovalRequests(string $id, string $approvalid, ?string $idempotencyKey = null): array
     {
@@ -355,11 +400,46 @@ final class Users
      * `DELETE /v1/users/{id}/cookie_consents` (scope `data_subject_requests:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, removed?:int}
      */
-    public function deleteCookieConsents(string $id): array
+    public function deleteCookieConsents(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/cookie_consents');
+        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/cookie_consents', idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Mint a short-lived delegation token so your server can act as this user for one purpose. The token is limited to a named `audience` and a list of `scopes` (both must be on the instance's `delegationTokens` settings), lives at most 300 seconds (default 120), and carries an `act` claim naming `actor.sub`, so a service can see it is not the user themselves. Refused for banned, deleted and impersonation-protected users, and for an `org_id` the user does not belong to. Every mint is audited on the user's trail as `user.delegation_token_issued` (the token itself is never stored). Rate limited per key and per user. Send an Idempotency-Key to make a retry return the same token.
+     *
+     * `POST /v1/users/{id}/delegation_tokens` (scope `delegation_tokens:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{audience:string, scopes:list<string>, actor:array{sub:string, type?:string}, ttl_seconds?:int, org_id?:string, reason?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, token:string, token_type:'Bearer', user_id:string, audience:string, scopes:list<string>, actor:array{sub?:string, type?:string}, jti:string, expires_at:string, expires_in:int}
+     */
+    public function createDelegationToken(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/delegation_tokens', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Move a scheduled deletion to a new date. Send exactly one of `effective_at` (ISO 8601, not in the past) or `grace_seconds` (from now). The user's deletion date, the in-flight erasure request's scheduled date and the reminder plan all move together; the person is mailed the new date and `user.deletion_rescheduled` is emitted. The `pre_user_deletion` Actions are asked again for the new date (a refusal is 403 ACTION_BLOCKED) and a legal hold refuses the move. 409 when the user has no scheduled deletion, the deletion is paused (resume it with POST /v1/users/{id}/deletion/reconfirm first) or the user is already erased. Returns the user.
+     *
+     * `PATCH /v1/users/{id}/deletion` (scope `users:delete`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{effective_at?:string, grace_seconds?:int|float} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, username?:string|null, sign_in?:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, email_addresses:list<array{id:string, object:mixed, email_address:string, verification:array{status:'verified'|'unverified', strategy?:string|null}, verified:bool, primary:bool}>, primary_email_address_id:string|null, primary_email:string|null, external_id:string|null, password_enabled:bool, public_metadata:array<string,mixed>, mfa_enabled:bool, has_passkey?:bool, required_factors?:list<string>, is_anonymous:bool, sandbox?:bool, banned:bool, ban_reason?:string|null, ban_note?:string|null, locked:bool, status?:'active'|'suspended'|'banned', deleted_at?:int|null, last_sign_in_at?:int|null, sessions_revoked_at?:int|null, created_at:int, updated_at:int, version:int, referral?:array{status:'pending'|'attributed'|'none'|'failed'|'held'|'flagged', partner_id:string|null, partner_external_ref:string|null, referrer_external_id:string|null, referrer_user_id:string|null, matched_via:string|null, referral_status:string|null, notes:list<string>, risk_level?:string|null, flagged?:bool}|null, referral_code?:string|null, warnings?:list<string>, referral_link?:string|null, phone_numbers?:list<array{object?:mixed, id?:string, phone_number?:string, verified?:bool, primary?:bool}>, primary_phone_number?:string|null, phone_number_verified?:bool, external_accounts?:list<array{object:mixed, id:string, provider:string, provider_user_id:string, provider_email:string|null, email_verified:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, connected_at:int}>}
+     */
+    public function updateDeletion(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PATCH', '/v1/users/' . rawurlencode($id) . '/deletion', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -371,7 +451,7 @@ final class Users
      *
      * @param string $id the `id` path segment
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object:mixed, id:string, username?:string|null, sign_in?:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, email_addresses:list<array{id:string, object:mixed, email_address:string, verification:array{status:'verified'|'unverified', strategy?:string|null}, verified:bool, primary:bool}>, primary_email_address_id:string|null, primary_email:string|null, external_id:string|null, password_enabled:bool, public_metadata:array<string,mixed>, mfa_enabled:bool, has_passkey?:bool, required_factors?:list<string>, is_anonymous:bool, banned:bool, ban_reason?:string|null, ban_note?:string|null, locked:bool, status?:'active'|'suspended'|'banned', deleted_at?:int|null, last_sign_in_at?:int|null, sessions_revoked_at?:int|null, created_at:int, updated_at:int, version:int, referral?:array{status:'pending'|'attributed'|'none'|'failed'|'held'|'flagged', partner_id:string|null, partner_external_ref:string|null, referrer_external_id:string|null, referrer_user_id:string|null, matched_via:string|null, referral_status:string|null, notes:list<string>, risk_level?:string|null, flagged?:bool}|null, referral_code?:string|null, warnings?:list<string>, referral_link?:string|null, external_accounts?:list<array{object:mixed, id:string, provider:string, provider_user_id:string, provider_email:string|null, email_verified:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, connected_at:int}>}
+     * @return array{object:mixed, id:string, username?:string|null, sign_in?:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, email_addresses:list<array{id:string, object:mixed, email_address:string, verification:array{status:'verified'|'unverified', strategy?:string|null}, verified:bool, primary:bool}>, primary_email_address_id:string|null, primary_email:string|null, external_id:string|null, password_enabled:bool, public_metadata:array<string,mixed>, mfa_enabled:bool, has_passkey?:bool, required_factors?:list<string>, is_anonymous:bool, sandbox?:bool, banned:bool, ban_reason?:string|null, ban_note?:string|null, locked:bool, status?:'active'|'suspended'|'banned', deleted_at?:int|null, last_sign_in_at?:int|null, sessions_revoked_at?:int|null, created_at:int, updated_at:int, version:int, referral?:array{status:'pending'|'attributed'|'none'|'failed'|'held'|'flagged', partner_id:string|null, partner_external_ref:string|null, referrer_external_id:string|null, referrer_user_id:string|null, matched_via:string|null, referral_status:string|null, notes:list<string>, risk_level?:string|null, flagged?:bool}|null, referral_code?:string|null, warnings?:list<string>, referral_link?:string|null, phone_numbers?:list<array{object?:mixed, id?:string, phone_number?:string, verified?:bool, primary?:bool}>, primary_phone_number?:string|null, phone_number_verified?:bool, external_accounts?:list<array{object:mixed, id:string, provider:string, provider_user_id:string, provider_email:string|null, email_verified:bool, first_name?:string|null, last_name?:string|null, image_url?:string|null, connected_at:int}>}
      */
     public function reconfirmDeletion(string $id, ?string $idempotencyKey = null): array
     {
@@ -490,7 +570,7 @@ final class Users
      * @param string $id the `id` path segment
      * @param array{provider:'stripe_identity'|'persona'|'veriff'|'onfido', session_id:string} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object:mixed, id:string, user_id:string, provider:'persona'|'onfido'|'veriff'|'stripe_identity', status:'pending'|'approved'|'declined'|'needs_review', reason:string|null, imported:bool, verified_at:int|null, verified_attributes_status:string|null, url:string|null, decided_by:string|null, created_at:int, completed_at:int|null}
+     * @return array{object:mixed, id:string, user_id:string, provider:'persona'|'onfido'|'veriff'|'stripe_identity', status:'pending'|'processing'|'approved'|'declined'|'needs_review', reason:string|null, last_error:array{code:string, reason:string|null}|null, attempts:int, imported:bool, verified_at:int|null, verified_attributes_status:string|null, url:string|null, decided_by:string|null, created_at:int, completed_at:int|null}
      */
     public function importIdentityVerifications(string $id, array $body, ?string $idempotencyKey = null): array
     {
@@ -506,7 +586,7 @@ final class Users
      *
      * @param string $id the `id` path segment
      * @param string $attemptid the `attemptId` path segment
-     * @return array{object:mixed, id:string, user_id:string, provider:'persona'|'onfido'|'veriff'|'stripe_identity', status:'pending'|'approved'|'declined'|'needs_review', reason:string|null, imported:bool, verified_at:int|null, verified_attributes_status:string|null, url:string|null, decided_by:string|null, created_at:int, completed_at:int|null, verified_attributes?:array{full_name?:string, birth_year?:int, birth_month?:int, age_over?:array<string,bool>, document_country?:string}}
+     * @return array{object:mixed, id:string, user_id:string, provider:'persona'|'onfido'|'veriff'|'stripe_identity', status:'pending'|'processing'|'approved'|'declined'|'needs_review', reason:string|null, last_error:array{code:string, reason:string|null}|null, attempts:int, imported:bool, verified_at:int|null, verified_attributes_status:string|null, url:string|null, decided_by:string|null, created_at:int, completed_at:int|null, verified_attributes?:array{full_name?:string, birth_year?:int, birth_month?:int, age_over?:array<string,bool>, document_country?:string}}
      */
     public function getIdentityVerification(string $id, string $attemptid): array
     {
@@ -538,11 +618,12 @@ final class Users
      *
      * @param string $id the `id` path segment
      * @param array{journey_id?:string} $query
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, user_id?:string, journey_id?:string|null, runs_removed?:int, steps_cleared?:int}
      */
-    public function deleteJourneys(string $id, array $query = []): array
+    public function deleteJourneys(string $id, array $query = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/journeys', query: $query);
+        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/journeys', query: $query, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -602,7 +683,7 @@ final class Users
      * `POST /v1/users/{id}/merge` (scope `users:write`)
      *
      * @param string $id the `id` path segment
-     * @param array{source_user_id?:string, dry_run?:bool} $body
+     * @param array{source_user_id?:string, dry_run?:bool, external_id?:string} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
@@ -793,17 +874,94 @@ final class Users
     }
 
     /**
+     * The risk signals reported for one user, newest first; `status=active` keeps only live ones. Page with `before`.
+     *
+     * `GET /v1/users/{id}/risk_signals` (scope `risk_signals:read`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{status?:'active'|'all', limit?:int, before?:string, starting_after?:string} $query
+     * @return array{object?:mixed, data?:list<array{object?:mixed, id?:string, subject?:array{type?:'user'|'ip', value?:string}, signal_type?:string, severity?:'low'|'medium'|'high'|'critical', source?:string, metadata?:array<string,mixed>, expires_at?:int, revoked_at?:int|null, status?:'active'|'expired'|'revoked', created_at?:int}>, has_more?:bool, next_cursor?:string|null}
+     */
+    public function listRiskSignals(string $id, array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/risk_signals', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Every item of `listRiskSignals` across all pages (cursor pagination), one at a time.
+     *
+     * @param string $id the `id` path segment
+     * @param array{status?:'active'|'all', limit?:int, before?:string, starting_after?:string} $query
+     * @return \Generator<int,mixed>
+     */
+    public function listRiskSignalsAll(string $id, array $query = []): \Generator
+    {
+        return \Atlas\Pagination::iterate(fn (array $q): array => $this->listRiskSignals($id, $q), $query);
+    }
+
+    /**
+     * Raise one user's sign-in risk for a window. The same signal as POST /v1/risk_signals with the user named by the path. While it is live and risk-based MFA is on, it adds points to every sign-in evaluation of that user (low 10, medium 25, high 50, critical 100; the total is capped at 100), which can turn into a second factor, an enrolment or a block under the instance's risk policy. It never lowers friction. ttl_seconds 60 to 2592000, default 3600; it expires by itself. Honours Idempotency-Key. Emits risk_signal.created.
+     *
+     * `POST /v1/users/{id}/risk_signals` (scope `risk_signals:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{signal_type:string, severity:'low'|'medium'|'high'|'critical', ttl_seconds?:int, metadata?:array<string,mixed>, source?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object?:mixed, id?:string, subject?:array{type?:'user'|'ip', value?:string}, signal_type?:string, severity?:'low'|'medium'|'high'|'critical', source?:string, metadata?:array<string,mixed>, expires_at?:int, revoked_at?:int|null, status?:'active'|'expired'|'revoked', created_at?:int}
+     */
+    public function createRiskSignal(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/users/' . rawurlencode($id) . '/risk_signals', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * End every live risk signal on one user now. Their points leave the next evaluation; the rows stay readable with status `revoked`. Recorded once in the audit log. Safe to repeat: with nothing live, it clears nothing.
+     *
+     * `DELETE /v1/users/{id}/risk_signals` (scope `risk_signals:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object?:mixed, user_id?:string, cleared?:int}
+     */
+    public function deleteRiskSignals(string $id, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/risk_signals', idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * One read of how the account is protected: password and when it last changed, sign-in methods the user can use right now, linked providers, verified second factors, recovery codes left, passkeys, remembered browsers and device keys, and the open sessions (count and the newest). Ids and labels only: never a password hash, second-factor secret, recovery code, credential id or key material.
+     *
+     * `GET /v1/users/{id}/security_summary` (scope `users:read`)
+     *
+     * @param string $id the `id` path segment
+     * @return array{object:mixed, user_id:string, password_enabled:bool, password_changed_at:int|null, mfa_enabled:bool, has_passkey:bool, sign_in_methods:list<string>, linked_providers:list<array{id?:string, provider?:string, provider_user_id?:string, email_address?:string|null, email_verified?:bool}>, mfa_factors:list<array{id?:string, type?:string, verified?:bool, created_at?:int}>, backup_codes_remaining:int|null, passkeys:list<array{id?:string, name?:string|null, created_at?:int, last_used_at?:int|null}>, trusted_devices:list<array{kind?:'remembered_browser'|'device_key', id?:string, label?:string|null, created_at?:int, last_used_at?:int|null, expires_at?:int|null}>, active_sessions:array{count?:int, latest?:array{id?:string, last_active_at?:int, current?:bool, ip_address?:string|null, country?:string|null}|null}}
+     */
+    public function getSecuritySummary(string $id): array
+    {
+        $r = $this->http->request('GET', '/v1/users/' . rawurlencode($id) . '/security_summary');
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * Remove a registered certificate mapping.
      *
      * `DELETE /v1/users/{id}/smartcard_mappings/{mappingId}` (scope `users:write`)
      *
      * @param string $id the `id` path segment
      * @param string $mappingid the `mappingId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteSmartcardMapping(string $id, string $mappingid): array
+    public function deleteSmartcardMapping(string $id, string $mappingid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/smartcard_mappings/' . rawurlencode($mappingid));
+        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/smartcard_mappings/' . rawurlencode($mappingid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -860,11 +1018,12 @@ final class Users
      *
      * @param string $id the `id` path segment
      * @param string $passId the `pass_id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteTemporaryAccess(string $id, string $passId): array
+    public function deleteTemporaryAccess(string $id, string $passId, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/temporary_access/' . rawurlencode($passId));
+        $r = $this->http->request('DELETE', '/v1/users/' . rawurlencode($id) . '/temporary_access/' . rawurlencode($passId), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

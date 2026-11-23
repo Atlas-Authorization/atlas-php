@@ -231,11 +231,12 @@ final class Billing
      *
      * @param string $id the `id` path segment
      * @param array{active?:bool, name?:string, max_redemptions?:int|null, expires_at?:int|null, plan_ids?:list<string>|null, first_time_only?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, code:string, name?:string|null, percent_off?:int|float|null, amount_off?:int|null, currency?:string|null, duration?:'once'|'repeating'|'forever', duration_months?:int|null, max_redemptions?:int|null, redeemed_count?:int, expires_at?:int|null, plan_ids?:list<string>|null, first_time_only?:bool, active?:bool, providers?:list<string>, created_at?:int, updated_at?:int}
      */
-    public function updateCoupon(string $id, array $body = []): array
+    public function updateCoupon(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/billing/coupons/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/billing/coupons/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -246,11 +247,12 @@ final class Billing
      * `DELETE /v1/billing/coupons/{id}` (scope `billing:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:bool}
      */
-    public function deleteCoupon(string $id): array
+    public function deleteCoupon(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/billing/coupons/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/billing/coupons/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

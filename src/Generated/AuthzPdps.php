@@ -36,11 +36,12 @@ final class AuthzPdps
      * `DELETE /v1/authz_pdps/{id}` (scope `authz_decisions:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:bool}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/authz_pdps/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/authz_pdps/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

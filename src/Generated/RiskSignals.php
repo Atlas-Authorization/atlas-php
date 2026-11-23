@@ -78,11 +78,12 @@ final class RiskSignals
      * `DELETE /v1/risk_signals/{id}` (scope `risk_signals:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, subject?:array{type?:'user'|'ip', value?:string}, signal_type?:string, severity?:'low'|'medium'|'high'|'critical', source?:string, metadata?:array<string,mixed>, expires_at?:int, revoked_at?:int|null, status?:'active'|'expired'|'revoked', created_at?:int}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/risk_signals/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/risk_signals/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

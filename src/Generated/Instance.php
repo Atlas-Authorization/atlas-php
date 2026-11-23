@@ -47,11 +47,12 @@ final class Instance
      * `PUT /v1/instance/app_event_types` (scope `instance:write`)
      *
      * @param list<array{type:string, description?:string|null, schema?:array<string,mixed>|null, required_scope:string}> $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, data?:list<array{object:mixed, id:string, type:string, description:string|null, schema:array<string,mixed>|null, deprecated:bool, required_scope?:string|null, created_at:int, updated_at:int}>, has_more?:bool, next_cursor?:string|null}
      */
-    public function setAppEventTypes(mixed $body = null): array
+    public function setAppEventTypes(mixed $body = null, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/instance/app_event_types', body: $body);
+        $r = $this->http->request('PUT', '/v1/instance/app_event_types', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -134,11 +135,12 @@ final class Instance
      * `DELETE /v1/instance/config_snapshots/{id}` (scope `instance:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteConfigSnapshot(string $id): array
+    public function deleteConfigSnapshot(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/instance/config_snapshots/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/instance/config_snapshots/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -156,6 +158,22 @@ final class Instance
     public function restoreConfigSnapshots(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
         $r = $this->http->request('POST', '/v1/instance/config_snapshots/' . rawurlencode($id) . '/restore', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Change part of the cookie-consent setting: the fields sent are merged over the stored setting and the rest is kept (PUT replaces the whole setting). `null` clears a field; sending site_id drops a stored site reference and the other way round. With no stored setting, script_url is required. The answer and warnings are those of PUT.
+     *
+     * `PATCH /v1/instance/cookie_consent` (scope `instance:write`)
+     *
+     * @param array{enabled?:bool, script_url?:string, script_id?:string|null, site_id?:string|null, site?:array{provider:string, host:string}|null, blocking_mode?:string|null, extra_origins?:list<string>, settings_link?:array{label:string, labels?:array<string,string>, preset?:string|null, attributes?:array<string,string>}|null, culture?:string|null, host_aliases?:list<string>|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, enabled:bool, script_url?:string, script_id?:string|null, site_id?:string|null, site?:array<string,mixed>|null, blocking_mode?:string|null, extra_origins?:list<string>, settings_link?:array{label:string, labels:array<string,string>, rendered_labels:array<string,string>, preset:string|null, attributes:array<string,string>, rendered_attributes:array<string,string>}|null, culture?:'page'|'browser', declared_cookies?:list<array{name:string|null, pattern:string|null, store:'cookie'|'localStorage'|'sessionStorage'|'indexedDB', domain:string, path:string|null, lifetime_seconds:int|null, lifetime:string, lifetime_range?:array{setting:string, min_seconds:int, max_seconds:int, default_seconds:int}, http_only:bool, category:mixed, purpose:string, purposes:array<string,string>, written_when:string, set_by:'atlas_frontend_api'|'atlas_sdk'}>, frontend_mode?:array{type:'default'|'custom_domain'|'path_mount', host:string, base_path:string|null}, source?:'manual'|'integration'|'none', source_integration?:string|null, host_aliases?:list<string>, warnings:list<array{severity:'error'|'warning'|'info', code:string, message:string, fix:string, fix_call?:array{method:'POST'|'PUT'|'PATCH', path:string, body?:array<string,mixed>}, autofix_body?:array<string,mixed>, safe_to_autofix?:bool, subject?:array<string,string>, group?:'security_posture', suppressed?:mixed, suppressed_reason?:string, acknowledged?:array{reason:string, by:string|null, at:int, expires_at:int|null}}>}
+     */
+    public function updateCookieConsent(array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PATCH', '/v1/instance/cookie_consent', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -195,11 +213,12 @@ final class Instance
      * `PUT /v1/instance/data_key_provider` (scope `vault:manage`)
      *
      * @param array{cache_window_seconds?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function setDataKeyProvider(array $body = []): array
+    public function setDataKeyProvider(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/instance/data_key_provider', body: $body);
+        $r = $this->http->request('PUT', '/v1/instance/data_key_provider', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -210,11 +229,12 @@ final class Instance
      * `DELETE /v1/instance/data_key_provider` (scope `vault:manage`)
      *
      * @param array{confirm:'shred'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function deleteDataKeyProvider(array $body): array
+    public function deleteDataKeyProvider(array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/instance/data_key_provider', body: $body);
+        $r = $this->http->request('DELETE', '/v1/instance/data_key_provider', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -433,6 +453,66 @@ final class Instance
     }
 
     /**
+     * Read the before_first_session hook: the endpoint Atlas calls once per user, after their email is verified and before their first session token, so your app can link the account and stamp its own external_id on that very token. The signing secret is reported as signing_secret_set only.
+     *
+     * `GET /v1/instance/hooks/before_first_session` (scope `instance:read`)
+     *
+     * @return array{object:mixed, enabled:bool, url:string|null, signing_secret_set:bool, timeout_ms:int, last_call?:array{at?:int, status?:'ok'|'timeout'|'error'|'invalid_response', error?:string|null}|null, failed_calls?:int, updated_at?:int|null}
+     */
+    public function getHooksBeforeFirstSession(): array
+    {
+        $r = $this->http->request('GET', '/v1/instance/hooks/before_first_session');
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Update the before_first_session hook. Only the fields you send change; null clears. Atlas POSTs {"type":"before_first_session","data":{user_id,email,email_verified,provider,provider_user_id,name,external_id}} signed like a webhook (atlas-id, atlas-timestamp, atlas-signature). Answer 200 {"external_id":"…"} to set it: it is stored only when the user has none and no other user holds it (never overwritten). A timeout or failure never blocks the sign-in (it is audited and counted in failed_calls). Not called for impersonation or anonymous guests.
+     *
+     * `PATCH /v1/instance/hooks/before_first_session` (scope `instance:write`)
+     *
+     * @param array{enabled?:bool, url?:string|null, signing_secret?:string|null, timeout_ms?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, enabled:bool, url:string|null, signing_secret_set:bool, timeout_ms:int, last_call?:array{at?:int, status?:'ok'|'timeout'|'error'|'invalid_response', error?:string|null}|null, failed_calls?:int, updated_at?:int|null}
+     */
+    public function updateHooksBeforeFirstSession(array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PATCH', '/v1/instance/hooks/before_first_session', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Turn the hook off and clear its url and signing secret, the same as PATCH with {enabled:false, url:null, signing_secret:null}. Audited. Idempotent.
+     *
+     * `DELETE /v1/instance/hooks/before_first_session` (scope `instance:write`)
+     *
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, enabled:bool, url:string|null, signing_secret_set:bool, timeout_ms:int, last_call?:array{at?:int, status?:'ok'|'timeout'|'error'|'invalid_response', error?:string|null}|null, failed_calls?:int, updated_at?:int|null}
+     */
+    public function deleteHooksBeforeFirstSession(?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('DELETE', '/v1/instance/hooks/before_first_session', idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Send a signed sample call (a user that does not exist) to the hook and report its answer. Nothing is stored on any user.
+     *
+     * `POST /v1/instance/hooks/before_first_session/test` (scope `instance:write`)
+     *
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{ok:bool|null, status:'success'|'failed'|'pending', http_status:int|null, latency_ms:int|null, answer?:array{external_id?:string|null}, error?:array{code?:string, message?:string}}
+     */
+    public function testHooksBeforeFirstSession(?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/instance/hooks/before_first_session/test', idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * The instance's staff impersonation policy: require_reason, reason_codes, max_duration_seconds, require_approval, read_only_default and notify_user.
      *
      * `GET /v1/instance/impersonation_policy` (scope `instance:read`)
@@ -452,10 +532,11 @@ final class Instance
      * `PUT /v1/instance/impersonation_policy` (scope `instance:write`)
      *
      * @param array{require_reason?:bool, reason_codes?:list<string>, max_duration_seconds?:int, require_approval?:bool, read_only_default?:bool, notify_user?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function setImpersonationPolicy(array $body = []): void
+    public function setImpersonationPolicy(array $body = [], ?string $idempotencyKey = null): void
     {
-        $this->http->request('PUT', '/v1/instance/impersonation_policy', body: $body);
+        $this->http->request('PUT', '/v1/instance/impersonation_policy', body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -516,6 +597,70 @@ final class Instance
     }
 
     /**
+     * Read the stored sign-up forwarding for a destination: its managed endpoint, active flag and non-secret settings. The destination key is never returned. 404 when sign-ups are not forwarded there.
+     *
+     * `GET /v1/instance/integrations/forwarding/{destination}` (scope `webhooks:read`)
+     *
+     * @param string $destination the `destination` path segment
+     * @return array{object?:mixed, forwarding?:'lucida'|'hermetica'|'seolyticize'|'webhook', event?:mixed, id?:string, active?:bool}
+     */
+    public function getIntegrationsForwarding(string $destination): array
+    {
+        $r = $this->http->request('GET', '/v1/instance/integrations/forwarding/' . rawurlencode($destination));
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Forward every sign-up (`user.created`) to Lucida, Hermetica or Seolyticize with your own server key, or to any HTTPS webhook.
+     *
+     * `PUT /v1/instance/integrations/forwarding/{destination}` (scope `webhooks:write`)
+     *
+     * Creates or updates a managed webhook endpoint for the destination, so deliveries, retries, health and alerts work as for any endpoint. `destination` is `lucida`, `hermetica`, `seolyticize` or `webhook`. Send `server_key` (Lucida project key, Hermetica secret key, Seolyticize server key with `site_key`), or `url` for `webhook`. The key is stored encrypted and never returned; on an update an omitted key keeps the stored one. Lucida records the sign-up as `signed_up`; Seolyticize records it as `Signup` with the relying party's `atlas_visit` token (or, without one, the browser ip and user agent), see the sign-up forwarding guide; Hermetica upserts the person as a contact. `include_pii` (default false) controls whether the email, name, ip and user agent reach an analytics destination. A `webhook` destination returns its signing `secret` once, on create. A repeat call updates the same endpoint.
+     *
+     * @param string $destination the `destination` path segment
+     * @param array{server_key?:string, site_key?:string, site_url?:string, host?:string, conversion_event?:'user.created'|'user.attributed', include_pii?:bool, url?:string, active?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object?:mixed, forwarding?:'lucida'|'hermetica'|'seolyticize'|'webhook', event?:mixed, created?:bool, id?:string, secret?:string}
+     */
+    public function upsertIntegrationsForwarding(string $destination, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PUT', '/v1/instance/integrations/forwarding/' . rawurlencode($destination), body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Stop forwarding sign-ups to a destination (removes its managed endpoint).
+     *
+     * `DELETE /v1/instance/integrations/forwarding/{destination}` (scope `webhooks:write`)
+     *
+     * @param string $destination the `destination` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     */
+    public function deleteIntegrationsForwarding(string $destination, ?string $idempotencyKey = null): void
+    {
+        $this->http->request('DELETE', '/v1/instance/integrations/forwarding/' . rawurlencode($destination), idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * Every connected integration and receiver with its last delivery status and time, in one list.
+     *
+     * `GET /v1/instance/integrations/health` (scope `instance:read`)
+     *
+     * Lists the webhook endpoints (with `managed_by` and the destination type, including sign-up forwarding), the connected identity integrations (their events receiver and last token mint) and the privacy orchestrator. `state` is `failing` or `disabled` when deliveries are failing, `no_deliveries` before the first one. `unhealthy_count` counts the failing and disabled rows. The same delivery health data as GET /v1/delivery_health, joined to what each receiver is.
+     *
+     * @param array{limit?:int, starting_after?:string} $query
+     * @return array{object:mixed, data:list<array{kind:'webhook_endpoint'|'integration'|'privacy_orchestrator', id:string|null, name?:string|null, url?:string|null, managed_by?:string|null, destination?:string, state:'healthy'|'failing'|'disabled'|'inactive'|'no_deliveries'|'unknown', last_success_at?:int|null, last_failure?:array{at?:int|null, status?:int|null, error?:string|null}|null, consecutive_failures?:int, last_minted_at?:int|null}>, has_more?:bool, unhealthy_count:int, generated_at?:int}
+     */
+    public function listIntegrationsHealth(array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/instance/integrations/health', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * The integration's mint log: every getToken({ for }) attempt, from the browser and from the server call, newest first, with its outcome (ok, or refused with the reason code), the route kind and the user id. No tokens are stored. Kept 7 days. Use it when health.last_minted_at stays null: an empty log means nothing is calling Atlas, a refused row says why.
      *
      * `GET /v1/instance/integrations/{product}/mints` (scope `instance:read`)
@@ -544,6 +689,22 @@ final class Instance
     public function testIntegrations(string $product, array $query = [], ?string $idempotencyKey = null): array
     {
         $r = $this->http->request('POST', '/v1/instance/integrations/' . rawurlencode($product) . '/test', query: $query, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * The token issuers a verifier should accept: the active one, the planned one while a domain claim is pending, and earlier ones still in their overlap window.
+     *
+     * `GET /v1/instance/issuers` (scope `instance:read`)
+     *
+     * Register `planned` with a partner before you verify a domain, so the cutover needs no change on their side: while a Frontend API domain claim (a CNAME domain or a path mount) is not verified yet, `planned` is the issuer your tokens will carry once it is, and it is accepted as an alias beside `active`. The signing keys do not change, only `iss`, so `jwks_uri` verifies all of them. `previous` lists issuers you moved away from, accepted for the overlap window. `planned` is null when no claim is pending.
+     *
+     * @return array{active:string, planned:string|null, previous:list<string>, jwks_uri:string}
+     */
+    public function getIssuers(): array
+    {
+        $r = $this->http->request('GET', '/v1/instance/issuers');
 
         return is_array($r) ? $r : [];
     }
@@ -596,10 +757,11 @@ final class Instance
      * `PUT /v1/instance/org_departure_policy` (scope `instance:write`)
      *
      * @param array{transfer_to:'oldest_admin'|'user'|'none', user_id?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function setOrgDeparturePolicy(array $body): void
+    public function setOrgDeparturePolicy(array $body, ?string $idempotencyKey = null): void
     {
-        $this->http->request('PUT', '/v1/instance/org_departure_policy', body: $body);
+        $this->http->request('PUT', '/v1/instance/org_departure_policy', body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -622,10 +784,11 @@ final class Instance
      * `PUT /v1/instance/org_role_entitlements` (scope `instance:write`)
      *
      * @param array{roles:array<string,list<string>>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function setOrgRoleEntitlements(array $body): void
+    public function setOrgRoleEntitlements(array $body, ?string $idempotencyKey = null): void
     {
-        $this->http->request('PUT', '/v1/instance/org_role_entitlements', body: $body);
+        $this->http->request('PUT', '/v1/instance/org_role_entitlements', body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -714,7 +877,7 @@ final class Instance
      * `GET /v1/instance/scopes` (scope `instance:read`)
      *
      * @param array{limit?:int, starting_after?:string} $query
-     * @return array{object:mixed, data:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool}>}
+     * @return array{object:mixed, data:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool, requires_client_level?:'any'|'verified'|'certified', owner_exempt?:bool, wildcard?:bool}>}
      */
     public function listScopes(array $query = []): array
     {
@@ -724,15 +887,17 @@ final class Instance
     }
 
     /**
-     * Replace the scope catalogue. Each scope has a `name`, a `label` and a `description` per locale ({ "en": "…", "es": "…" }), `sensitive`, and `requires_verified_client`. The consent screen shows the label and description in the user's language (falling back to its base language, then `en`). A scope with `requires_verified_client` is refused at /oauth2/authorize with `invalid_scope` unless the app's status is `approved` or that scope is in the client's `approved_scopes` (per-scope review). The owner and testers of a client still in development may request it too. A client still needs the scope in its allowed scopes to request it.
+     * Replace the scope catalogue. Each scope has a `name`, a `label` and a `description` per locale ({ "en": "…", "es": "…" }), `sensitive`, and `requires_verified_client`. The consent screen shows the label and description in the user's language (falling back to its base language, then `en`). A scope with `requires_verified_client` is refused at /oauth2/authorize with `invalid_scope` unless the app's status is `approved` or that scope is in the client's `approved_scopes` (per-scope review). The owner and testers of a client still in development may request it too. A client still needs the scope in its allowed scopes to request it. `requires_client_level` (`any`, `verified` or `certified`) sets the level a client needs (`requires_verified_client: true` means `verified`; the stricter wins); a `certified` client is an approved one the instance has certified (PATCH /v1/oauth_clients/{id} `certified`). `owner_exempt: true` lets the developer who owns a client request the scope with it on their own account whatever the client's level. A name ending `:*` (`listings:*`) is a wildcard entry: it covers every `listings:<anything>` for gating, consent text and released claims, and a client or grant that holds `listings:*` holds each of them. By default the whole list is checked and nothing is written if any entry is bad (422, one problem per field). `?mode=partial` applies the valid entries and answers 200 with `rejected: [{ index, name, errors }]` (a rejected entry leaves the scope of that name as it was). `?too_long=truncate` cuts over-long labels and descriptions instead of refusing them and lists each cut in `warnings`.
      *
      * `PUT /v1/instance/scopes` (scope `instance:write`)
      *
-     * @param array{scopes:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool}>} $body
+     * @param array{scopes:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool, requires_client_level?:'any'|'verified'|'certified', owner_exempt?:bool}>} $body
+     * @param array{mode?:string, too_long?:string} $query
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function setScopes(array $body): void
+    public function setScopes(array $body, array $query = [], ?string $idempotencyKey = null): void
     {
-        $this->http->request('PUT', '/v1/instance/scopes', body: $body);
+        $this->http->request('PUT', '/v1/instance/scopes', query: $query, body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -762,11 +927,11 @@ final class Instance
     }
 
     /**
-     * Alias of POST /v1/secret_keys. Create a scoped secret key: `name`, `scopes[]` (refused when unknown, or when the calling key does not hold them; presets `read_only`, `privacy:execute`, `privacy:grants:revoke`; or `preset: "app-runtime"` for an app server runtime key), `expires_at` (at most a year; default one year; "never" is refused), `allowed_ips` (CIDRs), `allowed_origins` (browser origins; a request with another Origin gets 403 ORIGIN_NOT_ALLOWED), `owner` (default: the creating person or key), `external_ref` (idempotent create: a repeat returns the existing key, 200, idempotent_replay, no secret), `metadata` (tags; filter the list with ?metadata[key]=value) and `key_format` (`atlas`, the default `atlas_<env>_sk_…`, or `legacy` `sk_<env>_…`). The secret is returned once. Minting with an operator token needs multi-factor sign-in within 5 minutes (403 STEP_UP_REQUIRED). Send `X-Secret-Recipient: x25519:<public key>` to receive the secret sealed (libsodium sealed box) as `sealed_secret` instead of in plaintext. Example: a data-rights tool's key, { "name": "DSAR executor", "scopes": ["privacy:execute", "privacy:grants:revoke"], "expires_at": "2027-04-01" }.
+     * Alias of POST /v1/secret_keys. Create a scoped secret key: `name`, `scopes[]` (refused when unknown, or when the calling key does not hold them; presets `read_only`, `privacy:execute`, `privacy:grants:revoke`; or `preset: "app-runtime"` for an app server runtime key, or `preset: "integrations"` for the key a connected platform (consent manager, referral or support platform) connects with, or `preset: "provisioning"` for a deploy-script key that configures the instance: instance settings, domains, messaging providers, integrations, webhooks, OAuth clients and providers, redirect URLs, branding and keys, with no user, session or organization-member access), `expires_at` (at most a year; default one year; "never" is refused), `allowed_ips` (CIDRs), `allowed_origins` (browser origins; a request with another Origin gets 403 ORIGIN_NOT_ALLOWED), `owner` (default: the creating person or key), `external_ref` (idempotent create: a repeat returns the existing key, 200, idempotent_replay, no secret), `metadata` (tags; filter the list with ?metadata[key]=value) and `key_format` (`atlas`, the default `atlas_<env>_sk_…`, or `legacy` `sk_<env>_…`). The secret is returned once. Minting with an operator token needs multi-factor sign-in within 5 minutes (403 STEP_UP_REQUIRED). Send `X-Secret-Recipient: x25519:<public key>` to receive the secret sealed (libsodium sealed box) as `sealed_secret` instead of in plaintext. Example: a data-rights tool's key, { "name": "DSAR executor", "scopes": ["privacy:execute", "privacy:grants:revoke"], "expires_at": "2027-04-01" }.
      *
      * `POST /v1/instance/secret_keys` (scope `secret_keys:write`)
      *
-     * @param array{name?:string, scopes?:list<string>, preset?:'app-runtime', expires_at?:int, allowed_ips?:list<string>, ip_allowlist?:list<string>, allowed_origins?:list<string>, origin_allowlist?:list<string>, organization_ids?:list<string>, owner?:string|null, key_format?:'atlas'|'legacy', external_ref?:string, metadata?:array<string,string>} $body
+     * @param array{name?:string, scopes?:list<string>, preset?:'app-runtime'|'web-app'|'provisioning'|'integrations', expires_at?:int, allowed_ips?:list<string>, ip_allowlist?:list<string>, allowed_origins?:list<string>, origin_allowlist?:list<string>, organization_ids?:list<string>, owner?:string|null, key_format?:'atlas'|'legacy', external_ref?:string, metadata?:array<string,string>} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:string, id:string, kind:'secret_key'|'platform_key'|'account_key'|'webhook_secret'|'partner_link'|'access_token', format:'atlas'|'legacy', prefix:string, name?:string|null, owner:string|null, scopes:list<string>, environment?:string|null, resource?:array{type?:'instance'|'account'|'application'|'webhook_endpoint', id?:string}, expires_at:int|null, expires_in_days?:int|null, status:'active'|'expiring'|'expired'|'revoked', ip_allowlist?:list<string>, origin_allowlist?:list<string>, last_used_at:int|null, last_used_ip:string|null, created_at:int, revoked_at:int|null, allowed_ips?:list<string>, allowed_origins?:list<string>, organization_ids?:list<string>, rotated_from?:string|null, metadata?:array<string,mixed>, external_ref?:string|null, idempotent_replay?:bool, secret?:string}
      */
@@ -797,11 +962,12 @@ final class Instance
      * `PUT /v1/instance/signing_key_schedule` (scope `instance:write`)
      *
      * @param array{enabled?:bool, interval_days:int, alg?:string|null, grace_period_seconds?:int|null, prepublish_hours?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, enabled:bool, interval_days:int|null, alg:string|null, grace_period_seconds:int|null, prepublish_hours:int|null, effective_grace_seconds:int, next_rotation_at:int|null, last_rotated_at:int|null, last_error:string|null, last_error_at:int|null}
      */
-    public function setSigningKeySchedule(array $body): array
+    public function setSigningKeySchedule(array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/instance/signing_key_schedule', body: $body);
+        $r = $this->http->request('PUT', '/v1/instance/signing_key_schedule', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -811,11 +977,102 @@ final class Instance
      *
      * `DELETE /v1/instance/signing_key_schedule` (scope `instance:write`)
      *
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, deleted:mixed, enabled?:mixed}
      */
-    public function deleteSigningKeySchedule(): array
+    public function deleteSigningKeySchedule(?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/instance/signing_key_schedule');
+        $r = $this->http->request('DELETE', '/v1/instance/signing_key_schedule', idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * The staging copies and previews of this instance, newest first (deleted ones are left out).
+     *
+     * `GET /v1/instance/staging_copies` (scope `instance:read`)
+     *
+     * @param array{limit?:int, starting_after?:string, kind?:'clone'|'preview'} $query
+     * @return array{object:mixed, data:list<array{object:mixed, id:string, kind:'clone'|'preview', name:string, ref?:string|null, status:'pending'|'copying'|'completed'|'failed'|'deleted', progress?:array<string,mixed>, source_instance_id:string, instance_id?:string|null, environment:mixed, publishable_key?:string|null, frontend_api_host?:string|null, allowed_origins?:list<string>, include:list<string>, mask_emails:bool, counts?:array<string,mixed>, errors?:list<array<string,mixed>>, expires_at?:int|null, created_by?:string|null, created_at:int, completed_at?:int|null, deleted_at?:int|null}>, has_more:bool, next_cursor?:string|null}
+     */
+    public function listStagingCopies(array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/instance/staging_copies', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Every item of `listStagingCopies` across all pages (cursor pagination), one at a time.
+     *
+     * @param array{limit?:int, starting_after?:string, kind?:'clone'|'preview'} $query
+     * @return \Generator<int,mixed>
+     */
+    public function listStagingCopiesAll(array $query = []): \Generator
+    {
+        return \Atlas\Pagination::iterate(fn (array $q): array => $this->listStagingCopies($q), $query);
+    }
+
+    /**
+     * Make a staging copy of this instance with its own secret key: a new development-mode instance of the same app, with or without data (same body and rules as the platform clone route, without secret_key_preset: the key it answers with holds the app-runtime preset). For an instance that is not provisioned under a platform app. The copy never carries secrets (configuration secrets are removed; API keys and provider connections are not copied), private metadata of users and organizations, webhook endpoints, signing keys, passwords or second factors. The new instance is in development mode: no email or SMS is sent until it has its own provider keys. Needs instance:write (and users:read when include has users). Honours Idempotency-Key; a repeat for a live ref returns it (200, no secret). Audited.
+     *
+     * `POST /v1/instance/staging_copies` (scope `instance:write`)
+     *
+     * @param array{mode:'clone'|'preview', name?:string, ref?:string, include?:list<'config'|'roles'|'organizations'|'users'|'memberships'>, mask_emails?:bool, ttl_hours?:int, allowed_origins?:list<string>, refresh?:bool, secret_key_preset?:'app-runtime'|'full'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, kind:'clone'|'preview', name:string, ref?:string|null, status:'pending'|'copying'|'completed'|'failed'|'deleted', progress?:array<string,mixed>, source_instance_id:string, instance_id?:string|null, environment:mixed, publishable_key?:string|null, frontend_api_host?:string|null, allowed_origins?:list<string>, include:list<string>, mask_emails:bool, counts?:array<string,mixed>, errors?:list<array<string,mixed>>, expires_at?:int|null, created_by?:string|null, created_at:int, completed_at?:int|null, deleted_at?:int|null, secret?:string|null, secret_key_scopes?:list<string>, replayed?:bool, note?:string}
+     */
+    public function createStagingCopy(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/instance/staging_copies', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * One staging copy: status, what was copied, what could not be placed.
+     *
+     * `GET /v1/instance/staging_copies/{id}` (scope `instance:read`)
+     *
+     * @param string $id the `id` path segment
+     * @return array{object:mixed, id:string, kind:'clone'|'preview', name:string, ref?:string|null, status:'pending'|'copying'|'completed'|'failed'|'deleted', progress?:array<string,mixed>, source_instance_id:string, instance_id?:string|null, environment:mixed, publishable_key?:string|null, frontend_api_host?:string|null, allowed_origins?:list<string>, include:list<string>, mask_emails:bool, counts?:array<string,mixed>, errors?:list<array<string,mixed>>, expires_at?:int|null, created_by?:string|null, created_at:int, completed_at?:int|null, deleted_at?:int|null}
+     */
+    public function getStagingCopy(string $id): array
+    {
+        $r = $this->http->request('GET', '/v1/instance/staging_copies/' . rawurlencode($id));
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Delete a staging copy together with its instance and everything in it. Only an instance a copy created can be removed this way. Audited.
+     *
+     * `DELETE /v1/instance/staging_copies/{id}` (scope `instance:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, kind:'clone'|'preview', name:string, ref?:string|null, status:'pending'|'copying'|'completed'|'failed'|'deleted', progress?:array<string,mixed>, source_instance_id:string, instance_id?:string|null, environment:mixed, publishable_key?:string|null, frontend_api_host?:string|null, allowed_origins?:list<string>, include:list<string>, mask_emails:bool, counts?:array<string,mixed>, errors?:list<array<string,mixed>>, expires_at?:int|null, created_by?:string|null, created_at:int, completed_at?:int|null, deleted_at?:int|null}
+     */
+    public function deleteStagingCopy(string $id, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('DELETE', '/v1/instance/staging_copies/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Bring a completed staging copy up to date in place: the same instance, keys and host, with this instance's configuration merged in again (and the data sections asked for, at most the ones it was made with, up to 2000 rows each). synthetic_users { count (1-500), seed } adds seeded test users (example.com addresses, the same seed gives the same users, so repeating it adds none twice). ttl_hours extends a preview. Emails stay masked consistently, so a refresh does not duplicate users. Audited.
+     *
+     * `POST /v1/instance/staging_copies/{id}/refresh` (scope `instance:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{include?:list<'config'|'roles'|'organizations'|'users'|'memberships'>, synthetic_users?:array{count:int, seed:string}, ttl_hours?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, kind:'clone'|'preview', name:string, ref?:string|null, status:'pending'|'copying'|'completed'|'failed'|'deleted', progress?:array<string,mixed>, source_instance_id:string, instance_id?:string|null, environment:mixed, publishable_key?:string|null, frontend_api_host?:string|null, allowed_origins?:list<string>, include:list<string>, mask_emails:bool, counts?:array<string,mixed>, errors?:list<array<string,mixed>>, expires_at?:int|null, created_by?:string|null, created_at:int, completed_at?:int|null, deleted_at?:int|null}
+     */
+    public function refreshStagingCopies(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/instance/staging_copies/' . rawurlencode($id) . '/refresh', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -840,11 +1097,12 @@ final class Instance
      * `PUT /v1/instance/user_traits_schema` (scope `instance:write`)
      *
      * @param array{schemas?:array<string,array<string,mixed>>, enforcement?:'off'|'warn'|'enforce', version?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, version:int, enforcement:'off'|'warn'|'enforce', schemas:array<string,array<string,mixed>>, updated_at:int|null}
      */
-    public function setUserTraitsSchema(array $body = []): array
+    public function setUserTraitsSchema(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/instance/user_traits_schema', body: $body);
+        $r = $this->http->request('PUT', '/v1/instance/user_traits_schema', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -871,11 +1129,12 @@ final class Instance
      * `PUT /v1/instance/write_budget` (scope `instance:write`)
      *
      * @param array{mode?:'observe'|'enforce', writes_per_minute?:int|null, counter_writes_per_minute?:int|null, events_per_minute?:int|null, webhook_fanout_per_minute?:int|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, mode?:'observe'|'enforce', window_seconds?:int, budgets?:array{writes?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}, counter_writes?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}, events?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}, webhook_fanout?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}}, exceeded_in_window?:list<'writes'|'counter_writes'|'events'|'webhook_fanout'>, resets_in_seconds?:int, last_exceeded_at?:int|null, last_exceeded_budget?:string|null, exceeded_total?:int, updated_at?:int|null}
      */
-    public function setWriteBudget(array $body = []): array
+    public function setWriteBudget(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/instance/write_budget', body: $body);
+        $r = $this->http->request('PUT', '/v1/instance/write_budget', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -885,11 +1144,12 @@ final class Instance
      *
      * `DELETE /v1/instance/write_budget` (scope `instance:write`)
      *
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, mode?:'observe'|'enforce', window_seconds?:int, budgets?:array{writes?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}, counter_writes?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}, events?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}, webhook_fanout?:array{limit?:int, default?:int, custom?:bool, used_on_this_node?:int}}, exceeded_in_window?:list<'writes'|'counter_writes'|'events'|'webhook_fanout'>, resets_in_seconds?:int, last_exceeded_at?:int|null, last_exceeded_budget?:string|null, exceeded_total?:int, updated_at?:int|null}
      */
-    public function deleteWriteBudget(): array
+    public function deleteWriteBudget(?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/instance/write_budget');
+        $r = $this->http->request('DELETE', '/v1/instance/write_budget', idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

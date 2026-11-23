@@ -62,11 +62,12 @@ final class DeviceSso
      * `DELETE /v1/device_sso/registrations/{id}` (scope `desktop_mfa:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteRegistration(string $id): array
+    public function deleteRegistration(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/device_sso/registrations/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/device_sso/registrations/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

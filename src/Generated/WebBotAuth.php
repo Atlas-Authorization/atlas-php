@@ -35,11 +35,12 @@ final class WebBotAuth
      * `PUT /v1/web_bot_auth` (scope `machines:write`)
      *
      * @param array{allow?:list<string|array{directory:string, name?:string}>, block?:list<string|array{directory:string, name?:string}>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, allow?:list<array<string,mixed>>, block?:list<array<string,mixed>>}
      */
-    public function set(array $body = []): array
+    public function set(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/web_bot_auth', body: $body);
+        $r = $this->http->request('PUT', '/v1/web_bot_auth', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -81,11 +82,12 @@ final class WebBotAuth
      * `DELETE /v1/web_bot_auth/directories/{id}` (scope `machines:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:bool}
      */
-    public function deleteDirectory(string $id): array
+    public function deleteDirectory(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/web_bot_auth/directories/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/web_bot_auth/directories/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

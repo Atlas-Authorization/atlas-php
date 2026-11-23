@@ -68,11 +68,12 @@ final class ChatIntegrations
      *
      * @param string $id the `id` path segment
      * @param array{enabled?:bool, config?:array<string,mixed>, credentials?:array<string,string>, routing?:array<string,string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, provider:'slack'|'teams', name:string, config?:array<string,mixed>, routing?:array<string,string>, enabled:bool, created_at?:int, updated_at?:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/chat_integrations/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/chat_integrations/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -83,11 +84,12 @@ final class ChatIntegrations
      * `DELETE /v1/chat_integrations/{id}` (scope `service_connectors:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:string, id?:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/chat_integrations/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/chat_integrations/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -164,11 +166,12 @@ final class ChatIntegrations
      *
      * @param string $id the `id` path segment
      * @param string $linkid the `linkId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:string, id?:string, deleted:mixed}
      */
-    public function deleteUserLink(string $id, string $linkid): array
+    public function deleteUserLink(string $id, string $linkid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/chat_integrations/' . rawurlencode($id) . '/user_links/' . rawurlencode($linkid));
+        $r = $this->http->request('DELETE', '/v1/chat_integrations/' . rawurlencode($id) . '/user_links/' . rawurlencode($linkid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -22,11 +22,12 @@ final class ActionTemplates
      *
      * @param string $id the `id` path segment
      * @param string $version the `version` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, version:string, deleted:mixed}
      */
-    public function deleteVersion(string $id, string $version): array
+    public function deleteVersion(string $id, string $version, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/action_templates/' . rawurlencode($id) . '/versions/' . rawurlencode($version));
+        $r = $this->http->request('DELETE', '/v1/action_templates/' . rawurlencode($id) . '/versions/' . rawurlencode($version), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
