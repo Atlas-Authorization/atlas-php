@@ -35,11 +35,12 @@ final class Audit
      * `PUT /v1/audit/chain` (scope `audit:write`)
      *
      * @param array{enabled:bool, checkpoint_interval_seconds?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, enabled:bool, enabled_at?:int|null, checkpoint_interval_seconds?:int|null, head_seq?:int|null, head_hash?:string|null, genesis_hash:string, last_checkpoint_seq?:int|null, last_checkpoint_at?:int|null, unchained_rows?:int, algorithm:array<string,string>, jwks_uri:string}
      */
-    public function setChain(array $body): array
+    public function setChain(array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/audit/chain', body: $body);
+        $r = $this->http->request('PUT', '/v1/audit/chain', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

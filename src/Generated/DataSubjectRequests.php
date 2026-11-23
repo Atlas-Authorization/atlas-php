@@ -150,11 +150,12 @@ final class DataSubjectRequests
      *
      * @param string $id the `id` path segment
      * @param array{assignee?:string|null, priority?:'low'|'normal'|'high'|'urgent', labels?:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function updateTriage(string $id, array $body = []): array
+    public function updateTriage(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/data_subject_requests/' . rawurlencode($id) . '/triage', body: $body);
+        $r = $this->http->request('PATCH', '/v1/data_subject_requests/' . rawurlencode($id) . '/triage', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

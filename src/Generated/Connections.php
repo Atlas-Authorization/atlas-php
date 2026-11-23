@@ -48,6 +48,22 @@ final class Connections
     }
 
     /**
+     * Move OAuth connections from one owner client to another (a retired owner client you can now delete, two clients merged). Both clients must be the same provider and environment. When both are the same provider app (same client_id) every token stays valid and the rows simply move. Otherwise (verify, the default and the only allowed mode) one real refresh is made per connection with the TARGET client's credentials and only connections the provider accepts move; the others stay on the old client untouched and are reported failed with a reason (a failed probe changes no status). Token-family siblings move together. Dry run reports what would move without calling the provider. Never returns tokens. Idempotent on Idempotency-Key; audited as connection.rehomed (ids and counts).
+     *
+     * `POST /v1/connections/rehome` (scope `organizations:write`)
+     *
+     * @param array{from_client:string, to_client:string, connection_ids?:list<string>, dry_run?:bool, verify?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, from_client:string, to_client:string, dry_run:bool, same_app:bool, moved:int, would_move:int, failed:int, skipped:int, data:list<array{connection_id:string, status:'moved'|'would_move'|'would_verify'|'failed'|'skipped', reason?:string}>}
+     */
+    public function rehome(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/connections/rehome', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * The relay size limits of this instance: the largest request body and response body, in bytes. Defaults are 256 KiB and 1 MiB.
      *
      * `GET /v1/connections/relay_limits` (scope `organizations:read`)
@@ -67,11 +83,12 @@ final class Connections
      * `PUT /v1/connections/relay_limits` (scope `organizations:write`)
      *
      * @param array{request_bytes?:int, response_bytes?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, request_bytes:int, response_bytes:int}
      */
-    public function setRelayLimits(array $body = []): array
+    public function setRelayLimits(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/connections/relay_limits', body: $body);
+        $r = $this->http->request('PUT', '/v1/connections/relay_limits', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -96,11 +113,12 @@ final class Connections
      * `PUT /v1/connections/token_limits` (scope `organizations:write`)
      *
      * @param array{per_key?:int|null, per_connection?:int|null, per_app?:int|null, providers?:array<string,int|null>|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, window_seconds:int, conditional_factor:int, per_key:array{limit:int, default:int, max:int, used:int}, per_connection:array{limit:int, default:int, max:int}, per_app:array{limit:int|null, max:int}, providers:array<string,array{limit:int, used:int}>}
      */
-    public function setTokenLimits(array $body = []): array
+    public function setTokenLimits(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/connections/token_limits', body: $body);
+        $r = $this->http->request('PUT', '/v1/connections/token_limits', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -127,11 +145,12 @@ final class Connections
      *
      * @param string $id the `id` path segment
      * @param array{rules:list<array{principal_type:'api_key'|'user'|'org_role', principal_id:string, permissions:list<'read_token'|'relay'|'run_actions'|'sign'>}>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, connection_id:string, restricted:bool, rules:list<array{object?:mixed, id?:string, connection_id?:string, principal_type:'api_key'|'user'|'org_role', principal_id:string, permissions:list<'read_token'|'relay'|'run_actions'|'sign'>, created_at?:int}>}
      */
-    public function setAccessRules(string $id, array $body): array
+    public function setAccessRules(string $id, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/connections/' . rawurlencode($id) . '/access_rules', body: $body);
+        $r = $this->http->request('PUT', '/v1/connections/' . rawurlencode($id) . '/access_rules', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -142,10 +161,11 @@ final class Connections
      * `DELETE /v1/connections/{id}/access_rules` (scope `organizations:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteAccessRules(string $id): void
+    public function deleteAccessRules(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/connections/' . rawurlencode($id) . '/access_rules');
+        $this->http->request('DELETE', '/v1/connections/' . rawurlencode($id) . '/access_rules', idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -394,7 +414,7 @@ final class Connections
      * @param string $id the `id` path segment
      * @param array{owner:array{type:'organization'|'user'|'external', id:string}} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object:mixed, id:string, owner:array{type:'organization'|'user'|'external', id:string}, kind:'oauth'|'api_key'|'client_credentials'|'bearer'|'basic'|'custom_header'|'hmac_secret'|'jwt_bearer'|'oauth1'|'github_app_installation'|'admin_consent', provider:string, name:string, allowed_hosts:list<string>, config:array<string,mixed>, status:'connected'|'needs_reauth'|'revoked'|'error'|'not_connected', purpose:mixed, environment:'production'|'sandbox', sandbox:bool, external_id?:string|null, host_params:array<string,string>, oauth_client_id?:string|null, scopes:list<string>, expires_at?:int|null, refresh_expires_at?:int|null, metadata:array<string,string>, authorized_by_user_id?:string|null, connected_at?:int|null, last_refreshed_at?:int|null, status_changed_at?:int|null, last_error?:array{code:string, message:string, httpStatus?:int|null, at:int}|null, refresh_failures?:int, next_refresh_at?:int|null, external_account_id?:mixed, has_secret:bool, secret_expires_at?:int|null, previous_valid_until?:int|null, allowed_methods:list<'GET'|'HEAD'|'POST'|'PUT'|'PATCH'|'DELETE'>, created_at:int, updated_at:int}
+     * @return array{object:mixed, id:string, owner:array{type:'organization'|'user'|'external', id:string}, kind:'oauth'|'api_key'|'client_credentials'|'bearer'|'basic'|'custom_header'|'hmac_secret'|'jwt_bearer'|'oauth1'|'github_app_installation'|'admin_consent'|'cookie_jar', provider:string, name:string, allowed_hosts:list<string>, config:array<string,mixed>, status:'connected'|'needs_reauth'|'revoked'|'error'|'not_connected', purpose:mixed, environment:'production'|'sandbox', sandbox:bool, external_id?:string|null, host_params:array<string,string>, oauth_client_id?:string|null, scopes:list<string>, expires_at?:int|null, refresh_expires_at?:int|null, metadata:array<string,string>, authorized_by_user_id?:string|null, connected_at?:int|null, last_refreshed_at?:int|null, status_changed_at?:int|null, last_error?:array{code:string, message:string, httpStatus?:int|null, at:int}|null, refresh_failures?:int, next_refresh_at?:int|null, external_account_id?:mixed, has_secret:bool, secret_expires_at?:int|null, previous_valid_until?:int|null, allowed_methods:list<'GET'|'HEAD'|'POST'|'PUT'|'PATCH'|'DELETE'>, created_at:int, updated_at:int}
      */
     public function transfer(string $id, array $body, ?string $idempotencyKey = null): array
     {
@@ -460,11 +480,12 @@ final class Connections
      * @param string $id the `id` path segment
      * @param string $triggerid the `triggerId` path segment
      * @param array{status:'active'|'paused'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, connection_id:string, event:string, mode:'webhook'|'poll', filter?:array<string,string>, target_url?:string|null, status:'active'|'paused'|'failed', provider_registered?:bool, ingress_url?:string|null, poll?:array<string,mixed>|null, next_poll_at?:int|null, last_error?:string|null, last_fired_at?:int|null, fired_count?:int, forward_secret?:string, created_at?:int}
      */
-    public function updateTrigger(string $id, string $triggerid, array $body): array
+    public function updateTrigger(string $id, string $triggerid, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/connections/' . rawurlencode($id) . '/triggers/' . rawurlencode($triggerid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/connections/' . rawurlencode($id) . '/triggers/' . rawurlencode($triggerid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -476,11 +497,12 @@ final class Connections
      *
      * @param string $id the `id` path segment
      * @param string $triggerid the `triggerId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed, provider_unregistered?:bool|null}
      */
-    public function deleteTrigger(string $id, string $triggerid): array
+    public function deleteTrigger(string $id, string $triggerid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/connections/' . rawurlencode($id) . '/triggers/' . rawurlencode($triggerid));
+        $r = $this->http->request('DELETE', '/v1/connections/' . rawurlencode($id) . '/triggers/' . rawurlencode($triggerid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -493,11 +515,12 @@ final class Connections
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
      * @param array{scheme?:'hubspot_v3'|'shopify_hmac'|'intercom'|'zoom'|'slack_v0'|'calendly'|'stripe'|'generic_hmac_sha256', forward_url?:string, signing_secret?:string, options?:array<string,string>, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, connection_id:string, scheme:'hubspot_v3'|'shopify_hmac'|'intercom'|'zoom'|'slack_v0'|'calendly'|'stripe'|'generic_hmac_sha256', forward_url:string, ingress_url:string, options:array<string,string>, has_signing_secret:bool, enabled:bool, last_delivery_at:int|null, created_at:int, updated_at:int, forward_secret?:string}
      */
-    public function updateWebhookEndpoint(string $id, string $endpointid, array $body = []): array
+    public function updateWebhookEndpoint(string $id, string $endpointid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/connections/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/connections/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -509,9 +532,10 @@ final class Connections
      *
      * @param string $id the `id` path segment
      * @param string $endpointid the `endpointId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteWebhookEndpoint(string $id, string $endpointid): void
+    public function deleteWebhookEndpoint(string $id, string $endpointid, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/connections/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid));
+        $this->http->request('DELETE', '/v1/connections/' . rawurlencode($id) . '/webhook_endpoints/' . rawurlencode($endpointid), idempotencyKey: $idempotencyKey);
     }
 }

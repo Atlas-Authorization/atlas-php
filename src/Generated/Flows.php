@@ -89,10 +89,11 @@ final class Flows
      *
      * @param string $id the `id` path segment
      * @param string $experimentid the `experimentId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteExperiment(string $id, string $experimentid): void
+    public function deleteExperiment(string $id, string $experimentid, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/flows/' . rawurlencode($id) . '/experiments/' . rawurlencode($experimentid));
+        $this->http->request('DELETE', '/v1/flows/' . rawurlencode($id) . '/experiments/' . rawurlencode($experimentid), idempotencyKey: $idempotencyKey);
     }
 
     /**

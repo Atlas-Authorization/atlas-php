@@ -94,11 +94,12 @@ final class AuthenticatorPolicies
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, group?:string, enabled?:bool, required_factors?:list<'totp'|'sms'|'passkey'|'push'>, grace_until?:int|null, passkey?:array{requireUserVerification?:bool, attestation?:string|null, attachment?:string|null, allowlist?:list<string>, blocklist?:list<string>}} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, name:string, group:string, enabled:bool, required_factors:list<'totp'|'sms'|'passkey'|'push'>, grace_until:int|null, passkey:array<string,mixed>, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/authenticator_policies/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/authenticator_policies/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -109,11 +110,12 @@ final class AuthenticatorPolicies
      * `DELETE /v1/authenticator_policies/{id}` (scope `access_policies:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/authenticator_policies/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/authenticator_policies/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

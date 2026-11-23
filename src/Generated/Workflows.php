@@ -72,11 +72,12 @@ final class Workflows
      * @param string $id the `id` path segment
      * @param string $key the `key` path segment
      * @param array{value:mixed} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, key:string, value?:mixed, deleted?:bool}
      */
-    public function upsertKv(string $id, string $key, array $body): array
+    public function upsertKv(string $id, string $key, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/workflows/' . rawurlencode($id) . '/kv/' . rawurlencode($key), body: $body);
+        $r = $this->http->request('PUT', '/v1/workflows/' . rawurlencode($id) . '/kv/' . rawurlencode($key), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -88,11 +89,12 @@ final class Workflows
      *
      * @param string $id the `id` path segment
      * @param string $key the `key` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, key:string, value?:mixed, deleted?:bool}
      */
-    public function deleteKv(string $id, string $key): array
+    public function deleteKv(string $id, string $key, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/workflows/' . rawurlencode($id) . '/kv/' . rawurlencode($key));
+        $r = $this->http->request('DELETE', '/v1/workflows/' . rawurlencode($id) . '/kv/' . rawurlencode($key), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -39,11 +39,12 @@ final class McpGateways
      * @param string $id the `id` path segment
      * @param string $budgetid the `budgetId` path segment
      * @param array{name?:string, scope?:'agent'|'session', metric?:'calls'|'cost'|'rate', limit?:int|float, window_seconds?:int|null, agent_id?:string|null, tool?:string|null, cost_per_call?:int|float, cost_arg?:string|null, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, gateway_id:string, name:string, scope:'agent'|'session', agent_id?:string|null, tool?:string|null, metric:'calls'|'cost'|'rate', limit:int|float, window_seconds?:int|null, cost_per_call?:int|float, cost_arg?:string|null, enabled:bool, created_at:int}
      */
-    public function updateBudget(string $id, string $budgetid, array $body = []): array
+    public function updateBudget(string $id, string $budgetid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/mcp_gateways/' . rawurlencode($id) . '/budgets/' . rawurlencode($budgetid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/mcp_gateways/' . rawurlencode($id) . '/budgets/' . rawurlencode($budgetid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -55,10 +56,11 @@ final class McpGateways
      *
      * @param string $id the `id` path segment
      * @param string $budgetid the `budgetId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteBudget(string $id, string $budgetid): void
+    public function deleteBudget(string $id, string $budgetid, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/budgets/' . rawurlencode($budgetid));
+        $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/budgets/' . rawurlencode($budgetid), idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -118,11 +120,12 @@ final class McpGateways
      * @param string $id the `id` path segment
      * @param string $packid the `packId` path segment
      * @param array{name?:string, description?:string|null, tools?:list<string>, agent_ids?:list<string>, org_ids?:list<string>, groups?:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, gateway_id:string, name:string, description?:string|null, tools:list<string>, agent_ids?:list<string>, org_ids?:list<string>, groups?:list<string>, created_at?:int}
      */
-    public function updatePack(string $id, string $packid, array $body = []): array
+    public function updatePack(string $id, string $packid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/mcp_gateways/' . rawurlencode($id) . '/packs/' . rawurlencode($packid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/mcp_gateways/' . rawurlencode($id) . '/packs/' . rawurlencode($packid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -134,11 +137,12 @@ final class McpGateways
      *
      * @param string $id the `id` path segment
      * @param string $packid the `packId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deletePack(string $id, string $packid): array
+    public function deletePack(string $id, string $packid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/packs/' . rawurlencode($packid));
+        $r = $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/packs/' . rawurlencode($packid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -166,11 +170,12 @@ final class McpGateways
      *
      * @param string $id the `id` path segment
      * @param string $tool the `tool` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function deletePin(string $id, string $tool): array
+    public function deletePin(string $id, string $tool, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/pins/' . rawurlencode($tool));
+        $r = $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/pins/' . rawurlencode($tool), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -249,11 +254,12 @@ final class McpGateways
      * @param string $id the `id` path segment
      * @param string $upstreamid the `upstreamId` path segment
      * @param array{namespace?:string, kind?:'mcp'|'openapi'|'actions', action_names?:list<string>, url?:string, openapi?:array<string,mixed>, auth_kind?:'none'|'static'|'connection', authorization?:string, connection_id?:string, connection_owner?:'org'|'agent_owner', connect_redirect_url?:string|null, stream?:bool, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, gateway_id:string, namespace:string, kind:'mcp'|'openapi'|'actions', url?:string|null, action_names?:list<string>, auth_kind:'none'|'static'|'connection', has_authorization?:bool, connection_id?:string|null, connection_owner?:'org'|'agent_owner', connect_redirect_url?:string|null, tool_count?:int|null, stream?:bool, enabled?:bool, created_at?:int}
      */
-    public function updateUpstream(string $id, string $upstreamid, array $body = []): array
+    public function updateUpstream(string $id, string $upstreamid, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/mcp_gateways/' . rawurlencode($id) . '/upstreams/' . rawurlencode($upstreamid), body: $body);
+        $r = $this->http->request('PATCH', '/v1/mcp_gateways/' . rawurlencode($id) . '/upstreams/' . rawurlencode($upstreamid), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -265,11 +271,12 @@ final class McpGateways
      *
      * @param string $id the `id` path segment
      * @param string $upstreamid the `upstreamId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteUpstream(string $id, string $upstreamid): array
+    public function deleteUpstream(string $id, string $upstreamid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/upstreams/' . rawurlencode($upstreamid));
+        $r = $this->http->request('DELETE', '/v1/mcp_gateways/' . rawurlencode($id) . '/upstreams/' . rawurlencode($upstreamid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

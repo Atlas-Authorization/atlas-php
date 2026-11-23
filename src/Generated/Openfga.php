@@ -39,11 +39,12 @@ final class Openfga
      * @param string $store the `store` path segment
      * @param string $model the `model` path segment
      * @param array{assertions?:list<array<string,mixed>>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function upsertStoresAssertion(string $store, string $model, array $body = []): array
+    public function upsertStoresAssertion(string $store, string $model, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/openfga/stores/' . rawurlencode($store) . '/assertions/' . rawurlencode($model), body: $body);
+        $r = $this->http->request('PUT', '/v1/openfga/stores/' . rawurlencode($store) . '/assertions/' . rawurlencode($model), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

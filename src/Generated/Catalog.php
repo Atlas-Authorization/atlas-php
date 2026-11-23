@@ -25,6 +25,7 @@ final class Catalog
     public readonly AgentDelegations $agentDelegations;
     public readonly Agents $agents;
     public readonly AllowlistIdentifiers $allowlistIdentifiers;
+    public readonly Analytics $analytics;
     public readonly ApiKeys $apiKeys;
     public readonly AppCatalog $appCatalog;
     public readonly ApprovalRequests $approvalRequests;
@@ -49,6 +50,7 @@ final class Catalog
     public readonly ConnectionProviderTopics $connectionProviderTopics;
     public readonly ConnectionProviders $connectionProviders;
     public readonly ConnectionReconnectSettings $connectionReconnectSettings;
+    public readonly ConnectionTemplates $connectionTemplates;
     public readonly Connections $connections;
     public readonly Containments $containments;
     public readonly CookieConsents $cookieConsents;
@@ -64,6 +66,7 @@ final class Catalog
     public readonly Devices $devices;
     public readonly Diagnostics $diagnostics;
     public readonly DirectoryPullSources $directoryPullSources;
+    public readonly Domains $domains;
     public readonly DsrConsole $dsrConsole;
     public readonly Entitlements $entitlements;
     public readonly ErasureConnectorCatalog $erasureConnectorCatalog;
@@ -85,6 +88,7 @@ final class Catalog
     public readonly Mcp $mcp;
     public readonly McpGateways $mcpGateways;
     public readonly McpRegistry $mcpRegistry;
+    public readonly MessageLinks $messageLinks;
     public readonly MessageReceivers $messageReceivers;
     public readonly Messages $messages;
     public readonly Messaging $messaging;
@@ -92,8 +96,11 @@ final class Catalog
     public readonly MfaCampaigns $mfaCampaigns;
     public readonly MfaFactorQuarantines $mfaFactorQuarantines;
     public readonly Migrations $migrations;
+    public readonly NativeApps $nativeApps;
     public readonly OauthApplicationTypes $oauthApplicationTypes;
     public readonly OauthClients $oauthClients;
+    public readonly OauthConsentRequests $oauthConsentRequests;
+    public readonly OauthDeviceRequests $oauthDeviceRequests;
     public readonly OauthGrants $oauthGrants;
     public readonly OauthPublishers $oauthPublishers;
     public readonly Opa $opa;
@@ -103,10 +110,14 @@ final class Catalog
     public readonly OrgRoleSets $orgRoleSets;
     public readonly OrgTemplates $orgTemplates;
     public readonly OrganizationConnections $organizationConnections;
+    public readonly OrganizationInvitations $organizationInvitations;
     public readonly Organizations $organizations;
     public readonly PartnerPlatforms $partnerPlatforms;
     public readonly PasskeyApi $passkeyApi;
     public readonly PasskeyCampaigns $passkeyCampaigns;
+    public readonly Pca $pca;
+    public readonly PermissionAliases $permissionAliases;
+    public readonly Permissions $permissions;
     public readonly PlatformApps $platformApps;
     public readonly PlatformAtlasIdApps $platformAtlasIdApps;
     public readonly PlatformDesign $platformDesign;
@@ -121,6 +132,7 @@ final class Catalog
     public readonly Region $region;
     public readonly ResourceRoleAssignments $resourceRoleAssignments;
     public readonly ResourceServers $resourceServers;
+    public readonly Revocations $revocations;
     public readonly RiskBasedMfa $riskBasedMfa;
     public readonly RiskSignals $riskSignals;
     public readonly RiskyUsers $riskyUsers;
@@ -139,6 +151,7 @@ final class Catalog
     public readonly Users $users;
     public readonly Vc $vc;
     public readonly WebBotAuth $webBotAuth;
+    public readonly WebhookDlq $webhookDlq;
     public readonly WebhookEndpoints $webhookEndpoints;
     public readonly WorkflowApprovals $workflowApprovals;
     public readonly WorkflowTemplates $workflowTemplates;
@@ -159,6 +172,7 @@ final class Catalog
         $this->agentDelegations = new AgentDelegations($http);
         $this->agents = new Agents($http);
         $this->allowlistIdentifiers = new AllowlistIdentifiers($http);
+        $this->analytics = new Analytics($http);
         $this->apiKeys = new ApiKeys($http);
         $this->appCatalog = new AppCatalog($http);
         $this->approvalRequests = new ApprovalRequests($http);
@@ -183,6 +197,7 @@ final class Catalog
         $this->connectionProviderTopics = new ConnectionProviderTopics($http);
         $this->connectionProviders = new ConnectionProviders($http);
         $this->connectionReconnectSettings = new ConnectionReconnectSettings($http);
+        $this->connectionTemplates = new ConnectionTemplates($http);
         $this->connections = new Connections($http);
         $this->containments = new Containments($http);
         $this->cookieConsents = new CookieConsents($http);
@@ -198,6 +213,7 @@ final class Catalog
         $this->devices = new Devices($http);
         $this->diagnostics = new Diagnostics($http);
         $this->directoryPullSources = new DirectoryPullSources($http);
+        $this->domains = new Domains($http);
         $this->dsrConsole = new DsrConsole($http);
         $this->entitlements = new Entitlements($http);
         $this->erasureConnectorCatalog = new ErasureConnectorCatalog($http);
@@ -219,6 +235,7 @@ final class Catalog
         $this->mcp = new Mcp($http);
         $this->mcpGateways = new McpGateways($http);
         $this->mcpRegistry = new McpRegistry($http);
+        $this->messageLinks = new MessageLinks($http);
         $this->messageReceivers = new MessageReceivers($http);
         $this->messages = new Messages($http);
         $this->messaging = new Messaging($http);
@@ -226,8 +243,11 @@ final class Catalog
         $this->mfaCampaigns = new MfaCampaigns($http);
         $this->mfaFactorQuarantines = new MfaFactorQuarantines($http);
         $this->migrations = new Migrations($http);
+        $this->nativeApps = new NativeApps($http);
         $this->oauthApplicationTypes = new OauthApplicationTypes($http);
         $this->oauthClients = new OauthClients($http);
+        $this->oauthConsentRequests = new OauthConsentRequests($http);
+        $this->oauthDeviceRequests = new OauthDeviceRequests($http);
         $this->oauthGrants = new OauthGrants($http);
         $this->oauthPublishers = new OauthPublishers($http);
         $this->opa = new Opa($http);
@@ -237,10 +257,14 @@ final class Catalog
         $this->orgRoleSets = new OrgRoleSets($http);
         $this->orgTemplates = new OrgTemplates($http);
         $this->organizationConnections = new OrganizationConnections($http);
+        $this->organizationInvitations = new OrganizationInvitations($http);
         $this->organizations = new Organizations($http);
         $this->partnerPlatforms = new PartnerPlatforms($http);
         $this->passkeyApi = new PasskeyApi($http);
         $this->passkeyCampaigns = new PasskeyCampaigns($http);
+        $this->pca = new Pca($http);
+        $this->permissionAliases = new PermissionAliases($http);
+        $this->permissions = new Permissions($http);
         $this->platformApps = new PlatformApps($http);
         $this->platformAtlasIdApps = new PlatformAtlasIdApps($http);
         $this->platformDesign = new PlatformDesign($http);
@@ -255,6 +279,7 @@ final class Catalog
         $this->region = new Region($http);
         $this->resourceRoleAssignments = new ResourceRoleAssignments($http);
         $this->resourceServers = new ResourceServers($http);
+        $this->revocations = new Revocations($http);
         $this->riskBasedMfa = new RiskBasedMfa($http);
         $this->riskSignals = new RiskSignals($http);
         $this->riskyUsers = new RiskyUsers($http);
@@ -273,6 +298,7 @@ final class Catalog
         $this->users = new Users($http);
         $this->vc = new Vc($http);
         $this->webBotAuth = new WebBotAuth($http);
+        $this->webhookDlq = new WebhookDlq($http);
         $this->webhookEndpoints = new WebhookEndpoints($http);
         $this->workflowApprovals = new WorkflowApprovals($http);
         $this->workflowTemplates = new WorkflowTemplates($http);

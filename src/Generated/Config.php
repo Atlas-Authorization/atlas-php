@@ -20,7 +20,7 @@ final class Config
      *
      * `GET /v1/config/limits` (scope `instance:read`)
      *
-     * @return array{object:mixed, limits:array{resource_types?:array{max_roles_per_type?:int, key_pattern?:string, name_max_length?:int}, app_roles?:array{max_permissions_per_role?:int, max_roles_per_instance?:int}, permissions?:array{max_implied_per_permission?:int, key_max_length?:int}, scopes?:array{description_max_length?:int, label_max_length?:int}}}
+     * @return array{object:mixed, limits:array{resource_types?:array{max_roles_per_type?:int, key_pattern?:string, name_max_length?:int}, app_roles?:array{max_permissions_per_role?:int, max_roles_per_instance?:int}, permissions?:array{max_implied_per_permission?:int, key_max_length?:int, max_parts?:int, part_max_length?:int}, scopes?:array{description_max_length?:int, label_max_length?:int}}}
      */
     public function getLimits(): array
     {

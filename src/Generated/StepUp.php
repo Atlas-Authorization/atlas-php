@@ -37,7 +37,7 @@ final class StepUp
      * `GET /v1/step_up/policies` (scope `step_up:read`)
      *
      * @param array{limit?:int, starting_after?:string} $query
-     * @return array{object?:mixed, data?:list<array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}>, has_more?:bool, next_cursor?:string|null}
+     * @return array{object?:mixed, data?:list<array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factor_info?:list<array{factor?:string, label?:string, needs_input?:bool, input_kind?:'password'|'otp'|'none'|'redirect'|'push'|'webauthn'}>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}>, has_more?:bool, next_cursor?:string|null}
      */
     public function listPolicies(array $query = []): array
     {
@@ -64,7 +64,7 @@ final class StepUp
      *
      * @param array{name:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, receipt_ttl_seconds?:int} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}
+     * @return array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factor_info?:list<array{factor?:string, label?:string, needs_input?:bool, input_kind?:'password'|'otp'|'none'|'redirect'|'push'|'webauthn'}>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}
      */
     public function createPolicy(array $body, ?string $idempotencyKey = null): array
     {
@@ -79,7 +79,7 @@ final class StepUp
      * `GET /v1/step_up/policies/{id}` (scope `step_up:read`)
      *
      * @param string $id the `id` path segment
-     * @return array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}
+     * @return array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factor_info?:list<array{factor?:string, label?:string, needs_input?:bool, input_kind?:'password'|'otp'|'none'|'redirect'|'push'|'webauthn'}>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}
      */
     public function getPolicy(string $id): array
     {
@@ -95,11 +95,12 @@ final class StepUp
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, receipt_ttl_seconds?:int} $body
-     * @return array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object?:mixed, id?:string, name?:string, description?:string|null, enabled?:bool, max_age_seconds?:int, required_acr?:list<string>, required_amr?:list<string>, required_amr_any?:list<string>, phishing_resistant?:bool, allowed_methods?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factors?:list<'password'|'passkey'|'totp'|'backup_code'|'email_code'|'phone_code'|'push'|'duo'|'yubikey'>, accepted_factor_info?:list<array{factor?:string, label?:string, needs_input?:bool, input_kind?:'password'|'otp'|'none'|'redirect'|'push'|'webauthn'}>, receipt_ttl_seconds?:int, created_at?:int, updated_at?:int}
      */
-    public function updatePolicy(string $id, array $body = []): array
+    public function updatePolicy(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/step_up/policies/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/step_up/policies/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -110,11 +111,12 @@ final class StepUp
      * `DELETE /v1/step_up/policies/{id}` (scope `step_up:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deletePolicy(string $id): array
+    public function deletePolicy(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/step_up/policies/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/step_up/policies/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

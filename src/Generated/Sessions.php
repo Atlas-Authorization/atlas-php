@@ -133,6 +133,23 @@ final class Sessions
     }
 
     /**
+     * Set (or clear, with organization_id null) the active organization of a session from your backend. The user must hold a seat in it (or in an ancestor with role inheritance on) and meet its second-factor policy, as for their own switch: an organization they are not in is 404, a policy that needs a second factor is 403 STEP_UP_REQUIRED. The next token minted for the session (refresh or getToken) carries that organization claims. An ended session is 409; an unknown id, or one of another instance, is 404. Returns the session with last_active_organization_id.
+     *
+     * `PUT /v1/sessions/{id}/active_organization` (scope `sessions:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{organization_id:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, user_id:string, status:string, last_active_organization_id:string|null, impersonated_by:string|null, last_active_at:int, expire_at:int, abandon_at:int, idle_expires_at:int, created_at:int, custom_data:array<string,mixed>|null, sign_in_method?:string|null, provider?:string|null, native_client?:array{kind?:'unregistered'|'development'|'registered', app_id?:string|null, binding?:string|null}, device_label?:string, amr?:list<string>|null, user_agent?:string|null, ip_address?:string|null, location?:array{country:string, region?:string, city?:string}|null, risk?:array{score?:int, level?:'low'|'medium'|'high', reasons?:list<string>, computed_at?:int}|null, revoked_at?:int|null, revoked_reason?:string|null}
+     */
+    public function setActiveOrganization(string $id, array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PUT', '/v1/sessions/' . rawurlencode($id) . '/active_organization', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * Which DPoP key (by thumbprint) a session is bound to, and whether it was attested.
      *
      * `GET /v1/sessions/{id}/binding` (scope `sessions:read`)
@@ -153,11 +170,12 @@ final class Sessions
      * `DELETE /v1/sessions/{id}/binding` (scope `sessions:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, deleted:mixed, session_id?:string, bound?:mixed}
      */
-    public function deleteBinding(string $id): array
+    public function deleteBinding(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/sessions/' . rawurlencode($id) . '/binding');
+        $r = $this->http->request('DELETE', '/v1/sessions/' . rawurlencode($id) . '/binding', idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

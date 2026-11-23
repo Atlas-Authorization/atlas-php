@@ -35,11 +35,12 @@ final class ConnectionReconnectSettings
      * `PUT /v1/connection_reconnect_settings` (scope `organizations:write`)
      *
      * @param array{enabled?:bool, link_ttl_hours?:int, return_url?:string|null, providers?:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:string, enabled:bool, link_ttl_hours:int, return_url:string|null, providers:list<string>}
      */
-    public function set(array $body = []): array
+    public function set(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/connection_reconnect_settings', body: $body);
+        $r = $this->http->request('PUT', '/v1/connection_reconnect_settings', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -23,11 +23,12 @@ final class BetterAuthImports
      * @param string $id the `id` path segment
      * @param string $part the `part` path segment
      * @param array{data:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, import_id?:string, part?:int, bytes?:int, sha256?:string}
      */
-    public function upsertPart(string $id, string $part, array $body): array
+    public function upsertPart(string $id, string $part, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/better_auth_imports/' . rawurlencode($id) . '/parts/' . rawurlencode($part), body: $body);
+        $r = $this->http->request('PUT', '/v1/better_auth_imports/' . rawurlencode($id) . '/parts/' . rawurlencode($part), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

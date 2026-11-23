@@ -48,11 +48,12 @@ final class MessageReceivers
      *
      * @param string $provider the `provider` path segment
      * @param array{secret:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, provider:'ses'|'brevo'|'mailgun'|'smtp2go'|'postmark'|'sendgrid'|'resend'|'twilio'|'vonage'|'messagebird'|'plivo', channel:'email'|'sms', verification:'signature'|'signature_or_token'|'token', url:string, token_required:bool, token?:string, secret_set:bool, secret_help?:string|null, events:string, last_event_at?:int|null, last_error?:string|null}
      */
-    public function upsert(string $provider, array $body): array
+    public function upsert(string $provider, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/message_receivers/' . rawurlencode($provider), body: $body);
+        $r = $this->http->request('PUT', '/v1/message_receivers/' . rawurlencode($provider), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -63,11 +64,12 @@ final class MessageReceivers
      * `DELETE /v1/message_receivers/{provider}` (scope `messaging:write`)
      *
      * @param string $provider the `provider` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, provider:string, deleted:mixed}
      */
-    public function delete(string $provider): array
+    public function delete(string $provider, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/message_receivers/' . rawurlencode($provider));
+        $r = $this->http->request('DELETE', '/v1/message_receivers/' . rawurlencode($provider), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

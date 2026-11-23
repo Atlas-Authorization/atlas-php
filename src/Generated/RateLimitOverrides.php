@@ -54,11 +54,12 @@ final class RateLimitOverrides
      * @param string $subjectType the `subject_type` path segment
      * @param string $subjectId the `subject_id` path segment
      * @param array{policy_id?:string, limit?:int, window_seconds?:int, burst?:int|null, reason?:string|null, expires_at?:int|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, subject_type:'key'|'user'|'org'|'machine'|'ip', subject_id:string, policy_id:string|null, limit:int|null, window_seconds:int|null, burst:int|null, reason:string|null, expires_at:int|null, created_at:int, updated_at:int}
      */
-    public function upsert(string $subjectType, string $subjectId, array $body = []): array
+    public function upsert(string $subjectType, string $subjectId, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/rate_limit_overrides/' . rawurlencode($subjectType) . '/' . rawurlencode($subjectId), body: $body);
+        $r = $this->http->request('PUT', '/v1/rate_limit_overrides/' . rawurlencode($subjectType) . '/' . rawurlencode($subjectId), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -70,11 +71,12 @@ final class RateLimitOverrides
      *
      * @param string $subjectType the `subject_type` path segment
      * @param string $subjectId the `subject_id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $subjectType, string $subjectId): array
+    public function delete(string $subjectType, string $subjectId, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/rate_limit_overrides/' . rawurlencode($subjectType) . '/' . rawurlencode($subjectId));
+        $r = $this->http->request('DELETE', '/v1/rate_limit_overrides/' . rawurlencode($subjectType) . '/' . rawurlencode($subjectId), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

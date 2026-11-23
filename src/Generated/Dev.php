@@ -35,11 +35,12 @@ final class Dev
      *
      * `DELETE /v1/dev/emails` (scope `instance:write`)
      *
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, deleted:int}
      */
-    public function deleteEmails(): array
+    public function deleteEmails(?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/dev/emails');
+        $r = $this->http->request('DELETE', '/v1/dev/emails', idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

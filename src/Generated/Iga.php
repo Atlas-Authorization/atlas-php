@@ -137,11 +137,12 @@ final class Iga
      *
      * @param string $id the `id` path segment
      * @param array{key?:string, name?:string, description?:string, catalog?:string, entitlements?:list<string>, form?:list<array{key:string, label:string, required?:bool}>, policy?:array{allowed_email_domains?:list<string>, internal_email_domains?:list<string>, guest_expiry_days?:int, duration_seconds?:int}, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, key:string, name:string, description:string|null, catalog:string|null, entitlement_ids:list<string>, form:list<array{key:string, label:string, required?:bool}>, policy:array{allowed_email_domains?:list<string>, internal_email_domains?:list<string>, guest_expiry_days?:int, duration_seconds?:int}, enabled:bool, created_at:int, updated_at:int}
      */
-    public function updateBundle(string $id, array $body = []): array
+    public function updateBundle(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/iga/bundles/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/iga/bundles/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -152,11 +153,12 @@ final class Iga
      * `DELETE /v1/iga/bundles/{id}` (scope `iga:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteBundle(string $id): array
+    public function deleteBundle(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/iga/bundles/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/iga/bundles/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -328,11 +330,12 @@ final class Iga
      * `DELETE /v1/iga/eligibilities/{id}` (scope `iga:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteEligibility(string $id): array
+    public function deleteEligibility(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/iga/eligibilities/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/iga/eligibilities/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

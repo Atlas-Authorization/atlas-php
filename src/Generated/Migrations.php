@@ -32,11 +32,11 @@ final class Migrations
     }
 
     /**
-     * Where the move stands: imported users by credential type (bcrypt, argon2, scrypt, pbkdf2, other, social, none; imported = has an external_id), bridged sessions, imported legacy sessions still live, failed bridge attempts by reason, daily use per source, and `safe_to_delete_old_auth` with the blockers that keep it false (recent use, live sessions, an open dual-run window, an enabled bridge, or `no_enabled_source` when no bridge or verifier was ever enabled or used, so nothing has been proven quiet). `quiet_days` (default 14, max 90) sets how long the old auth must be unused.
+     * Where the move stands: imported users by credential type (bcrypt, argon2, scrypt, pbkdf2, other, social, none; imported = has an external_id), bridged sessions, imported legacy sessions still live, failed bridge attempts by reason, daily use per source, and `safe_to_delete_old_auth` with the blockers that keep it false (recent use, live sessions, an open dual-run window, an enabled bridge, `unmigrated_users` (imported users who never signed in on Atlas and hold no session; counted in `unmigrated_users` with a `unmigrated_user_sample` of ids), or `no_enabled_source` when no bridge or verifier was ever enabled or used, so nothing has been proven quiet). `quiet_days` (default 14, max 90) sets how long the old auth must be unused.
      *
      * `GET /v1/migrations/status` (scope `legacy_auth:read`)
      *
-     * @param array{quiet_days?:int} $query
+     * @param array{quiet_days?:int, accept_unmigrated?:bool} $query
      * @return array{object?:mixed}
      */
     public function getStatus(array $query = []): array
@@ -69,11 +69,12 @@ final class Migrations
      *
      * @param string $source the `source` path segment
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteImport(string $source, string $id): array
+    public function deleteImport(string $source, string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/migrations/' . rawurlencode($source) . '/imports/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/migrations/' . rawurlencode($source) . '/imports/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -87,11 +88,29 @@ final class Migrations
      * @param string $id the `id` path segment
      * @param string $part the `part` path segment
      * @param array{data:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, import_id?:string, part?:int, bytes?:int, sha256?:string}
      */
-    public function upsertImportsPart(string $source, string $id, string $part, array $body): array
+    public function upsertImportsPart(string $source, string $id, string $part, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/migrations/' . rawurlencode($source) . '/imports/' . rawurlencode($id) . '/parts/' . rawurlencode($part), body: $body);
+        $r = $this->http->request('PUT', '/v1/migrations/' . rawurlencode($source) . '/imports/' . rawurlencode($id) . '/parts/' . rawurlencode($part), body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Bulk-import live legacy sessions (up to 1000 a call) so the bridge can answer from Atlas alone (`mode: session_table`) and close early: the old system no longer has to be reachable for a person to cross over. Each row names the legacy session (`token`, or its SHA-256 hex as `token_hash`), the person (an Atlas `user_id` or your `external_id`) and `expires_at`; `mfa_verified` carries a completed second factor. Rows that cannot be linked to a person or have expired are reported in `errors` (`user_not_found`, `session_expired`, `invalid_row`, `unknown_field`, `already_exchanged`), never guessed. Re-sending a row only refreshes it, so a retry is safe. `dry_run: true` validates and counts without writing.
+     *
+     * `POST /v1/migrations/{source}/sessions` (scope `legacy_auth:write`)
+     *
+     * @param string $source the `source` path segment
+     * @param array{sessions:list<array{token?:string, token_hash?:string, user_id?:string, external_id?:string, expires_at:string, mfa_verified?:bool}>, dry_run?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, source:string, dry_run:bool, received:int, imported:int, failed:int, errors:list<array{index:int, code:'invalid_row'|'unknown_field'|'user_not_found'|'session_expired'|'already_exchanged', message:string}>, bridge_mode?:string|null}
+     */
+    public function createSession(string $source, array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/migrations/' . rawurlencode($source) . '/sessions', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

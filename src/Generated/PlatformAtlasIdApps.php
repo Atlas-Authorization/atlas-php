@@ -57,11 +57,12 @@ final class PlatformAtlasIdApps
      *
      * @param string $id the `id` path segment
      * @param string $codeid the `codeId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, revoked?:bool}
      */
-    public function deleteAdoptionCode(string $id, string $codeid): array
+    public function deleteAdoptionCode(string $id, string $codeid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/adoption_codes/' . rawurlencode($codeid));
+        $r = $this->http->request('DELETE', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/adoption_codes/' . rawurlencode($codeid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -73,11 +74,12 @@ final class PlatformAtlasIdApps
      *
      * @param string $id the `id` path segment
      * @param string $grantid the `grantId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, sub:string, revoked:mixed, tokens_revoked?:int, backchannel_logouts?:int}
      */
-    public function deleteGrant(string $id, string $grantid): array
+    public function deleteGrant(string $id, string $grantid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid));
+        $r = $this->http->request('DELETE', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/grants/' . rawurlencode($grantid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -138,11 +140,12 @@ final class PlatformAtlasIdApps
      *
      * @param string $id the `id` path segment
      * @param string $testaccountid the `testAccountId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed, sessions_ended?:int}
      */
-    public function deleteProvisionedAccount(string $id, string $testaccountid): array
+    public function deleteProvisionedAccount(string $id, string $testaccountid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/provisioned_accounts/' . rawurlencode($testaccountid));
+        $r = $this->http->request('DELETE', '/v1/platform/atlas_id_apps/' . rawurlencode($id) . '/provisioned_accounts/' . rawurlencode($testaccountid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

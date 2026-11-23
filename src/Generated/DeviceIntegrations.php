@@ -79,11 +79,12 @@ final class DeviceIntegrations
      *
      * @param string $id the `id` path segment
      * @param array{provider?:'intune'|'jamf'|'crowdstrike'|'fleet'|'chrome', name?:string, config?:array<string,mixed>, credentials?:array<string,mixed>, interval_minutes?:int, status?:'active'|'paused'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, provider:'intune'|'jamf'|'crowdstrike'|'fleet'|'chrome', name:string, status:'active'|'paused', config:array<string,mixed>, has_credentials:bool, interval_minutes:int, next_sync_at:int|null, last_sync_at:int|null, last_status:string|null, last_error:string|null, last_stats:array<string,mixed>, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/device_integrations/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/device_integrations/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -94,11 +95,12 @@ final class DeviceIntegrations
      * `DELETE /v1/device_integrations/{id}` (scope `device_assurance:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/device_integrations/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/device_integrations/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

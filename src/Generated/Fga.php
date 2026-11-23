@@ -51,11 +51,12 @@ final class Fga
      * `PUT /v1/fga/settings` (scope `fga:write`)
      *
      * @param array{cache_ttl_ms?:int|null, default_consistency?:'UNSPECIFIED'|'MINIMIZE_LATENCY'|'HIGHER_CONSISTENCY', changelog_retention_days?:int|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, cache_ttl_ms:int|null, default_consistency:'UNSPECIFIED'|'MINIMIZE_LATENCY'|'HIGHER_CONSISTENCY', changelog_retention_days:int|null}
      */
-    public function setSettings(array $body = []): array
+    public function setSettings(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/fga/settings', body: $body);
+        $r = $this->http->request('PUT', '/v1/fga/settings', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -198,11 +199,12 @@ final class Fga
      *
      * @param string $id the `id` path segment
      * @param string $mid the `mid` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function deleteStoresMaterialization(string $id, string $mid): array
+    public function deleteStoresMaterialization(string $id, string $mid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/fga/stores/' . rawurlencode($id) . '/materializations/' . rawurlencode($mid));
+        $r = $this->http->request('DELETE', '/v1/fga/stores/' . rawurlencode($id) . '/materializations/' . rawurlencode($mid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -293,11 +295,12 @@ final class Fga
      * `PUT /v1/fga/sync` (scope `fga:write`)
      *
      * @param array{enabled?:bool, store_id?:string|null, sync_memberships?:bool, sync_org_roles?:bool, sync_groups?:bool, user_type?:string, org_type?:string, group_type?:string, member_relation?:string, role_relation_prefix?:string, group_key?:'slug'|'id'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, enabled:bool, store_id:string|null, sync_memberships?:bool, sync_org_roles?:bool, sync_groups?:bool, user_type?:string, org_type?:string, group_type?:string, member_relation?:string, role_relation_prefix?:string, group_key?:'slug'|'id', last_synced_at?:int|null, last_error?:string|null, managed:array{total:int, by_kind:array<string,int>}, backfill?:array{object:mixed, id:string, kind:'backfill'|'incremental', status:'queued'|'running'|'completed'|'failed', store_id?:string|null, repair?:bool, subjects?:int, written:int, deleted:int, skipped:int, skipped_reasons?:array<string,int>, error?:string|null, requested_by?:string|null, started_at?:int|null, finished_at?:int|null, created_at:int}|null, last_run?:array{object:mixed, id:string, kind:'backfill'|'incremental', status:'queued'|'running'|'completed'|'failed', store_id?:string|null, repair?:bool, subjects?:int, written:int, deleted:int, skipped:int, skipped_reasons?:array<string,int>, error?:string|null, requested_by?:string|null, started_at?:int|null, finished_at?:int|null, created_at:int}|null}
      */
-    public function setSync(array $body = []): array
+    public function setSync(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/fga/sync', body: $body);
+        $r = $this->http->request('PUT', '/v1/fga/sync', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -22,11 +22,57 @@ final class OauthClients
      *
      * @param string $clientid the `clientId` path segment
      * @param string $grantid the `grantId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteGrant(string $clientid, string $grantid): array
+    public function deleteGrant(string $clientid, string $grantid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($clientid) . '/grants/' . rawurlencode($grantid));
+        $r = $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($clientid) . '/grants/' . rawurlencode($grantid), idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * The users who authorized one OAuth client, one cursor page at a time: user id, granted scopes, when they first authorized it and when it was last used. status is active (default), revoked or all. The path takes the oac_ id or the public client_id. The developer can read the same list at GET /oauth2/register/{client_id}/consents with the client's registration_access_token.
+     *
+     * `GET /v1/oauth_clients/{id}/consents` (scope `grants:read`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{status?:'active'|'revoked'|'all', limit?:int, starting_after?:string} $query
+     * @return array{object?:mixed, client_id?:string, data?:list<array{object?:mixed, user_id?:string, scopes?:list<string>, grant_id?:string|null, metadata?:array<string,mixed>, status?:'active'|'revoked', created_at?:int, last_used_at?:int|null, revoked_at?:int|null}>, has_more?:bool, next_cursor?:string|null}
+     */
+    public function listConsents(string $id, array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/oauth_clients/' . rawurlencode($id) . '/consents', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Every item of `listConsents` across all pages (cursor pagination), one at a time.
+     *
+     * @param string $id the `id` path segment
+     * @param array{status?:'active'|'revoked'|'all', limit?:int, starting_after?:string} $query
+     * @return \Generator<int,mixed>
+     */
+    public function listConsentsAll(string $id, array $query = []): \Generator
+    {
+        return \Atlas\Pagination::iterate(fn (array $q): array => $this->listConsents($id, $q), $query);
+    }
+
+    /**
+     * Revoke the consents users gave one OAuth client, and their refresh and access tokens, the same way revoking a single grant does: every active consent, or only the users in user_ids. The app receives grant.revoked per user and the instance gets the usual token revocation events. Audited. Idempotent.
+     *
+     * `POST /v1/oauth_clients/{id}/consents/revoke` (scope `grants:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{user_ids?:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object?:mixed, client_id?:string, consents_revoked?:int, tokens_revoked?:int}
+     */
+    public function revokeConsents(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/oauth_clients/' . rawurlencode($id) . '/consents/revoke', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -38,11 +84,12 @@ final class OauthClients
      *
      * @param string $id the `id` path segment
      * @param array{mode:'open'|'restricted'} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, client_id:string, mode:'open'|'restricted'}
      */
-    public function setOrganizationAccess(string $id, array $body): array
+    public function setOrganizationAccess(string $id, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/oauth_clients/' . rawurlencode($id) . '/organization_access', body: $body);
+        $r = $this->http->request('PUT', '/v1/oauth_clients/' . rawurlencode($id) . '/organization_access', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -101,10 +148,11 @@ final class OauthClients
      * @param string $id the `id` path segment
      * @param string $profileid the `profileId` path segment
      * @param array{name?:string, enabled?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function updateTokenExchangeProfile(string $id, string $profileid, array $body = []): void
+    public function updateTokenExchangeProfile(string $id, string $profileid, array $body = [], ?string $idempotencyKey = null): void
     {
-        $this->http->request('PATCH', '/v1/oauth_clients/' . rawurlencode($id) . '/token_exchange_profiles/' . rawurlencode($profileid), body: $body);
+        $this->http->request('PATCH', '/v1/oauth_clients/' . rawurlencode($id) . '/token_exchange_profiles/' . rawurlencode($profileid), body: $body, idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -114,10 +162,11 @@ final class OauthClients
      *
      * @param string $id the `id` path segment
      * @param string $profileid the `profileId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteTokenExchangeProfile(string $id, string $profileid): void
+    public function deleteTokenExchangeProfile(string $id, string $profileid, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id) . '/token_exchange_profiles/' . rawurlencode($profileid));
+        $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id) . '/token_exchange_profiles/' . rawurlencode($profileid), idempotencyKey: $idempotencyKey);
     }
 
     /**
@@ -127,23 +176,24 @@ final class OauthClients
      *
      * @param string $id the `id` path segment
      * @param string $issuerid the `issuerId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteTrustedIssuer(string $id, string $issuerid): array
+    public function deleteTrustedIssuer(string $id, string $issuerid, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id) . '/trusted_issuers/' . rawurlencode($issuerid));
+        $r = $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id) . '/trusted_issuers/' . rawurlencode($issuerid), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
 
     /**
-     * Per-day usage of one OAuth client for the last `days` days (1 to 90, default 30): token endpoint calls, access tokens issued, distinct active users, errors and rate-limited calls, with totals. The path takes the oac_ id or the public client_id. The developer can read the same report at GET /oauth2/register/{client_id}/usage with the client's registration_access_token.
+     * Per-day usage of one OAuth client for the last `days` days (1 to 90, default 30): token endpoint calls, access tokens issued, distinct active users, errors and rate-limited calls, with totals, a per-day errors_by_code breakdown and the latest error (code, endpoint, time). The path takes the oac_ id or the public client_id. The developer can read the same report at GET /oauth2/register/{client_id}/usage with the client's registration_access_token.
      *
      * `GET /v1/oauth_clients/{id}/usage` (scope `oauth_clients:read`)
      *
      * @param string $id the `id` path segment
      * @param array{days?:int, limit?:int, starting_after?:string} $query
-     * @return array{object?:mixed, client_id?:string, rate_limit_per_minute?:int|null, since?:string, until?:string, totals?:array{calls?:int, token_issuances?:int, errors?:int, rate_limited?:int}, data?:list<array{day?:string, calls?:int, token_issuances?:int, active_users?:int, errors?:int, rate_limited?:int}>}
+     * @return array{object?:mixed, client_id?:string, rate_limit_per_minute?:int|null, since?:string, until?:string, totals?:array{calls?:int, token_issuances?:int, errors?:int, rate_limited?:int}, latest_error?:array{code?:string, endpoint?:string, at?:int}|null, data?:list<array{day?:string, calls?:int, token_issuances?:int, active_users?:int, errors?:int, errors_by_code?:array<string,int>, rate_limited?:int}>}
      */
     public function listUsage(string $id, array $query = []): array
     {
@@ -174,11 +224,12 @@ final class OauthClients
      *
      * @param string $id the `id` path segment
      * @param array{url:string, enabled_events?:list<'user.updated'|'user.deleted'|'grant.revoked'|'user.deletion_scheduled'|'user.deletion_canceled'|'signing_key.staged'|'signing_key.activated'>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, url?:string, enabled_events?:list<string>, active?:bool, available_events?:list<string>, webhook_secret?:string, note?:string}
      */
-    public function setWebhook(string $id, array $body): array
+    public function setWebhook(string $id, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/oauth_clients/' . rawurlencode($id) . '/webhook', body: $body);
+        $r = $this->http->request('PUT', '/v1/oauth_clients/' . rawurlencode($id) . '/webhook', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -189,9 +240,10 @@ final class OauthClients
      * `DELETE /v1/oauth_clients/{id}/webhook` (scope `oauth_clients:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteWebhook(string $id): void
+    public function deleteWebhook(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id) . '/webhook');
+        $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id) . '/webhook', idempotencyKey: $idempotencyKey);
     }
 }

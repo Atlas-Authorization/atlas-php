@@ -64,9 +64,10 @@ final class ScimResourceTypes
      * `DELETE /v1/scim_resource_types/{id}` (scope `scim:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function delete(string $id): void
+    public function delete(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/scim_resource_types/' . rawurlencode($id));
+        $this->http->request('DELETE', '/v1/scim_resource_types/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
     }
 }

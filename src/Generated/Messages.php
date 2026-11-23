@@ -20,8 +20,8 @@ final class Messages
      *
      * `GET /v1/messages` (scope `messaging:read`)
      *
-     * @param array{channel?:'email'|'sms'|'whatsapp'|'voice'|'push', status?:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', template?:string, provider?:string, recipient?:string, since?:string, until?:string, limit?:int, starting_after?:string} $query
-     * @return array{object:mixed, data:list<array{object:mixed, id:string, channel:'email'|'sms'|'whatsapp'|'voice'|'push', template?:string|null, recipient_masked:string, recipient_hash:string, country?:string|null, status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', status_detail?:string|null, provider?:string|null, provider_message_id?:string|null, attempts:list<array{provider:string, ok:bool, error?:string}>, timeline:list<array{status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', at:int, detail?:string}>, created_at:int, updated_at:int}>, has_more:bool, next_cursor?:string|null}
+     * @param array{channel?:'email'|'sms'|'whatsapp'|'voice'|'push', status?:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', template?:string, category?:string, provider?:string, recipient?:string, since?:string, until?:string, limit?:int, starting_after?:string} $query
+     * @return array{object:mixed, data:list<array{object:mixed, id:string, channel:'email'|'sms'|'whatsapp'|'voice'|'push', template?:string|null, recipient_masked:string, category?:'auth'|'transactional', message_category?:string|null, tags?:array<string,string>, recipient_hash:string, country?:string|null, status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', status_detail?:string|null, provider?:string|null, provider_message_id?:string|null, attempts:list<array{provider:string, ok:bool, error?:string}>, timeline:list<array{status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', at:int, detail?:string}>, created_at:int, updated_at:int}>, has_more:bool, next_cursor?:string|null}
      */
     public function list(array $query = []): array
     {
@@ -33,12 +33,28 @@ final class Messages
     /**
      * Every item of `list` across all pages (cursor pagination), one at a time.
      *
-     * @param array{channel?:'email'|'sms'|'whatsapp'|'voice'|'push', status?:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', template?:string, provider?:string, recipient?:string, since?:string, until?:string, limit?:int, starting_after?:string} $query
+     * @param array{channel?:'email'|'sms'|'whatsapp'|'voice'|'push', status?:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', template?:string, category?:string, provider?:string, recipient?:string, since?:string, until?:string, limit?:int, starting_after?:string} $query
      * @return \Generator<int,mixed>
      */
     public function listAll(array $query = []): \Generator
     {
         return \Atlas\Pagination::iterate(fn (array $q): array => $this->list($q), $query);
+    }
+
+    /**
+     * Send a transactional email from your app through your own email provider and its failover. Give `to` (one address, or up to 10, each sent separately) and either `template` (the name or id of a template from POST /v1/notification_templates, with `data` variables) or `subject` with `html` and/or `text`, sent exactly as you wrote them. The message is recorded in the ledger (GET /v1/messages) with category `transactional`, your `category` and `tags`, and your provider's delivery callbacks fill in its timeline; bounces and complaints suppress the address like sign-in mail. An address on the suppression list is not sent to: the message is recorded with status `suppressed` and returned. Returns 422 when the instance has no email provider of its own (Atlas never sends your mail from its own sender). Accepts an Idempotency-Key. One address returns the message; several return a list.
+     *
+     * `POST /v1/messages` (scope `messaging:write`)
+     *
+     * @param array{to:string|list<string>, template?:string, data?:array<string,string>, subject?:string, html?:string, text?:string, tags?:array<string,string>, reply_to?:string|array{email:string, name?:string}, from?:string|array{email:string, name?:string}, headers?:array<string,string>, unsubscribe_url?:string, unsubscribe?:bool, category?:string, locale?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, channel:'email'|'sms'|'whatsapp'|'voice'|'push', template?:string|null, recipient_masked:string, category?:'auth'|'transactional', message_category?:string|null, tags?:array<string,string>, recipient_hash:string, country?:string|null, status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', status_detail?:string|null, provider?:string|null, provider_message_id?:string|null, attempts:list<array{provider:string, ok:bool, error?:string}>, timeline:list<array{status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', at:int, detail?:string}>, created_at:int, updated_at:int}|array{object:mixed, data:list<array{object:mixed, id:string, channel:'email'|'sms'|'whatsapp'|'voice'|'push', template?:string|null, recipient_masked:string, category?:'auth'|'transactional', message_category?:string|null, tags?:array<string,string>, recipient_hash:string, country?:string|null, status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', status_detail?:string|null, provider?:string|null, provider_message_id?:string|null, attempts:list<array{provider:string, ok:bool, error?:string}>, timeline:list<array{status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', at:int, detail?:string}>, created_at:int, updated_at:int}>, has_more:bool, next_cursor?:string|null}
+     */
+    public function create(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/messages', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
     }
 
     /**
@@ -62,7 +78,7 @@ final class Messages
      * `GET /v1/messages/{id}` (scope `messaging:read`)
      *
      * @param string $id the `id` path segment
-     * @return array{object:mixed, id:string, channel:'email'|'sms'|'whatsapp'|'voice'|'push', template?:string|null, recipient_masked:string, recipient_hash:string, country?:string|null, status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', status_detail?:string|null, provider?:string|null, provider_message_id?:string|null, attempts:list<array{provider:string, ok:bool, error?:string}>, timeline:list<array{status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', at:int, detail?:string}>, created_at:int, updated_at:int}
+     * @return array{object:mixed, id:string, channel:'email'|'sms'|'whatsapp'|'voice'|'push', template?:string|null, recipient_masked:string, category?:'auth'|'transactional', message_category?:string|null, tags?:array<string,string>, recipient_hash:string, country?:string|null, status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', status_detail?:string|null, provider?:string|null, provider_message_id?:string|null, attempts:list<array{provider:string, ok:bool, error?:string}>, timeline:list<array{status:'queued'|'sent'|'delivered'|'bounced'|'complained'|'failed'|'suppressed'|'blocked', at:int, detail?:string}>, created_at:int, updated_at:int}
      */
     public function get(string $id): array
     {

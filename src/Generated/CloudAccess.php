@@ -68,11 +68,12 @@ final class CloudAccess
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, config?:array<string,mixed>, assignment?:array<string,mixed>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, provider?:'aws'|'gcp'|'azure', name?:string, config?:array<string,mixed>, assignment?:array<string,mixed>|null, launch_url?:string|null, created_at?:int, updated_at?:int}
      */
-    public function updateTarget(string $id, array $body = []): array
+    public function updateTarget(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/cloud_access/targets/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/cloud_access/targets/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -83,10 +84,11 @@ final class CloudAccess
      * `DELETE /v1/cloud_access/targets/{id}` (scope `app_catalog:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function deleteTarget(string $id): void
+    public function deleteTarget(string $id, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/cloud_access/targets/' . rawurlencode($id));
+        $this->http->request('DELETE', '/v1/cloud_access/targets/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
     }
 
     /**

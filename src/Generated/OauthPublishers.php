@@ -68,11 +68,12 @@ final class OauthPublishers
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, shared_sector?:bool, skip_consent?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, name:string, domain:string, shared_sector:bool, skip_consent:bool, verified:bool, verified_at:int|null, last_checked_at:int|null, record_name:string, record_value:string, sector_identifier:string|null, client_ids:list<string>, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/oauth_publishers/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/oauth_publishers/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -83,11 +84,12 @@ final class OauthPublishers
      * `DELETE /v1/oauth_publishers/{id}` (scope `oauth_clients:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/oauth_publishers/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/oauth_publishers/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -100,11 +102,12 @@ final class OauthPublishers
      * @param string $id the `id` path segment
      * @param string $clientId the `client_id` path segment
      * @param array{allow_subject_change?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, name:string, domain:string, shared_sector:bool, skip_consent:bool, verified:bool, verified_at:int|null, last_checked_at:int|null, record_name:string, record_value:string, sector_identifier:string|null, client_ids:list<string>, created_at:int, updated_at:int}
      */
-    public function upsertClient(string $id, string $clientId, array $body = []): array
+    public function upsertClient(string $id, string $clientId, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/oauth_publishers/' . rawurlencode($id) . '/clients/' . rawurlencode($clientId), body: $body);
+        $r = $this->http->request('PUT', '/v1/oauth_publishers/' . rawurlencode($id) . '/clients/' . rawurlencode($clientId), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -116,11 +119,12 @@ final class OauthPublishers
      *
      * @param string $id the `id` path segment
      * @param string $clientId the `client_id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, name:string, domain:string, shared_sector:bool, skip_consent:bool, verified:bool, verified_at:int|null, last_checked_at:int|null, record_name:string, record_value:string, sector_identifier:string|null, client_ids:list<string>, created_at:int, updated_at:int}
      */
-    public function deleteClient(string $id, string $clientId): array
+    public function deleteClient(string $id, string $clientId, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/oauth_publishers/' . rawurlencode($id) . '/clients/' . rawurlencode($clientId));
+        $r = $this->http->request('DELETE', '/v1/oauth_publishers/' . rawurlencode($id) . '/clients/' . rawurlencode($clientId), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

@@ -22,11 +22,12 @@ final class PasskeyApi
      *
      * @param string $userid the `userId` path segment
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, deleted?:mixed}
      */
-    public function deleteUsersPasskey(string $userid, string $id): array
+    public function deleteUsersPasskey(string $userid, string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/passkey_api/users/' . rawurlencode($userid) . '/passkeys/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/passkey_api/users/' . rawurlencode($userid) . '/passkeys/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

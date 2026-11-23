@@ -16,6 +16,102 @@ final class Ssf
     }
 
     /**
+     * Add a subject to a stream (8.1.3.2). 200, empty body.
+     *
+     * `POST /v1/ssf/add_subject` (scope `pca:write`)
+     *
+     * @param array{stream_id:string, subject:array<string,mixed>, verified?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array<string,mixed>
+     */
+    public function addSubject(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/ssf/add_subject', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Read one stream (?stream_id) or all of the receiver's streams (8.1.1.2). Another receiver's stream is 404.
+     *
+     * `GET /v1/ssf/configuration` (scope `pca:read`)
+     *
+     * @param array{stream_id?:string} $query
+     * @return array<string,mixed>
+     */
+    public function getConfiguration(array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/ssf/configuration', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Create an event stream (OpenID SSF 1.0 8.1.1.1). Receiver-supplied members: events_requested, delivery, description. Poll delivery by default (the transmitter assigns the endpoint); push needs an https endpoint_url. One stream per receiver (a second is 409). The stream belongs to the creating API key.
+     *
+     * `POST /v1/ssf/configuration` (scope `pca:write`)
+     *
+     * @param array{iss?:string, aud?:string, events_supported?:list<string>, events_delivered?:list<string>, min_verification_interval?:int, events_requested?:list<string>, delivery?:array{method?:string, endpoint_url?:string}, description?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{stream_id?:string, iss?:string, aud?:string, events_supported?:list<string>, events_delivered?:list<string>, delivery?:array<string,mixed>}
+     */
+    public function configuration(array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/ssf/configuration', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Replace a stream (8.1.1.4): a missing receiver-supplied member is deleted.
+     *
+     * `PUT /v1/ssf/configuration` (scope `pca:write`)
+     *
+     * @param array{iss?:string, aud?:string, events_supported?:list<string>, events_delivered?:list<string>, min_verification_interval?:int, stream_id:string, events_requested?:list<string>, delivery?:array<string,mixed>, description?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array<string,mixed>
+     */
+    public function setConfiguration(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PUT', '/v1/ssf/configuration', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Update a stream (8.1.1.3): only the members present change; transmitter-supplied members must match; the delivery method cannot change.
+     *
+     * `PATCH /v1/ssf/configuration` (scope `pca:write`)
+     *
+     * @param array{iss?:string, aud?:string, events_supported?:list<string>, events_delivered?:list<string>, min_verification_interval?:int, stream_id:string, events_requested?:list<string>, delivery?:array<string,mixed>, description?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array<string,mixed>
+     */
+    public function updateConfiguration(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PATCH', '/v1/ssf/configuration', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Delete a stream (?stream_id, 8.1.1.5): 204.
+     *
+     * `DELETE /v1/ssf/configuration` (scope `pca:write`)
+     *
+     * @param array<string,mixed> $body
+     * @param array{stream_id?:string} $query
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array<string,mixed>
+     */
+    public function deleteConfiguration(array $body = [], array $query = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('DELETE', '/v1/ssf/configuration', query: $query, body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * Raise a Shared Signals event for one of your users: the CAEP and RISC events Atlas has no flow for (opt-in, opt-out-initiated, opt-out-cancelled, opt-out-effective, identifier-recycled, recovery-activated ...). It reaches every stream that asked for the event and whose subject rules allow the user. 202.
      *
      * `POST /v1/ssf/events` (scope `ssf:write`)
@@ -26,6 +122,36 @@ final class Ssf
     public function createEvent(array $body = [], ?string $idempotencyKey = null): void
     {
         $this->http->request('POST', '/v1/ssf/events', body: $body, idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * SSF transmitter configuration metadata (issuer, delivery methods, the five management endpoints).
+     *
+     * `GET /v1/ssf/metadata` (scope `pca:read`)
+     *
+     * @return array{issuer?:string, delivery_methods_supported?:list<string>, configuration_endpoint?:string, status_endpoint?:string, verification_endpoint?:string}
+     */
+    public function getMetadata(): array
+    {
+        $r = $this->http->request('GET', '/v1/ssf/metadata');
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Remove a subject from a stream (8.1.3.3). 204; an unknown subject is ignored.
+     *
+     * `POST /v1/ssf/remove_subject` (scope `pca:write`)
+     *
+     * @param array{stream_id:string, subject:array<string,mixed>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array<string,mixed>
+     */
+    public function removeSubject(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/ssf/remove_subject', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
     }
 
     /**
@@ -73,6 +199,23 @@ final class Ssf
     }
 
     /**
+     * Poll a stream (RFC 8936): acknowledge with ack, report invalid SETs with setErrs, receive up to maxEvents unacknowledged SETs.
+     *
+     * `POST /v1/ssf/streams/{streamId}/poll` (scope `pca:write`)
+     *
+     * @param string $streamid the `streamId` path segment
+     * @param array{ack?:list<string>, setErrs?:array<string,mixed>, maxEvents?:int, returnImmediately?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{sets?:array<string,mixed>, moreAvailable?:bool}
+     */
+    public function pollStreams(string $streamid, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/ssf/streams/' . rawurlencode($streamid) . '/poll', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * SSF 1.0 add subject: start (or, on an ALL stream, resume) events for one subject on a stream. Subject formats: iss_sub (this issuer), email, phone_number, opaque, account, did, uri. 200 with an empty body.
      *
      * `POST /v1/ssf/subjects/add` (scope `ssf:write`)
@@ -96,6 +239,22 @@ final class Ssf
     public function removeSubjects(array $body = [], ?string $idempotencyKey = null): void
     {
         $this->http->request('POST', '/v1/ssf/subjects/remove', body: $body, idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * Request a verification event (8.1.4.2): 204, and a signed SET carrying the optional state is delivered on the stream (pushed, or retained for polling).
+     *
+     * `POST /v1/ssf/verification` (scope `pca:write`)
+     *
+     * @param array{stream_id:string, state?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array<string,mixed>
+     */
+    public function verification(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/ssf/verification', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
     }
 
     /**

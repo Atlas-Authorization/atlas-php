@@ -22,7 +22,7 @@ final class OauthGrants
      *
      * @param array{grants:list<array{user_id:string, client_id:string, scopes:list<string>, refresh_tokens?:list<array{hash:string, hash_algorithm?:'sha256'|'bcrypt', prefix?:string, expires_at?:int}>}>} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object?:mixed, dry_run?:bool, imported?:int, failed?:int, refresh_tokens?:int, results?:list<array{index?:int, status?:'imported'|'failed', client_id?:string|null, user_id?:string|null, refresh_tokens?:int, message?:string}>, errors?:list<array{index?:int, message?:string}>, note?:string}
+     * @return array{object?:mixed, dry_run?:bool, imported?:int, failed?:int, refresh_tokens?:int, results?:list<array{index?:int, status?:'imported'|'failed', client_id?:string|null, user_id?:string|null, refresh_tokens?:int, message?:string}>, data?:list<array{index?:int, status?:'imported'|'failed'}>, errors?:list<array{index?:int, message?:string}>, note?:string}
      */
     public function import(array $body, ?string $idempotencyKey = null): array
     {

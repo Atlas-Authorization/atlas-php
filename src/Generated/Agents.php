@@ -69,11 +69,12 @@ final class Agents
      *
      * @param string $id the `id` path segment
      * @param array{sponsor_user_id?:string|null, backup_sponsor_user_id?:string|null, expires_at?:int|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, agent_id:string, sponsor_user_id?:string|null, backup_sponsor_user_id?:string|null, expires_at?:int|null, renewed_at?:int|null, renewal_count?:int}
      */
-    public function setLifecycle(string $id, array $body = []): array
+    public function setLifecycle(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/agents/' . rawurlencode($id) . '/lifecycle', body: $body);
+        $r = $this->http->request('PUT', '/v1/agents/' . rawurlencode($id) . '/lifecycle', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

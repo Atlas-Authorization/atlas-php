@@ -114,11 +114,12 @@ final class Authz
      * `DELETE /v1/authz/what_if/{id}` (scope `authz_decisions:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function deleteWhatIf(string $id): array
+    public function deleteWhatIf(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/authz/what_if/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/authz/what_if/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

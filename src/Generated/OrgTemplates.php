@@ -79,11 +79,12 @@ final class OrgTemplates
      *
      * @param string $id the `id` path segment
      * @param array{key?:string, name?:string, description?:string|null, roles?:list<array{key:string, name:string, description?:string|null, permissions?:list<string>}>, policy?:array<string,mixed>, role_set?:string|null, default_role?:string|null, max_allowed_memberships?:int|null, seat_warn_percent?:int|null, public_metadata?:array<string,mixed>, private_metadata?:array<string,mixed>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, key:string, name:string, description?:string|null, roles:list<array{key:string, name:string, description?:string|null, permissions?:list<string>}>, policy:array<string,mixed>, role_set?:string|null, default_role?:string|null, max_allowed_memberships?:int|null, seat_warn_percent?:int|null, public_metadata?:array<string,mixed>, private_metadata?:array<string,mixed>, created_at:int, updated_at:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/org_templates/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/org_templates/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -94,11 +95,12 @@ final class OrgTemplates
      * `DELETE /v1/org_templates/{id}` (scope `organizations:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/org_templates/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/org_templates/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

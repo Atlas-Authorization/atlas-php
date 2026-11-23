@@ -68,11 +68,12 @@ final class AdministrativeUnits
      *
      * @param string $id the `id` path segment
      * @param array{name?:string, description?:string|null, filter?:array{group?:string, email_domain?:string, org_role?:string, metadata?:array{key:string, equals:mixed}}|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, key:string, name:string, description?:string|null, organization_id?:string|null, kind:'static'|'dynamic', filter?:array{group?:string, email_domain?:string, org_role?:string, metadata?:array{key:string, equals:mixed}}|null, member_count?:int, created_at:int, updated_at?:int}
      */
-    public function update(string $id, array $body = []): array
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PATCH', '/v1/administrative_units/' . rawurlencode($id), body: $body);
+        $r = $this->http->request('PATCH', '/v1/administrative_units/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -83,11 +84,12 @@ final class AdministrativeUnits
      * `DELETE /v1/administrative_units/{id}` (scope `organizations:write`)
      *
      * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, id:string, deleted:mixed}
      */
-    public function delete(string $id): array
+    public function delete(string $id, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/administrative_units/' . rawurlencode($id));
+        $r = $this->http->request('DELETE', '/v1/administrative_units/' . rawurlencode($id), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

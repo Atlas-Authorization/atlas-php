@@ -16,6 +16,32 @@ final class Grants
     }
 
     /**
+     * List every grant in one cursor-paged list: users' consent grants and OpenID Grant Management grants, told apart by `type`. Filter by `user_id`, `client_id` (the public client id), `type` (consent, managed, all) and `status` (active by default; revoking a consent removes it, so revoked grants are managed ones).
+     *
+     * `GET /v1/grants` (scope `grants:read`)
+     *
+     * @param array{user_id?:string, client_id?:string, type?:'consent'|'managed'|'all', status?:'active'|'revoked'|'all', limit?:int, starting_after?:string} $query
+     * @return array{object:mixed, data:list<array{object:mixed, id:string, type:'consent'|'managed', client_id?:string|null, client_name?:string|null, user_id:string, organization_id?:string|null, status:'active'|'revoked', scopes:list<string>, resource?:string|null, authorization_details?:list<array<string,mixed>>|null, revision?:int, metadata:array<string,mixed>, created_at:int, updated_at?:int, last_used_at?:int|null, revoked_at?:int|null, revoked_by?:string|null}>, has_more:bool, next_cursor:string|null}
+     */
+    public function list(array $query = []): array
+    {
+        $r = $this->http->request('GET', '/v1/grants', query: $query);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Every item of `list` across all pages (cursor pagination), one at a time.
+     *
+     * @param array{user_id?:string, client_id?:string, type?:'consent'|'managed'|'all', status?:'active'|'revoked'|'all', limit?:int, starting_after?:string} $query
+     * @return \Generator<int,mixed>
+     */
+    public function listAll(array $query = []): \Generator
+    {
+        return \Atlas\Pagination::iterate(fn (array $q): array => $this->list($q), $query);
+    }
+
+    /**
      * Take an amount from one of a grant's counters, atomically. A denial is a 200 decision with `allowed: false`.
      *
      * `POST /v1/grants/{grantType}/{id}/consume` (scope `machines:write`)
@@ -88,6 +114,38 @@ final class Grants
     public function getUsage(string $granttype, string $id): array
     {
         $r = $this->http->request('GET', '/v1/grants/' . rawurlencode($granttype) . '/' . rawurlencode($id) . '/usage');
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Read one grant of either kind, with its metadata.
+     *
+     * `GET /v1/grants/{id}` (scope `grants:read`)
+     *
+     * @param string $id the `id` path segment
+     * @return array{object:mixed, id:string, type:'consent'|'managed', client_id?:string|null, client_name?:string|null, user_id:string, organization_id?:string|null, status:'active'|'revoked', scopes:list<string>, resource?:string|null, authorization_details?:list<array<string,mixed>>|null, revision?:int, metadata:array<string,mixed>, created_at:int, updated_at?:int, last_used_at?:int|null, revoked_at?:int|null, revoked_by?:string|null}
+     */
+    public function get(string $id): array
+    {
+        $r = $this->http->request('GET', '/v1/grants/' . rawurlencode($id));
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Change a grant's `metadata` (secret key only). The keys you send are merged into what is stored: a key sent as null is removed. The result is at most 4 KB of JSON. Audited; idempotent.
+     *
+     * `PATCH /v1/grants/{id}` (scope `grants:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{metadata?:array<string,mixed>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, type:'consent'|'managed', client_id?:string|null, client_name?:string|null, user_id:string, organization_id?:string|null, status:'active'|'revoked', scopes:list<string>, resource?:string|null, authorization_details?:list<array<string,mixed>>|null, revision?:int, metadata:array<string,mixed>, created_at:int, updated_at?:int, last_used_at?:int|null, revoked_at?:int|null, revoked_by?:string|null}
+     */
+    public function update(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PATCH', '/v1/grants/' . rawurlencode($id), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

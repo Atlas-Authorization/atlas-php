@@ -35,11 +35,12 @@ final class Region
      * `PUT /v1/region` (scope `instance:write`)
      *
      * @param array{pin?:bool, failover_region?:string|null, fapi_isolation?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, region:string|null, pinned:bool, serving_region:string|null, regions_enabled:bool, failover_region:string|null, fapi_isolation:string|null, effective_fapi_isolation:'off'|'enforce', regions:list<array{id:string, label:string, status:'active'|'standby'|'draining', fapi_origin?:string|null, bapi_origin?:string|null, failover_to?:string|null, self:bool}>}
      */
-    public function set(array $body = []): array
+    public function set(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/region', body: $body);
+        $r = $this->http->request('PUT', '/v1/region', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

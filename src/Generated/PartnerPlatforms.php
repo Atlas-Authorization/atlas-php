@@ -37,11 +37,12 @@ final class PartnerPlatforms
      *
      * @param string $partner the `partner` path segment
      * @param array{name?:string|null, platform_id?:string, enabled?:bool, jwks_url?:string, signature_header?:string, signature_scheme?:'t_kid_ed25519', tolerance_seconds?:int, allowed_sources?:list<string>, record_consents?:bool, serves_deployment?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, id?:string, partner?:string, name?:string, preset?:bool, platform_id?:string, enabled?:bool, jwks_url?:string, signature_header?:string, signature_scheme?:'t_kid_ed25519', tolerance_seconds?:int, allowed_sources?:list<string>, record_consents?:bool, receiver_url?:string, receiver_url_template?:string, serves_deployment?:bool, registration?:array{status?:'unregistered'|'registered', registered_at?:int|null}, token_set?:bool, token_prefix?:string|null, last_delivery_at?:int|null, last_delivery_error?:string|null, created_at?:int, updated_at?:int}
      */
-    public function upsert(string $partner, array $body = []): array
+    public function upsert(string $partner, array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/partner_platforms/' . rawurlencode($partner), body: $body);
+        $r = $this->http->request('PUT', '/v1/partner_platforms/' . rawurlencode($partner), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -52,11 +53,12 @@ final class PartnerPlatforms
      * `DELETE /v1/partner_platforms/{partner}` (scope `partner_links:write`)
      *
      * @param string $partner the `partner` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object?:mixed, partner?:string, deleted?:mixed}
      */
-    public function delete(string $partner): array
+    public function delete(string $partner, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('DELETE', '/v1/partner_platforms/' . rawurlencode($partner));
+        $r = $this->http->request('DELETE', '/v1/partner_platforms/' . rawurlencode($partner), idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

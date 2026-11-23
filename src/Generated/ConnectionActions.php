@@ -69,11 +69,12 @@ final class ConnectionActions
      * @param string $provider the `provider` path segment
      * @param string $name the `name` path segment
      * @param array{description:string, input?:array<string,mixed>, output?:array<string,mixed>, request:array{method:'GET'|'POST'|'PUT'|'PATCH'|'DELETE', base_url:string, path:string, query?:array<string,string>, body?:array<string,mixed>, headers?:array<string,string>}, response?:array{path?:string, ok_field?:string, error_field?:string}, scopes?:list<string>, paginate?:array<string,mixed>, mutating?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array{object:mixed, provider:string, name:string, description:string, input_schema:array<string,mixed>, output_schema?:array<string,mixed>|null, method?:string, mutating?:bool, scopes?:list<string>, source?:'first_party'|'custom'}
      */
-    public function upsert(string $provider, string $name, array $body): array
+    public function upsert(string $provider, string $name, array $body, ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/connection_actions/' . rawurlencode($provider) . '/' . rawurlencode($name), body: $body);
+        $r = $this->http->request('PUT', '/v1/connection_actions/' . rawurlencode($provider) . '/' . rawurlencode($name), body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
@@ -85,9 +86,10 @@ final class ConnectionActions
      *
      * @param string $provider the `provider` path segment
      * @param string $name the `name` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
-    public function delete(string $provider, string $name): void
+    public function delete(string $provider, string $name, ?string $idempotencyKey = null): void
     {
-        $this->http->request('DELETE', '/v1/connection_actions/' . rawurlencode($provider) . '/' . rawurlencode($name));
+        $this->http->request('DELETE', '/v1/connection_actions/' . rawurlencode($provider) . '/' . rawurlencode($name), idempotencyKey: $idempotencyKey);
     }
 }

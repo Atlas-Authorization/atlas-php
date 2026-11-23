@@ -35,11 +35,12 @@ final class AuditRetention
      * `PUT /v1/audit_retention` (scope `audit:write`)
      *
      * @param array{retention_days?:int|null, confirm_deletion?:bool} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      * @return array<string,mixed>
      */
-    public function set(array $body = []): array
+    public function set(array $body = [], ?string $idempotencyKey = null): array
     {
-        $r = $this->http->request('PUT', '/v1/audit_retention', body: $body);
+        $r = $this->http->request('PUT', '/v1/audit_retention', body: $body, idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }
