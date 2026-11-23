@@ -114,9 +114,11 @@ final class MirrorsTest extends TestCase
 
         $this->t += 20_000;
         $mock->pushException();
+        $mock->pushException(); // the single reset retry fails too
         self::assertTrue($list->isRevoked('sid_bad'), 'a failed poll keeps the last list');
         $this->t += 100_000;
         $mock->pushException();
+        $mock->pushException(); // the single reset retry fails too
         $list->isRevoked('x');
         self::assertTrue($list->unavailable());
     }

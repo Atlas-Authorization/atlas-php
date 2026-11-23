@@ -9,6 +9,8 @@ use Atlas\Exception\ConfigException;
 use Atlas\Exception\TransportException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Client\NetworkExceptionInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
@@ -256,6 +258,16 @@ final class Http
         return $this->statusDown;
     }
 
+    /** A connection failure before any response, on a request that is safe to replay; never a timeout. */
+    private static function resetRetryable(NetworkExceptionInterface $e, string $method, RequestInterface $request): bool
+    {
+        if (preg_match('/timed? ?out|timeout/i', $e->getMessage()) === 1) {
+            return false;
+        }
+
+        return in_array($method, ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE'], true) || $request->hasHeader('Idempotency-Key');
+    }
+
     /** One request attempt. @return mixed */
     private function send(
         string $method,
@@ -319,7 +331,17 @@ final class Http
         }
 
         try {
-            $response = $this->client->sendRequest($request);
+            try {
+                $response = $this->client->sendRequest($request);
+            } catch (NetworkExceptionInterface $e) {
+                if (!self::resetRetryable($e, $method, $request)) {
+                    throw $e;
+                }
+                // An idle pooled connection the server closed fails before any response: retry once.
+                usleep(random_int(25_000, 125_000));
+                $request->getBody()->isSeekable() && $request->getBody()->rewind();
+                $response = $this->client->sendRequest($request);
+            }
         } catch (ClientExceptionInterface $e) {
             throw new TransportException(
                 'Atlas API request failed before a response was received: ' . $e->getMessage(),
