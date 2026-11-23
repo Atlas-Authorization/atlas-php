@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Mirror;
 
+use Atlas\Auth\ApiKeyAssertion;
 use Atlas\Resources\ApiKeys;
 
 /**
@@ -22,6 +23,9 @@ final class KeyMirror
 {
     /** @var callable():int */
     private $now;
+
+    /** @var array<string,int> used assertion jtis (`keyId\njti` => expiry ms) when the store has no {@see AssertionJtiStore} */
+    private array $usedJtis = [];
 
     /**
      * @param array<string,list<string>>                                           $scopeImplications scope implications (`*` = every known scope)
@@ -61,7 +65,7 @@ final class KeyMirror
     public function mint(array $body, ?string $idempotencyKey = null): array
     {
         $created = $this->apiKeys->create($body, $idempotencyKey);
-        $this->store->put(self::row($created, self::hashSecret((string) $created['secret'])));
+        $this->store->put(self::row($created, self::rowHash($created)));
 
         return $created;
     }
@@ -90,16 +94,9 @@ final class KeyMirror
             return ['valid' => false];
         }
         $now = ($this->now)();
-        $stale = false;
-        if ($this->maxStalenessMs !== null) {
-            $last = $this->store->getLastSyncAt();
-            $behind = $last === null ? PHP_INT_MAX : $now - $last - $this->maxStalenessMs;
-            if ($behind > 0) {
-                if ($last === null || $behind > $this->serveStaleForMs) {
-                    return ['valid' => false, 'code' => 'stale', 'lastSyncAt' => $last];
-                }
-                $stale = true;
-            }
+        [$refusal, $stale] = $this->freshness($now);
+        if ($refusal !== null) {
+            return $refusal;
         }
         $hash = self::hashSecret($secret);
         $key = $this->store->getByHash($hash);
@@ -111,7 +108,7 @@ final class KeyMirror
                 $this->store->put($key);
             }
         }
-        if ($key === null || ($key['revoked_at'] ?? null) !== null || (($key['expires_at'] ?? null) !== null && $key['expires_at'] <= $now)) {
+        if ($key === null || ($key['enabled'] ?? null) === false || ($key['revoked_at'] ?? null) !== null || (($key['expires_at'] ?? null) !== null && $key['expires_at'] <= $now)) {
             return ['valid' => false];
         }
         // A key with allowed_ips needs the end caller's address; no address fails closed.
@@ -149,6 +146,129 @@ final class KeyMirror
         }
 
         return ['valid' => true, 'key' => $key, 'effective_scopes' => $effective]
+            + ($organization !== null ? ['organization' => $organization] : [])
+            + ($stale ? ['stale' => true] : []);
+    }
+
+    /**
+     * Verify a key-pair assertion (`ApiKeyAssertion::sign`) locally with the checks Atlas verify makes: the signature with the
+     * stored public key (`alg` must fit its type), `iss` = `kid`, `aud`, `iat`, `exp` and the lifetime cap, `nbf`, `scope` (a subset of
+     * the key's, narrows the result), revocation, expiry, the IP allowlist, then the single-use `jti`. A refusal carries the server's
+     * `code`; a key the mirror does not hold answers `valid: false` with none. The `jti` is claimed through the store's optional
+     * {@see AssertionJtiStore}, else in this process's memory, and only after every other check passed.
+     *
+     * @param array{requiredScopes?:list<string>,clientIp?:string} $options
+     *
+     * @return array<string,mixed> `{valid: true, key, effective_scopes, credential: 'key_pair', jti?, exp, ...}` or `{valid: false, code?, missing_scopes?}`
+     */
+    public function verifyAssertion(string $token, array $options = []): array
+    {
+        $nowMs = ($this->now)();
+        [$refusal, $stale] = $this->freshness($nowMs);
+        if ($refusal !== null) {
+            return $refusal;
+        }
+        $bad = static fn (string $code): array => ['valid' => false, 'code' => $code];
+        $parsed = ApiKeyAssertion::parse($token);
+        $kid = $parsed[0]['kid'] ?? null;
+        if ($parsed === null || !is_string($kid) || $kid === '') {
+            return $bad('invalid_assertion');
+        }
+        [$header, $claims, $input, $signature] = $parsed;
+        $key = $this->store->get($kid);
+        if ($key === null) {
+            return ['valid' => false];
+        }
+        if (($key['credential'] ?? 'secret') !== 'key_pair' || empty($key['public_key_pem'])) {
+            return $bad('invalid_assertion');
+        }
+        if (!is_string($header['alg'] ?? null) || !ApiKeyAssertion::verifySignature($header['alg'], $input, $signature, $key['public_key_pem']) || ($claims['iss'] ?? null) !== $kid) {
+            return $bad('invalid_assertion');
+        }
+        if (($key['enabled'] ?? null) === false) {
+            return $bad('invalid_assertion');
+        }
+        if (($key['revoked_at'] ?? null) !== null || (($key['expires_at'] ?? null) !== null && $key['expires_at'] <= $nowMs)) {
+            return ['valid' => false];
+        }
+        $nowS = intdiv($nowMs, 1000);
+        $aud = $claims['aud'] ?? null;
+        if (!(is_string($aud) ? $aud === ($key['audience'] ?? null) : is_array($aud) && in_array($key['audience'] ?? null, $aud, true))) {
+            return $bad('wrong_audience');
+        }
+        $num = static fn (mixed $v): bool => is_int($v) || is_float($v);
+        $iat = $claims['iat'] ?? null;
+        $exp = $claims['exp'] ?? null;
+        $nbf = $claims['nbf'] ?? null;
+        $jti = $claims['jti'] ?? null;
+        $scope = $claims['scope'] ?? null;
+        if (!$num($iat) || !$num($exp) || (array_key_exists('nbf', $claims) && !$num($nbf))
+            || (array_key_exists('jti', $claims) && (!is_string($jti) || $jti === ''))
+            || (array_key_exists('scope', $claims) && !is_string($scope))) {
+            return $bad('invalid_assertion');
+        }
+        if ($iat > $nowS + 60 || ($nbf !== null && $nbf > $nowS + 60)) {
+            return $bad('assertion_not_yet_valid');
+        }
+        if ($exp <= $nowS - 30) {
+            return $bad('assertion_expired');
+        }
+        if ($exp - $iat > min($key['max_token_lifetime_seconds'] ?? 3600, 86400)) {
+            return $bad('assertion_lifetime_too_long');
+        }
+        $ip = $options['clientIp'] ?? null;
+        if (!empty($key['allowed_ips'])) {
+            if ($ip === null || $ip === '') {
+                return $bad('client_ip_required');
+            }
+            if (!Cidr::contains($ip, $key['allowed_ips'])) {
+                return $bad('ip_not_allowed');
+            }
+        }
+        $effective = self::expand($key['scopes'] ?? [], $this->scopeImplications, $this->allowedScopes);
+        $organization = null;
+        if (($key['subject_type'] ?? null) === 'user' && !empty($key['organization_id'])) {
+            if ($this->membership === null) {
+                return $bad('membership_unresolved');
+            }
+            $organization = ($this->membership)((string) $key['subject_id'], (string) $key['organization_id']);
+            if ($organization === null) {
+                return ['valid' => false];
+            }
+            $effective = self::intersect($effective, $organization['permissions'] ?? []);
+        }
+        if (is_string($scope) && trim($scope) !== '') {
+            $asked = preg_split('/\s+/', trim($scope)) ?: [];
+            $notGranted = array_values(array_diff($asked, $effective));
+            if ($notGranted !== []) {
+                return ['valid' => false, 'code' => 'scope_not_granted', 'missing_scopes' => $notGranted];
+            }
+            $effective = array_values(array_intersect($effective, $asked));
+        }
+        $missing = array_values(array_diff($options['requiredScopes'] ?? [], $effective));
+        if ($missing !== []) {
+            return ['valid' => false, 'code' => 'insufficient_scope', 'missing_scopes' => $missing];
+        }
+        // Last, so a refused assertion never burns its jti.
+        if (is_string($jti)) {
+            $until = (int) ($exp * 1000);
+            if ($this->store instanceof AssertionJtiStore) {
+                $first = $this->store->claimAssertionJti($key['id'], $jti, $until);
+            } else {
+                $this->usedJtis = array_filter($this->usedJtis, static fn (int $t): bool => $t > $nowMs);
+                $id = $key['id'] . "\n" . $jti;
+                $first = !isset($this->usedJtis[$id]);
+                if ($first) {
+                    $this->usedJtis[$id] = $until;
+                }
+            }
+            if (!$first) {
+                return $bad('assertion_replayed');
+            }
+        }
+
+        return ['valid' => true, 'key' => $key, 'effective_scopes' => $effective, 'credential' => 'key_pair']
+            + (is_string($jti) ? ['jti' => $jti] : []) + ['exp' => (int) $exp]
             + ($organization !== null ? ['organization' => $organization] : [])
             + ($stale ? ['stale' => true] : []);
     }
@@ -221,7 +341,7 @@ final class KeyMirror
         }
         if ($type === 'api_key.updated' || $type === 'api_key.created') {
             $merged = $held;
-            foreach (['name', 'scopes', 'allowed_ips', 'expires_at'] as $field) {
+            foreach (['name', 'scopes', 'allowed_ips', 'expires_at', 'enabled'] as $field) {
                 if (array_key_exists($field, $data)) {
                     $merged[$field] = $data[$field];
                 }
@@ -254,7 +374,38 @@ final class KeyMirror
             'revoked_at' => $key['revoked_at'] ?? null,
             'organization_id' => $key['organization_id'] ?? null,
             'revoked_reason' => $key['revoked_reason'] ?? null,
+            // `enabled` false = refused like an unknown key. A key-pair row has no secret hash (`hash` is a placeholder
+            // nothing matches); its assertions verify against `public_key_pem`.
+            'enabled' => $key['enabled'] ?? null,
+            'credential' => $key['credential'] ?? 'secret',
+            'public_key_pem' => $key['public_key'] ?? null,
+            'audience' => $key['audience'] ?? null,
+            'max_token_lifetime_seconds' => $key['max_token_lifetime_seconds'] ?? null,
         ];
+    }
+
+    /** @param array<string,mixed> $key */
+    private static function rowHash(array $key): string
+    {
+        return is_string($key['secret'] ?? null) && $key['secret'] !== '' ? self::hashSecret($key['secret']) : 'key_pair:' . $key['id'];
+    }
+
+    /** @return array{0:array<string,mixed>|null,1:bool} a refusal when the mirror is too stale to answer, and whether the answer is served stale */
+    private function freshness(int $now): array
+    {
+        if ($this->maxStalenessMs === null) {
+            return [null, false];
+        }
+        $last = $this->store->getLastSyncAt();
+        $behind = $last === null ? PHP_INT_MAX : $now - $last - $this->maxStalenessMs;
+        if ($behind <= 0) {
+            return [null, false];
+        }
+        if ($last === null || $behind > $this->serveStaleForMs) {
+            return [['valid' => false, 'code' => 'stale', 'lastSyncAt' => $last], false];
+        }
+
+        return [null, true];
     }
 
     /**

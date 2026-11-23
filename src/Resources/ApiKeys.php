@@ -25,8 +25,10 @@ final class ApiKeys extends Resource
      * current-window `used`, `remaining`, `window_start` and `resets_at`).
      * `scopes` sets the key's scopes; `import` brings an existing key over by its hash (`secret_hash`,
      * `hash_algorithm` `sha256` or `sha256_hex`, `prefix`), the response has no `secret`, and the original secret verifies from then on.
+     * `credential` `key_pair` (with optional `audience` and `public_key`) mints a key with no shared secret: the response has `key_id`
+     * and, for a generated pair, `private_key` once (sign assertions with `Atlas\Auth\ApiKeyAssertion::sign`).
      *
-     * @param array{subject_type:string,subject_id:string,name?:string,claims?:array<string,mixed>,expires_at?:?int,scopes?:list<string>,import?:array{secret_hash:string,hash_algorithm?:'sha256'|'sha256_hex',prefix:string},limits?:?list<array{unit:string,amount:int,period:'request'|'second'|'minute'|'day'|'month'|'total'}>} $body
+     * @param array{subject_type:string,subject_id:string,name?:string,claims?:array<string,mixed>,expires_at?:?int,scopes?:list<string>,import?:array{secret_hash:string,hash_algorithm?:'sha256'|'sha256_hex',prefix:string},limits?:?list<array{unit:string,amount:int,period:'request'|'second'|'minute'|'day'|'month'|'total'}>,credential?:'secret'|'key_pair',audience?:string,public_key?:string} $body
      *
      * @return array<string,mixed>
      */
@@ -119,8 +121,23 @@ final class ApiKeys extends Resource
     }
 
     /**
-     * `POST /v1/api_keys/token` — mint a short-lived access JWT for an API key (secret, ttl_seconds,
-     * audience).
+     * Check a key-pair assertion (`Atlas\Auth\ApiKeyAssertion::sign`) instead of a secret.
+     *
+     * @return array<string,mixed> like `verify`, plus `credential`, `jti` and `exp` of the assertion; refusals carry a `code`
+     */
+    public function verifyAssertion(string $token, ?array $requiredScopes = null): array
+    {
+        $body = ['token' => $token];
+        if ($requiredScopes !== null) {
+            $body['required_scopes'] = $requiredScopes;
+        }
+
+        return $this->http->request('POST', '/v1/api_keys/verify', body: $body);
+    }
+
+    /**
+     * `POST /v1/api_keys/token` — mint a short-lived access JWT for an API key (secret or key-pair `assertion`,
+     * ttl_seconds, audience).
      *
      * @param array<string,mixed> $body
      *

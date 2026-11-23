@@ -2,6 +2,12 @@
 
 Versions are published from git tags.
 
+## 0.25.0 — 2026-11-22
+
+### Added
+
+- **Key-pair API keys.** `Atlas\Auth\ApiKeyAssertion::sign($privateKeyPem, $keyId, $audience, $ttlSeconds = 300, $scope = null, $jti = null)` signs the short-lived JWT a key-pair key presents (ES256 for P-256, EdDSA for Ed25519 with ext-sodium). `apiKeys->create` accepts `credential`, `audience` and `public_key`, `apiKeys->verifyAssertion($token)` verifies an assertion, and `apiKeys->mintToken(['assertion' => ...])` exchanges one. `KeyMirror::verifyAssertion` verifies an assertion locally with the server's refusal codes; the mirrored row carries `credential`, `public_key_pem`, `audience`, `max_token_lifetime_seconds` and `enabled` (a disabled key is refused by `verify` and `verifyAssertion`), and `applyWebhook` copies `enabled`. A store may implement `AssertionJtiStore` to share used ids between processes.
+
 ## 0.24.0 — 2026-11-14
 
 ### Added

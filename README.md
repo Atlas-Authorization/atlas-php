@@ -384,6 +384,26 @@ $atlas->userHooks->updateBeforeUserCreate([
 $atlas->userHooks->testBeforeUserCreate(); // ['ok' => true, 'answer' => [...]]
 ```
 
+### Key-pair API keys
+
+A key-pair key has no shared secret: Atlas returns a PKCS#8 private key once and keeps only the public key. Sign a short-lived assertion and present it where you would present a secret.
+
+```php
+use Atlas\Auth\ApiKeyAssertion;
+
+$key = $atlas->apiKeys->create([
+    'subject_type' => 'user', 'subject_id' => 'user_123',
+    'credential' => 'key_pair', 'audience' => 'https://api.example.com',
+]);
+$assertion = ApiKeyAssertion::sign($key['private_key'], $key['key_id'], 'https://api.example.com');
+$atlas->apiKeys->verifyAssertion($assertion);
+$atlas->apiKeys->mintToken(['assertion' => $assertion]);
+```
+
+ES256 (P-256) and EdDSA (Ed25519, needs ext-sodium) keys are supported.
+
+`$mirror->verifyAssertion($assertion)` checks an assertion against the mirrored public key with no network call, with the same refusal codes Atlas answers.
+
 ### API key spend caps
 
 Give an end-user API key caps in your own units, then meter what your API consumed against them. A refused debit records nothing and is not an exception, so you enforce it inside your own transaction:
