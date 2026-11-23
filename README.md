@@ -511,6 +511,8 @@ Anything not wrapped can be called directly with `$atlas->http->request('GET', '
 
 ### Retries, outages and telemetry
 
+Every client retries once, after a short jittered delay, when a request fails with a connection reset before any response (an idle pooled connection the server closed). That covers GET, HEAD, OPTIONS, PUT, DELETE and any call with an idempotency key; timeouts and other writes are never replayed.
+
 Opt in to status-aware retries. A `429` or `503` is retried with `Retry-After` honoured (or exponential backoff with jitter), only for
 requests that are safe to repeat: reads, PUT, DELETE, and writes sent with an idempotency key. While the service status reports an
 outage the client fails fast instead of piling retries on top:

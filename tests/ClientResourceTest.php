@@ -184,6 +184,7 @@ final class ClientResourceTest extends TestCase
     public function testTransportFailureBecomesTransportException(): void
     {
         $this->mock->pushException('dns failure');
+        $this->mock->pushException('dns failure'); // the single reset retry fails too
 
         $this->expectException(TransportException::class);
         $this->atlas->users->get('user_1');
@@ -192,5 +193,37 @@ final class ClientResourceTest extends TestCase
     public function testDefaultBaseUrlConstant(): void
     {
         $this->assertSame('https://api.atlasauth.net', Http::DEFAULT_API_URL);
+    }
+
+    public function testConnectionResetIsRetriedOnceForReadsAndKeyedWrites(): void
+    {
+        $this->mock->pushException('connection reset');
+        $this->mock->push(200, ['id' => 'user_1']);
+        $this->assertSame('user_1', $this->atlas->users->get('user_1')['id']);
+        $this->assertSame(2, $this->mock->requestCount());
+
+        $this->mock->pushException('connection reset');
+        $this->mock->push(200, ['id' => 'user_2']);
+        $this->atlas->users->create(['email_address' => ['a@example.com']], 'idem-1');
+        $this->assertSame(4, $this->mock->requestCount());
+    }
+
+    public function testConnectionResetIsNotRetriedForPlainWritesOrTimeouts(): void
+    {
+        $this->mock->pushException('connection reset');
+        try {
+            $this->atlas->users->create(['email_address' => ['a@example.com']]);
+            $this->fail('a plain write must not be replayed');
+        } catch (TransportException) {
+            $this->assertSame(1, $this->mock->requestCount());
+        }
+
+        $this->mock->pushException('cURL error 28: Operation timed out');
+        try {
+            $this->atlas->users->get('user_1');
+            $this->fail('a timeout must not be replayed');
+        } catch (TransportException) {
+            $this->assertSame(2, $this->mock->requestCount());
+        }
     }
 }
