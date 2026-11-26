@@ -16,6 +16,22 @@ final class Billing
     }
 
     /**
+     * Read a Stripe Checkout Session back with your own key and record the purchase, for an instance that syncs without a Stripe webhook. The session's reference must name this instance; any other session is a 404. Idempotent. `status` is `synced`, or `pending` when Stripe has not completed the session yet.
+     *
+     * `POST /v1/billing/checkout/sync` (scope `billing:write`)
+     *
+     * @param array{session_id:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, status:'synced'|'pending', subscription:array<string,mixed>|null}
+     */
+    public function syncCheckout(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/billing/checkout/sync', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * List the connected accounts, newest first.
      *
      * `GET /v1/billing/connect/accounts` (scope `billing:read`)
@@ -363,6 +379,22 @@ final class Billing
     }
 
     /**
+     * Forward a Stripe event from your own webhook endpoint, for an account that cannot add an Atlas endpoint. Post `{ id: "evt_…" }` or the whole event; only the id is read. Atlas fetches the event from Stripe with your own key and processes THAT object, never the posted body, and ignores anything that is not one of this instance's subscriptions. Safe to repeat. `outcome` is `processed` or `ignored`; both are 200.
+     *
+     * `POST /v1/billing/stripe/events` (scope `billing:write`)
+     *
+     * @param array{id:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, type:string|null, outcome:'processed'|'ignored'}
+     */
+    public function createStripeEvent(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/billing/stripe/events', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * Move a trialing subscription's trial end later, on the payment provider (Stripe today; others answer 422 `unsupported`). Send exactly one of `days` (added to the current trial end) or `trial_end` (an absolute time, epoch ms or ISO). A trial can be extended by at most 365 days in total. Only a `trialing` subscription qualifies (409 otherwise). `idempotency_key` is required: a retry returns the first extension. Emits billing_trial.extended.
      *
      * `POST /v1/billing/subscriptions/{id}/extend_trial` (scope `billing:write`)
@@ -375,6 +407,22 @@ final class Billing
     public function extendTrialSubscriptions(string $id, array $body, ?string $idempotencyKey = null): array
     {
         $r = $this->http->request('POST', '/v1/billing/subscriptions/' . rawurlencode($id) . '/extend_trial', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Re-read one subscription from Stripe now, with your own key, and apply what Stripe reports (status, plan, period, cancellation). For an instance that syncs without a Stripe webhook, or to refresh one subscription on demand. A subscription on another account, or not Stripe, is refused.
+     *
+     * `POST /v1/billing/subscriptions/{id}/sync` (scope `billing:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, id:string, subject_type:'user'|'org', subject_id:string, plan_id:string, status:string, stripe_subscription_id:string|null, stripe_customer_id:string|null, current_period_end:int|null, provider?:string, cancel_at_period_end?:bool, entitlements?:array{features?:list<string>, limits?:array<string,int|float>}|null, subscriptions?:list<array<string,mixed>>, created_at:int, updated_at:int}
+     */
+    public function syncSubscriptions(string $id, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/billing/subscriptions/' . rawurlencode($id) . '/sync', idempotencyKey: $idempotencyKey);
 
         return is_array($r) ? $r : [];
     }

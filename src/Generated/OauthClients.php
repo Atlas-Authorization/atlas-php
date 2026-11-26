@@ -208,7 +208,7 @@ final class OauthClients
      * `GET /v1/oauth_clients/{id}/webhook` (scope `oauth_clients:read`)
      *
      * @param string $id the `id` path segment
-     * @return array{object?:mixed, id?:string, url?:string, enabled_events?:list<string>, active?:bool, available_events?:list<string>, webhook_secret?:string, note?:string}
+     * @return array{object?:mixed, id?:string, url?:string, enabled_events?:list<string>, active?:bool, available_events?:list<string>, created_at?:int, last_delivery_at?:int|null, previous_secret_expires_at?:int, webhook_secret?:string, note?:string}
      */
     public function getWebhook(string $id): array
     {
@@ -218,14 +218,14 @@ final class OauthClients
     }
 
     /**
-     * Create or update the client's event webhook: a signed, retried endpoint that receives events about users who granted the client access, never the instance's own stream. user.updated carries only what the user's granted scopes allow (email with the email scope, name and picture with profile). enabled_events may also name your own types declared with PUT /v1/instance/app_event_types; those reach the client only for users who granted the type's required scope. The signing secret is returned once, on create (201). Audited.
+     * Create or update the client's event webhook: a signed, retried endpoint that receives events about users who granted the client access, never the instance's own stream. user.updated carries only what the user's granted scopes allow (email with the email scope, name and picture with profile). enabled_events may also name your own types declared with PUT /v1/instance/app_event_types; those reach the client only for users who granted the type's required scope. The signing secret is returned once, on create (201). Every delivery carries a top-level `creator` ({ id }, the user as this client sees them: exactly the `sub` of the tokens issued to it, pairwise or external_id included; null when the event has no acting user). Audited.
      *
      * `PUT /v1/oauth_clients/{id}/webhook` (scope `oauth_clients:write`)
      *
      * @param string $id the `id` path segment
      * @param array{url:string, enabled_events?:list<'user.updated'|'user.deleted'|'grant.revoked'|'user.deletion_scheduled'|'user.deletion_canceled'|'signing_key.staged'|'signing_key.activated'>} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object?:mixed, id?:string, url?:string, enabled_events?:list<string>, active?:bool, available_events?:list<string>, webhook_secret?:string, note?:string}
+     * @return array{object?:mixed, id?:string, url?:string, enabled_events?:list<string>, active?:bool, available_events?:list<string>, created_at?:int, last_delivery_at?:int|null, previous_secret_expires_at?:int, webhook_secret?:string, note?:string}
      */
     public function setWebhook(string $id, array $body, ?string $idempotencyKey = null): array
     {
@@ -245,5 +245,39 @@ final class OauthClients
     public function deleteWebhook(string $id, ?string $idempotencyKey = null): void
     {
         $this->http->request('DELETE', '/v1/oauth_clients/' . rawurlencode($id) . '/webhook', idempotencyKey: $idempotencyKey);
+    }
+
+    /**
+     * Rotate the client webhook's signing secret. The new secret is returned exactly once. The previous secret keeps signing for `overlap_seconds` (default 86400 = 24 hours, 0 to 604800 = 7 days; 0 stops it now): during the overlap every delivery's signature header carries one entry per secret, the new one first, so a receiver holding either secret verifies it. `previous_secret_expires_at` says when the old one stops (epoch ms), or null. 404 when the client has no webhook. An operator token needs a recent MFA. Audited.
+     *
+     * `POST /v1/oauth_clients/{id}/webhook/rotate_secret` (scope `oauth_clients:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{overlap_seconds?:int} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, webhook_secret:string, overlap_seconds:int, previous_secret_expires_at:int|null, note?:string}
+     */
+    public function rotateSecretWebhook(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/oauth_clients/' . rawurlencode($id) . '/webhook/rotate_secret', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Send ONE signed `webhook.test` delivery to this client's webhook URL (and to nobody else), in the same envelope as a real delivery, and return the attempt: the HTTP status your endpoint answered with, how long it took and the error, if any. With `user_id` (the Atlas user id, or the `sub` this client receives) the delivery's `creator` is that user (404 for an unknown user; no grant is needed); otherwise `creator` is null. Not retried. Audited.
+     *
+     * `POST /v1/oauth_clients/{id}/webhook/test` (scope `oauth_clients:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param array{user_id?:string} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object?:mixed, ok?:bool, delivery_id?:string, event_id?:string, event_type?:mixed, url?:string, status?:'success'|'failed', status_code?:int|null, http_status?:int|null, duration_ms?:int|null, latency_ms?:int|null, response_snippet?:string|null, error?:string|null, error_kind?:string|null, signature_header_sent?:string|null, will_retry?:bool}
+     */
+    public function testWebhook(string $id, array $body = [], ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/oauth_clients/' . rawurlencode($id) . '/webhook/test', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
     }
 }

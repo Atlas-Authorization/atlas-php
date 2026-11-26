@@ -8,7 +8,7 @@ namespace Atlas;
 final class Constants
 {
     /** This SDK's version (also the OpenTelemetry instrumentation scope version). */
-    public const SDK_VERSION = '0.25.1';
+    public const SDK_VERSION = '0.26.0';
 
     /**
      * Captcha providers (`auth_config.captcha.provider`). Captcha is bring-your-own-keys:

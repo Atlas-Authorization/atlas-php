@@ -503,6 +503,41 @@ final class Organizations
     }
 
     /**
+     * Seat a person by the id your own system gives them (`external_id`), before they have signed in. Same body as PUT .../memberships/{userId}. When a user with that external_id exists this is that create-or-update (201 when it adds the member, 200 when it changes it, `status: "active"`). When none exists the seat waits: 202 with `status: "pending"`, and it is attached (with `organizationMembership.created`) when a user with that external_id is created, imported or given the id. `user.created` then carries the user's `organization_memberships`. `{id}` is the organization's Atlas id or its own external_id. Repeating the call replaces the waiting seat.
+     *
+     * `PUT /v1/organizations/{id}/memberships/by_external_id/{userExternalId}` (scope `organizations:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param string $userexternalid the `userExternalId` path segment
+     * @param array{role:string, role_source?:string, public_metadata?:array<string,mixed>, private_metadata?:array<string,mixed>, permissions?:list<string>, allowed_sign_in_methods?:list<string>|null, expires_at?:string|null} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:'organization_membership'|'pending_organization_membership', id?:string, organization_id?:string, user_id?:string, role?:string, role_source?:string|null, scope?:array<string,mixed>|null, expires_at?:int|null, created_at?:int, status:'active'|'pending', user_external_id?:string, unchanged?:bool}
+     */
+    public function upsertMembershipsByExternalId(string $id, string $userexternalid, array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('PUT', '/v1/organizations/' . rawurlencode($id) . '/memberships/by_external_id/' . rawurlencode($userexternalid), body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * Cancel a seat that is still waiting for its person. 404 when none is waiting (a seat that was already attached is removed by the user id).
+     *
+     * `DELETE /v1/organizations/{id}/memberships/by_external_id/{userExternalId}` (scope `organizations:write`)
+     *
+     * @param string $id the `id` path segment
+     * @param string $userexternalid the `userExternalId` path segment
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, organization_id:string, user_external_id:string, deleted:mixed}
+     */
+    public function deleteMembershipsByExternalId(string $id, string $userexternalid, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('DELETE', '/v1/organizations/' . rawurlencode($id) . '/memberships/by_external_id/' . rawurlencode($userexternalid), idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * Read one membership: role, `role_source`, scope, in the same shape as a list item. 404 when the user is not a member.
      *
      * `GET /v1/organizations/{id}/memberships/{userId}` (scope `organizations:read`)

@@ -169,7 +169,7 @@ final class Instance
      *
      * @param array{enabled?:bool, script_url?:string, script_id?:string|null, site_id?:string|null, site?:array{provider:string, host:string}|null, blocking_mode?:string|null, extra_origins?:list<string>, settings_link?:array{label:string, labels?:array<string,string>, preset?:string|null, attributes?:array<string,string>}|null, culture?:string|null, host_aliases?:list<string>|null} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object:mixed, enabled:bool, script_url?:string, script_id?:string|null, site_id?:string|null, site?:array<string,mixed>|null, blocking_mode?:string|null, extra_origins?:list<string>, settings_link?:array{label:string, labels:array<string,string>, rendered_labels:array<string,string>, preset:string|null, attributes:array<string,string>, rendered_attributes:array<string,string>}|null, culture?:'page'|'browser', declared_cookies?:list<array{name:string|null, pattern:string|null, store:'cookie'|'localStorage'|'sessionStorage'|'indexedDB', domain:string, path:string|null, lifetime_seconds:int|null, lifetime:string, lifetime_range?:array{setting:string, min_seconds:int, max_seconds:int, default_seconds:int}, http_only:bool, category:mixed, purpose:string, purposes:array<string,string>, written_when:string, set_by:'atlas_frontend_api'|'atlas_sdk'}>, frontend_mode?:array{type:'default'|'custom_domain'|'path_mount', host:string, base_path:string|null}, source?:'manual'|'integration'|'none', source_integration?:string|null, host_aliases?:list<string>, warnings:list<array{severity:'error'|'warning'|'info', code:string, message:string, fix:string, fix_call?:array{method:'POST'|'PUT'|'PATCH', path:string, body?:array<string,mixed>}, autofix_body?:array<string,mixed>, safe_to_autofix?:bool, subject?:array<string,string>, group?:'security_posture', suppressed?:mixed, suppressed_reason?:string, acknowledged?:array{reason:string, by:string|null, at:int, expires_at:int|null}}>}
+     * @return array{object:mixed, enabled:bool, script_url?:string, script_id?:string|null, site_id?:string|null, site?:array<string,mixed>|null, blocking_mode?:string|null, extra_origins?:list<string>, settings_link?:array{label:string, labels:array<string,string>, rendered_labels:array<string,string>, preset:string|null, attributes:array<string,string>, rendered_attributes:array<string,string>}|null, culture?:'page'|'browser', declared_cookies?:list<array{name:string|null, pattern:string|null, store:'cookie'|'localStorage'|'sessionStorage'|'indexedDB', domain:string, path:string|null, lifetime_seconds:int|null, lifetime:string, lifetime_range?:array{setting:string, min_seconds:int, max_seconds:int, default_seconds:int}, http_only:bool, category:mixed, purpose:string, purposes:array<string,string>, written_when:string, set_by:'atlas_frontend_api'|'atlas_sdk'}>, frontend_mode?:array{type:'default'|'custom_domain'|'path_mount', host:string, base_path:string|null}, cookie_suffix?:string|null, source?:'manual'|'integration'|'none', source_integration?:string|null, host_aliases?:list<string>, warnings:list<array{severity:'error'|'warning'|'info', code:string, message:string, fix:string, fix_call?:array{method:'POST'|'PUT'|'PATCH', path:string, body?:array<string,mixed>}, autofix_body?:array<string,mixed>, safe_to_autofix?:bool, subject?:array<string,string>, group?:'security_posture', suppressed?:mixed, suppressed_reason?:string, acknowledged?:array{reason:string, by:string|null, at:int, expires_at:int|null}}>}
      */
     public function updateCookieConsent(array $body = [], ?string $idempotencyKey = null): array
     {
@@ -513,6 +513,22 @@ final class Instance
     }
 
     /**
+     * Limit a hosted sign-in or sign-up page to some sign-in methods. Send the methods (`password`, `email_code`, `email_link`, `phone_code`, `passkey`, `username` counts as `password`, a family such as `oauth` or `enterprise_sso`, or one provider such as `oauth_google`). The answer carries `allowed_methods` and `allowed_methods_sig`: add both to the page URL (`query` is them ready to append). The page then offers only those methods, and every sign-in or sign-up attempt the page (or a client sending the `token` in `X-Atlas-Allowed-Methods`) starts is bound to the list, and a session is refused with 403 SIGN_IN_METHOD_NOT_ALLOWED for any method outside it, whichever way the attempt completes (passkey, a ticket exchanged by your app, a native code). A list that is missing its signature or was edited is refused with 400. It narrows what the instance and the OAuth client already allow; it never adds a method.
+     *
+     * `POST /v1/instance/hosted_method_filters` (scope `instance:read`)
+     *
+     * @param array{methods:list<string>} $body
+     * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
+     * @return array{object:mixed, methods:list<string>, allowed_methods:string, allowed_methods_sig:string, token:string, query:string}
+     */
+    public function createHostedMethodFilter(array $body, ?string $idempotencyKey = null): array
+    {
+        $r = $this->http->request('POST', '/v1/instance/hosted_method_filters', body: $body, idempotencyKey: $idempotencyKey);
+
+        return is_array($r) ? $r : [];
+    }
+
+    /**
      * The instance's staff impersonation policy: require_reason, reason_codes, max_duration_seconds, require_approval, read_only_default and notify_user.
      *
      * `GET /v1/instance/impersonation_policy` (scope `instance:read`)
@@ -602,7 +618,7 @@ final class Instance
      * `GET /v1/instance/integrations/forwarding/{destination}` (scope `webhooks:read`)
      *
      * @param string $destination the `destination` path segment
-     * @return array{object?:mixed, forwarding?:'lucida'|'hermetica'|'seolyticize'|'webhook', event?:mixed, id?:string, active?:bool}
+     * @return array{object?:mixed, forwarding?:'lucida'|'hermetica'|'seolyticize'|'webhook'|'watchtower', event?:string, events?:list<string>, id?:string, active?:bool}
      */
     public function getIntegrationsForwarding(string $destination): array
     {
@@ -616,12 +632,12 @@ final class Instance
      *
      * `PUT /v1/instance/integrations/forwarding/{destination}` (scope `webhooks:write`)
      *
-     * Creates or updates a managed webhook endpoint for the destination, so deliveries, retries, health and alerts work as for any endpoint. `destination` is `lucida`, `hermetica`, `seolyticize` or `webhook`. Send `server_key` (Lucida project key, Hermetica secret key, Seolyticize server key with `site_key`), or `url` for `webhook`. The key is stored encrypted and never returned; on an update an omitted key keeps the stored one. Lucida records the sign-up as `signed_up`; Seolyticize records it as `Signup` with the relying party's `atlas_visit` token (or, without one, the browser ip and user agent), see the sign-up forwarding guide; Hermetica upserts the person as a contact. `include_pii` (default false) controls whether the email, name, ip and user agent reach an analytics destination. A `webhook` destination returns its signing `secret` once, on create. A repeat call updates the same endpoint.
+     * Creates or updates a managed webhook endpoint for the destination, so deliveries, retries, health and alerts work as for any endpoint. `destination` is `lucida`, `hermetica`, `seolyticize`, `webhook` or `watchtower`. `watchtower` forwards security events instead of sign-ups (`user.locked`, `user.banned`, `user.contained`, `risky_user.updated`, `session.impersonation_started`, `mfa_factor.quarantined`): send `endpoint` (your ingest host) and `server_key` (an ingestion key with the `ingest:logs` scope). Send `server_key` (Lucida project key, Hermetica secret key, Seolyticize server key with `site_key`), or `url` for `webhook`. The key is stored encrypted and never returned; on an update an omitted key keeps the stored one. Lucida records the sign-up as `signed_up`; Seolyticize records it as `Signup` with the relying party's `atlas_visit` token (or, without one, the browser ip and user agent), see the sign-up forwarding guide; Hermetica upserts the person as a contact. `include_pii` (default false) controls whether the email, name, ip and user agent reach an analytics destination. A `webhook` destination returns its signing `secret` once, on create. A repeat call updates the same endpoint.
      *
      * @param string $destination the `destination` path segment
-     * @param array{server_key?:string, site_key?:string, site_url?:string, host?:string, conversion_event?:'user.created'|'user.attributed', include_pii?:bool, url?:string, active?:bool} $body
+     * @param array{server_key?:string, site_key?:string, site_url?:string, host?:string, conversion_event?:'user.created'|'user.attributed', include_pii?:bool, url?:string, endpoint?:string, active?:bool} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object?:mixed, forwarding?:'lucida'|'hermetica'|'seolyticize'|'webhook', event?:mixed, created?:bool, id?:string, secret?:string}
+     * @return array{object?:mixed, forwarding?:'lucida'|'hermetica'|'seolyticize'|'webhook'|'watchtower', event?:string, events?:list<string>, created?:bool, id?:string, secret?:string}
      */
     public function upsertIntegrationsForwarding(string $destination, array $body = [], ?string $idempotencyKey = null): array
     {
@@ -648,10 +664,10 @@ final class Instance
      *
      * `GET /v1/instance/integrations/health` (scope `instance:read`)
      *
-     * Lists the webhook endpoints (with `managed_by` and the destination type, including sign-up forwarding), the connected identity integrations (their events receiver and last token mint) and the privacy orchestrator. `state` is `failing` or `disabled` when deliveries are failing, `no_deliveries` before the first one. `unhealthy_count` counts the failing and disabled rows. The same delivery health data as GET /v1/delivery_health, joined to what each receiver is.
+     * Lists the webhook endpoints (with `managed_by` and the destination type, including sign-up forwarding), the connected identity integrations (their events receiver and last token mint) and the privacy orchestrator. `state` is `failing` or `disabled` when deliveries are failing, `no_deliveries` before the first one. `unhealthy_count` counts the failing and disabled rows. The same delivery health data as GET /v1/delivery_health, joined to what each receiver is. `duplicate_delivery_paths` lists the destinations that receive each sign-up twice, through sign-up forwarding and through a webhook endpoint aimed at the same place, or an integration whose events_url is also the address of forwarding or a webhook endpoint (each such row also carries `duplicate_delivery_path`); preflight reports the same as `duplicate_delivery_path`.
      *
      * @param array{limit?:int, starting_after?:string} $query
-     * @return array{object:mixed, data:list<array{kind:'webhook_endpoint'|'integration'|'privacy_orchestrator', id:string|null, name?:string|null, url?:string|null, managed_by?:string|null, destination?:string, state:'healthy'|'failing'|'disabled'|'inactive'|'no_deliveries'|'unknown', last_success_at?:int|null, last_failure?:array{at?:int|null, status?:int|null, error?:string|null}|null, consecutive_failures?:int, last_minted_at?:int|null}>, has_more?:bool, unhealthy_count:int, generated_at?:int}
+     * @return array{object:mixed, duplicate_delivery_paths?:list<array{kind?:'forwarding'|'integration', destination?:string, forwarding_endpoint_id?:string, webhook_endpoint_ids?:list<string>}>, data:list<array{kind:'webhook_endpoint'|'integration'|'privacy_orchestrator', id:string|null, name?:string|null, url?:string|null, managed_by?:string|null, destination?:string, duplicate_delivery_path?:array{code?:mixed, kind?:'forwarding'|'integration', destination?:string, forwarding_endpoint_id?:string, webhook_endpoint_ids?:list<string>}, state:'healthy'|'failing'|'disabled'|'inactive'|'no_deliveries'|'unknown', last_success_at?:int|null, last_failure?:array{at?:int|null, status?:int|null, error?:string|null}|null, consecutive_failures?:int, last_minted_at?:int|null}>, has_more?:bool, unhealthy_count:int, generated_at?:int}
      */
     public function listIntegrationsHealth(array $query = []): array
     {
@@ -877,7 +893,7 @@ final class Instance
      * `GET /v1/instance/scopes` (scope `instance:read`)
      *
      * @param array{limit?:int, starting_after?:string} $query
-     * @return array{object:mixed, data:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool, requires_client_level?:'any'|'verified'|'certified', owner_exempt?:bool, wildcard?:bool}>}
+     * @return array{object:mixed, data:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool, requires_client_level?:'any'|'verified'|'certified', owner_exempt?:bool, optional?:bool, wildcard?:bool}>}
      */
     public function listScopes(array $query = []): array
     {
@@ -887,11 +903,11 @@ final class Instance
     }
 
     /**
-     * Replace the scope catalogue. Each scope has a `name`, a `label` and a `description` per locale ({ "en": "…", "es": "…" }), `sensitive`, and `requires_verified_client`. The consent screen shows the label and description in the user's language (falling back to its base language, then `en`). A scope with `requires_verified_client` is refused at /oauth2/authorize with `invalid_scope` unless the app's status is `approved` or that scope is in the client's `approved_scopes` (per-scope review). The owner and testers of a client still in development may request it too. A client still needs the scope in its allowed scopes to request it. `requires_client_level` (`any`, `verified` or `certified`) sets the level a client needs (`requires_verified_client: true` means `verified`; the stricter wins); a `certified` client is an approved one the instance has certified (PATCH /v1/oauth_clients/{id} `certified`). `owner_exempt: true` lets the developer who owns a client request the scope with it on their own account whatever the client's level. A name ending `:*` (`listings:*`) is a wildcard entry: it covers every `listings:<anything>` for gating, consent text and released claims, and a client or grant that holds `listings:*` holds each of them. By default the whole list is checked and nothing is written if any entry is bad (422, one problem per field). `?mode=partial` applies the valid entries and answers 200 with `rejected: [{ index, name, errors }]` (a rejected entry leaves the scope of that name as it was). `?too_long=truncate` cuts over-long labels and descriptions instead of refusing them and lists each cut in `warnings`.
+     * Replace the scope catalogue. Each scope has a `name`, a `label` and a `description` per locale ({ "en": "…", "es": "…" }), `sensitive`, and `requires_verified_client`. The consent screen shows the label and description in the user's language (falling back to its base language, then `en`). A scope with `requires_verified_client` is refused at /oauth2/authorize with `invalid_scope` unless the app's status is `approved` or that scope is in the client's `approved_scopes` (per-scope review). The owner and testers of a client still in development may request it too. A client still needs the scope in its allowed scopes to request it. `requires_client_level` (`any`, `verified` or `certified`) sets the level a client needs (`requires_verified_client: true` means `verified`; the stricter wins); a `certified` client is an approved one the instance has certified (PATCH /v1/oauth_clients/{id} `certified`). `optional: true` lets the user untick the scope on the consent screen (the token then carries only the scopes they kept). `owner_exempt: true` lets the developer who owns a client request the scope with it on their own account whatever the client's level. A name ending `:*` (`listings:*`) is a wildcard entry: it covers every `listings:<anything>` for gating, consent text and released claims, and a client or grant that holds `listings:*` holds each of them. By default the whole list is checked and nothing is written if any entry is bad (422, one problem per field). `?mode=partial` applies the valid entries and answers 200 with `rejected: [{ index, name, errors }]` (a rejected entry leaves the scope of that name as it was). `?too_long=truncate` cuts over-long labels and descriptions instead of refusing them and lists each cut in `warnings`.
      *
      * `PUT /v1/instance/scopes` (scope `instance:write`)
      *
-     * @param array{scopes:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool, requires_client_level?:'any'|'verified'|'certified', owner_exempt?:bool}>} $body
+     * @param array{scopes:list<array{name:string, label?:array<string,string>, description?:array<string,string>, sensitive?:bool, requires_verified_client?:bool, requires_client_level?:'any'|'verified'|'certified', owner_exempt?:bool, optional?:bool}>} $body
      * @param array{mode?:string, too_long?:string} $query
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
      */
@@ -906,7 +922,7 @@ final class Instance
      * `GET /v1/instance/secret_keys` (scope `secret_keys:read`)
      *
      * @param array{limit?:int, starting_after?:string} $query
-     * @return array{object?:mixed, data?:list<array{object:string, id:string, kind:'secret_key'|'platform_key'|'account_key'|'webhook_secret'|'partner_link'|'access_token', format:'atlas'|'legacy', prefix:string, name?:string|null, owner:string|null, scopes:list<string>, environment?:string|null, resource?:array{type?:'instance'|'account'|'application'|'webhook_endpoint', id?:string}, expires_at:int|null, expires_in_days?:int|null, status:'active'|'expiring'|'expired'|'revoked', ip_allowlist?:list<string>, origin_allowlist?:list<string>, last_used_at:int|null, last_used_ip:string|null, created_at:int, revoked_at:int|null, allowed_ips?:list<string>, allowed_origins?:list<string>, organization_ids?:list<string>, rotated_from?:string|null, metadata?:array<string,mixed>, external_ref?:string|null, idempotent_replay?:bool, secret?:string}>, has_more?:bool, next_cursor?:string|null}
+     * @return array{object?:mixed, data?:list<array{object:string, id:string, kind:'secret_key'|'platform_key'|'account_key'|'webhook_secret'|'partner_link'|'access_token', format:'atlas'|'legacy', prefix:string, name?:string|null, owner:string|null, scopes:list<string>, environment?:string|null, resource?:array{type?:'instance'|'account'|'application'|'webhook_endpoint', id?:string}, expires_at:int|null, expires_in_days?:int|null, status:'active'|'expiring'|'expired'|'revoked', ip_allowlist?:list<string>, origin_allowlist?:list<string>, last_used_at:int|null, last_used_ip:string|null, created_at:int, revoked_at:int|null, allowed_ips?:list<string>, allowed_origins?:list<string>, organization_ids?:list<string>, rotated_from?:string|null, last_app_used_at?:int|null, last_used_user_agent?:string|null, metadata?:array<string,mixed>, external_ref?:string|null, idempotent_replay?:bool, secret?:string}>, has_more?:bool, next_cursor?:string|null}
      */
     public function listSecretKeys(array $query = []): array
     {
@@ -931,9 +947,9 @@ final class Instance
      *
      * `POST /v1/instance/secret_keys` (scope `secret_keys:write`)
      *
-     * @param array{name?:string, scopes?:list<string>, preset?:'app-runtime'|'web-app'|'provisioning'|'integrations', expires_at?:int, allowed_ips?:list<string>, ip_allowlist?:list<string>, allowed_origins?:list<string>, origin_allowlist?:list<string>, organization_ids?:list<string>, owner?:string|null, key_format?:'atlas'|'legacy', external_ref?:string, metadata?:array<string,string>} $body
+     * @param array{name?:string, scopes?:list<string>, preset?:'app-runtime'|'web-app'|'provisioning'|'operator'|'end-user-pools'|'oauth-apps'|'integrations', expires_at?:int, allowed_ips?:list<string>, ip_allowlist?:list<string>, allowed_origins?:list<string>, origin_allowlist?:list<string>, organization_ids?:list<string>, owner?:string|null, key_format?:'atlas'|'legacy', external_ref?:string, metadata?:array<string,string>} $body
      * @param string|null $idempotencyKey sent as `Idempotency-Key`; a retry with the same key replays the first response
-     * @return array{object:string, id:string, kind:'secret_key'|'platform_key'|'account_key'|'webhook_secret'|'partner_link'|'access_token', format:'atlas'|'legacy', prefix:string, name?:string|null, owner:string|null, scopes:list<string>, environment?:string|null, resource?:array{type?:'instance'|'account'|'application'|'webhook_endpoint', id?:string}, expires_at:int|null, expires_in_days?:int|null, status:'active'|'expiring'|'expired'|'revoked', ip_allowlist?:list<string>, origin_allowlist?:list<string>, last_used_at:int|null, last_used_ip:string|null, created_at:int, revoked_at:int|null, allowed_ips?:list<string>, allowed_origins?:list<string>, organization_ids?:list<string>, rotated_from?:string|null, metadata?:array<string,mixed>, external_ref?:string|null, idempotent_replay?:bool, secret?:string}
+     * @return array{object:string, id:string, kind:'secret_key'|'platform_key'|'account_key'|'webhook_secret'|'partner_link'|'access_token', format:'atlas'|'legacy', prefix:string, name?:string|null, owner:string|null, scopes:list<string>, environment?:string|null, resource?:array{type?:'instance'|'account'|'application'|'webhook_endpoint', id?:string}, expires_at:int|null, expires_in_days?:int|null, status:'active'|'expiring'|'expired'|'revoked', ip_allowlist?:list<string>, origin_allowlist?:list<string>, last_used_at:int|null, last_used_ip:string|null, created_at:int, revoked_at:int|null, allowed_ips?:list<string>, allowed_origins?:list<string>, organization_ids?:list<string>, rotated_from?:string|null, last_app_used_at?:int|null, last_used_user_agent?:string|null, metadata?:array<string,mixed>, external_ref?:string|null, idempotent_replay?:bool, secret?:string}
      */
     public function createSecretKey(array $body = [], ?string $idempotencyKey = null): array
     {
